@@ -1,0 +1,21 @@
+# 日志目录（运行时生成）
+logs/
+
+# 编译产物
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+server
+
+# 环境变量（含敏感信息）
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# 依赖
+vendor/

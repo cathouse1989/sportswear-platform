@@ -1,0 +1,24 @@
+# 依赖
+node_modules/
+
+# Nuxt 构建产物
+.nuxt/
+.output/
+dist/
+
+# 日志
+*.log
+
+# 环境变量
+.env
+.env.*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# 系统
+.DS_Store
+Thumbs.db
+node_modules

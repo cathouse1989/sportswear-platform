@@ -1,0 +1,173 @@
+<template>
+  <el-card shadow="never">
+    <div class="toolbar">
+      <el-input
+        v-model="keyword"
+        placeholder="搜索姓名 / 邮箱 / 公司"
+        clearable
+        style="width: 260px"
+        @keyup.enter="handleSearch"
+      />
+      <el-select v-model="status" placeholder="状态" clearable style="width: 160px" @change="handleSearch">
+        <el-option v-for="(label, val) in statusMap" :key="val" :label="label" :value="val" />
+      </el-select>
+      <el-button type="primary" @click="handleSearch">查询</el-button>
+    </div>
+
+    <el-table :data="leads" v-loading="loading" stripe>
+      <el-table-column prop="name" label="姓名" width="120" />
+      <el-table-column prop="company" label="公司" min-width="140" />
+      <el-table-column prop="email" label="邮箱" min-width="180" />
+      <el-table-column prop="country" label="国家" width="110" />
+      <el-table-column prop="status" label="状态" width="110">
+        <template #default="{ row }">
+          <el-tag size="small">{{ statusMap[row.status] || row.status }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="score" label="评分" width="90">
+        <template #default="{ row }">
+          <el-tag :type="scoreType(row.score)" size="small">{{ row.score }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="160">
+        <template #default="{ row }: any">
+          <el-button size="small" @click="openDetail(row)">详情</el-button>
+          <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <el-pagination
+      class="pagination"
+      v-model:current-page="page"
+      v-model:page-size="pageSize"
+      :total="total"
+      layout="total, prev, pager, next"
+      @current-change="loadData"
+    />
+
+    <!-- 详情对话框 -->
+    <el-dialog v-model="detailVisible" title="询盘详情" width="720px">
+      <template v-if="current">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="姓名">{{ current.name }}</el-descriptions-item>
+          <el-descriptions-item label="公司">{{ current.company || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="邮箱">{{ current.email }}</el-descriptions-item>
+          <el-descriptions-item label="电话">{{ current.phone || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="国家">{{ current.country || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="项目类型">{{ current.project_type || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="产品分类">{{ current.product_category || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="数量">{{ current.quantity || 0 }}</el-descriptions-item>
+          <el-descriptions-item label="来源">{{ current.source || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="评分">{{ current.score }}</el-descriptions-item>
+          <el-descriptions-item label="留言" :span="2">{{ current.message || '-' }}</el-descriptions-item>
+        </el-descriptions>
+
+        <el-divider content-position="left">跟进记录</el-divider>
+        <div v-if="current.follow_ups?.length">
+          <div v-for="fu in current.follow_ups" :key="fu.id" class="followup-item">
+            <div class="followup-content">{{ fu.content }}</div>
+            <div class="followup-meta">{{ fu.method }} · {{ fu.created_at }}</div>
+          </div>
+        </div>
+        <el-empty v-else description="暂无跟进记录" :image-size="60" />
+      </template>
+    </el-dialog>
+  </el-card>
+</template>
+
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { leadApi } from '@/api'
+import type { Lead } from '@/types'
+
+const leads = ref<Lead[]>([])
+const loading = ref(false)
+const total = ref(0)
+const page = ref(1)
+const pageSize = ref(20)
+const keyword = ref('')
+const status = ref('')
+
+const detailVisible = ref(false)
+const current = ref<Lead | null>(null)
+
+const statusMap: Record<string, string> = {
+  new: '新询盘',
+  contacted: '已联系',
+  confirmed: '已确认',
+  quoted: '已报价',
+  sampling: '打样中',
+  negotiating: '洽谈中',
+  won: '已成交',
+  lost: '已流失',
+  spam: '垃圾',
+}
+
+async function loadData() {
+  loading.value = true
+  try {
+    const result = await leadApi.list({
+      page: page.value,
+      pageSize: pageSize.value,
+      keyword: keyword.value,
+      status: status.value,
+    })
+    leads.value = result.items
+    total.value = result.total
+  } finally {
+    loading.value = false
+  }
+}
+
+function handleSearch() {
+  page.value = 1
+  loadData()
+}
+
+async function openDetail(row: Lead) {
+  current.value = await leadApi.get(row.id)
+  detailVisible.value = true
+}
+
+async function handleDelete(row: Lead) {
+  await ElMessageBox.confirm(`确定删除询盘 ${row.name} 吗？`, '警告', { type: 'warning' })
+  await leadApi.delete(row.id)
+  ElMessage.success('已删除')
+  loadData()
+}
+
+function scoreType(score: number) {
+  return score >= 80 ? 'danger' : score >= 50 ? 'warning' : 'info'
+}
+
+onMounted(loadData)
+</script>
+
+<style scoped>
+.toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+.pagination {
+  margin-top: 16px;
+  justify-content: flex-end;
+}
+.followup-item {
+  padding: 10px;
+  background: #f9fafb;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+.followup-content {
+  font-size: 14px;
+}
+.followup-meta {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+</style>

@@ -1,0 +1,7 @@
+.git
+.env
+logs/
+*.exe
+*.md
+docs/
+server_smoke.exe

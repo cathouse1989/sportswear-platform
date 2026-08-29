@@ -1,0 +1,62 @@
+/* ===== Mobile Touch Optimization ===== */
+
+/* Safe area bottom for mobile (notch phones) */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Better touch feedback */
+@media (hover: none) and (pointer: coarse) {
+  /* Increase tap targets on touch devices */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Accordion transition for FAQ */
+.accordion-enter-active {
+  transition: all 0.25s ease-out;
+  max-height: 500px;
+  opacity: 1;
+}
+.accordion-leave-active {
+  transition: all 0.2s ease-in;
+  max-height: 0;
+  opacity: 0;
+}
+.accordion-enter-from,
+.accordion-leave-to {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+/* Smooth scrolling for the whole page */
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent text size adjust on orientation change */
+body {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Better image rendering */
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
