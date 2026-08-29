@@ -1,12 +1,12 @@
 <template>
   <section
-    class="relative min-h-screen flex items-center bg-[#0D1B2A] overflow-hidden touch-pan-y"
+    class="hero-carousel relative min-h-screen overflow-hidden bg-[#0D1B2A] touch-pan-y"
     @touchstart="onTouchStart"
     @touchend="onTouchEnd"
     @mouseenter="onMouseEnter"
     @mouseleave="onMouseLeave"
   >
-    <!-- 背景层：始终低于文案与控件，避免挡住标题/指示点点击 -->
+    <!-- 背景：z-0，不参与点击 -->
     <div
       v-for="(s, i) in slides"
       :key="'bg-' + i"
@@ -17,7 +17,7 @@
         v-if="s.image && !imgFailed[i]"
         :src="s.image"
         :alt="s.title || ''"
-        class="w-full h-full object-cover"
+        class="h-full w-full object-cover"
         :fetchpriority="i === 0 ? 'high' : 'auto'"
         :loading="i === 0 ? 'eager' : 'lazy'"
         @error="onImgError(i)"
@@ -25,57 +25,66 @@
       <div class="absolute inset-0 bg-gradient-to-r from-[#0D1B2A]/95 via-[#0D1B2A]/70 to-transparent" />
     </div>
 
-    <!-- 文案层：高于背景，链接可点 -->
-    <div class="relative z-20 max-w-7xl mx-auto px-4 lg:px-8 py-20 w-full pointer-events-none">
-      <div class="max-w-2xl">
-        <div v-for="(s, i) in slides" :key="'c-' + i" :class="current === i ? '' : 'hidden'">
-          <h1 class="text-4xl sm:text-5xl md:text-7xl font-bold text-white mb-4 md:mb-6 leading-tight">
-            {{ s.title }}
-          </h1>
-          <p v-if="s.subtitle" class="text-base sm:text-lg md:text-xl text-white/60 mb-8 md:mb-10">
-            {{ s.subtitle }}
-          </p>
-          <NuxtLink
-            :to="localePath(s.button_url || '/contact')"
-            class="pointer-events-auto inline-flex items-center gap-3 bg-[#D4A853] text-white px-8 md:px-10 py-3.5 md:py-4 rounded-full font-semibold hover:bg-[#C49A3F] transition text-sm md:text-base min-h-[48px]"
-          >{{ s.button_text || defaultButtonText }}</NuxtLink>
+    <!-- 文案：与箭头错开左右留白，避免盖住切图按钮 -->
+    <div
+      class="relative z-10 flex min-h-screen w-full items-center pointer-events-none"
+      :class="hasNav ? 'px-14 sm:px-16 lg:px-24' : 'px-4 lg:px-8'"
+    >
+      <div class="mx-auto w-full max-w-7xl py-20">
+        <div class="max-w-2xl">
+          <div v-for="(s, i) in slides" :key="'c-' + i" :class="current === i ? '' : 'hidden'">
+            <h1 class="mb-4 text-4xl font-bold leading-tight text-white sm:text-5xl md:mb-6 md:text-7xl">
+              {{ s.title }}
+            </h1>
+            <p v-if="s.subtitle" class="mb-8 text-base text-white/60 sm:text-lg md:mb-10 md:text-xl">
+              {{ s.subtitle }}
+            </p>
+            <NuxtLink
+              :to="localePath(s.button_url || '/contact')"
+              class="pointer-events-auto inline-flex min-h-[48px] items-center gap-3 rounded-full bg-[#D4A853] px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-[#C49A3F] md:px-10 md:py-4 md:text-base"
+            >{{ s.button_text || defaultButtonText }}</NuxtLink>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 左右箭头：可手动切换；移动端也显示 -->
-    <template v-if="showArrows && slides.length > 1">
+    <!-- 左右箭头：Tailwind 实心样式保证构建产物可见；桌面右箭头避开 FloatingContact -->
+    <div v-if="hasNav" class="pointer-events-none absolute inset-0 z-30">
       <button
         type="button"
-        class="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center transition"
+        class="hero-arrow pointer-events-auto absolute left-2 top-1/2 z-30 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-[#0D1B2A] text-white shadow-[0_8px_24px_rgba(0,0,0,0.45)] transition hover:bg-[#D4A853] hover:border-[#D4A853] sm:left-4 md:h-14 md:w-14"
         aria-label="Previous slide"
-        @click="goPrev"
+        @click.stop="goPrev"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+        </svg>
       </button>
       <button
         type="button"
-        class="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center transition"
+        class="hero-arrow pointer-events-auto absolute right-2 top-1/2 z-30 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-[#0D1B2A] text-white shadow-[0_8px_24px_rgba(0,0,0,0.45)] transition hover:bg-[#D4A853] hover:border-[#D4A853] sm:right-4 md:right-16 md:h-14 md:w-14"
         aria-label="Next slide"
-        @click="goNext"
+        @click.stop="goNext"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+        </svg>
       </button>
-    </template>
+    </div>
 
-    <!-- 指示点：高于背景，可点击切换 -->
+    <!-- 指示点 -->
     <div
-      v-if="showDots && slides.length > 1"
-      class="absolute bottom-12 left-1/2 -translate-x-1/2 z-30 flex gap-3"
+      v-if="showDots && slideCount > 1"
+      class="pointer-events-auto absolute bottom-12 left-1/2 z-30 flex -translate-x-1/2 gap-3"
     >
       <button
         v-for="(s, i) in slides"
         :key="'d-' + i"
         type="button"
-        class="w-2.5 h-2.5 rounded-full transition-all min-h-[10px] min-w-[10px]"
-        :class="current === i ? 'bg-[#D4A853] w-8' : 'bg-white/30 hover:bg-white/50'"
+        class="min-h-[10px] min-w-[10px] rounded-full transition-all"
+        :class="current === i ? 'h-2.5 w-8 bg-[#D4A853]' : 'h-2.5 w-2.5 bg-white/40 hover:bg-white/70'"
         :aria-label="`Go to slide ${i + 1}`"
-        @click="goTo(i)"
+        @click.stop="goTo(i)"
       />
     </div>
   </section>
@@ -115,7 +124,15 @@ const imgFailed = ref<number[]>([])
 const touchStartX = ref(0)
 const touchEndX = ref(0)
 
-const autoplay = computed(() => props.settings?.autoplay !== false)
+/** 后台/主题开关：仅显式 false / "false" / 0 时关闭，缺省视为开启 */
+function flagOn(v: unknown, defaultOn = true) {
+  if (v === undefined || v === null || v === '') return defaultOn
+  if (v === false || v === 0 || v === '0') return false
+  if (typeof v === 'string' && v.toLowerCase() === 'false') return false
+  return true
+}
+
+const autoplay = computed(() => flagOn(props.settings?.autoplay, true))
 const intervalMs = computed(() => {
   const n = Number(props.settings?.interval_ms || 5000)
   if (!Number.isFinite(n) || n < 2000) return 5000
@@ -123,11 +140,11 @@ const intervalMs = computed(() => {
   return n
 })
 const transition = computed(() => (props.settings?.transition === 'slide' ? 'slide' : 'fade'))
-const showDots = computed(() => props.settings?.show_dots !== false)
-// 默认开启箭头，便于手动切换；仅当明确配置为 false 时隐藏
-const showArrows = computed(() => props.settings?.show_arrows !== false)
-const pauseOnHover = computed(() => props.settings?.pause_on_hover !== false)
+const showDots = computed(() => flagOn(props.settings?.show_dots, true))
+const showArrows = computed(() => flagOn(props.settings?.show_arrows, true))
+const pauseOnHover = computed(() => flagOn(props.settings?.pause_on_hover, true))
 const slideCount = computed(() => props.slides?.length || 0)
+const hasNav = computed(() => slideCount.value > 1 && showArrows.value)
 
 function slideClass(i: number) {
   if (transition.value === 'slide') {
@@ -217,3 +234,13 @@ onUnmounted(() => {
   clearTimer()
 })
 </script>
+
+<style scoped>
+.hero-arrow {
+  padding: 0;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+</style>

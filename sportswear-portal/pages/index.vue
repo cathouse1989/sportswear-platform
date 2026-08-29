@@ -123,13 +123,21 @@ const themeHero = computed(() => {
 const heroSettings = computed(() => {
   const s = homeData.value?.hero_settings || {}
   const th = themeHero.value
+  const pick = (v: unknown, fallback: boolean) => {
+    if (v === undefined || v === null) return fallback
+    if (v === false || v === 0 || v === '0') return false
+    if (typeof v === 'string' && v.toLowerCase() === 'false') return false
+    return true
+  }
   return {
-    autoplay: s.autoplay !== undefined ? s.autoplay !== false : th.autoplay,
+    autoplay: pick(s.autoplay, th.autoplay),
     interval_ms: Number(s.interval_ms) || th.interval_ms || 5000,
     transition: (s.transition === 'slide' || s.transition === 'fade') ? s.transition : th.transition,
-    show_dots: s.show_dots !== undefined ? s.show_dots !== false : th.show_dots,
-    show_arrows: s.show_arrows !== undefined ? s.show_arrows !== false : th.show_arrows,
-    pause_on_hover: s.pause_on_hover !== undefined ? s.pause_on_hover !== false : th.pause_on_hover,
+    show_dots: pick(s.show_dots, th.show_dots),
+    // 箭头默认开启。theme.hero_show_arrows 若为 false 不能把多图轮播的箭头关掉
+    // （当前库里该主题项为 false，会导致门户左右箭头整段不渲染）
+    show_arrows: pick(s.show_arrows, true),
+    pause_on_hover: pick(s.pause_on_hover, th.pause_on_hover),
   }
 })
 </script>
