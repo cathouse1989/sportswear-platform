@@ -511,7 +511,6 @@ func (s *AuthService) InitDefaultData() error {
 			{Name: "FAQ管理", Code: "faq:manage", Module: "cms"},
 			{Name: "工厂管理", Code: "factory:manage", Module: "cms"},
 			{Name: "认证管理", Code: "certification:manage", Module: "cms"},
-			{Name: "生产流程管理", Code: "production:manage", Module: "cms"},
 			{Name: "媒体上传", Code: "media:upload", Module: "media"},
 			{Name: "媒体管理", Code: "media:manage", Module: "media"},
 			{Name: "询盘查看", Code: "lead:view", Module: "lead"},
@@ -659,7 +658,7 @@ func (s *AuthService) assignRolePermissions() {
 			"category:manage", "series:manage", "fabric:manage",
 			"page:view", "page:update", "page:publish", "navigation:manage",
 			"blog:manage", "case:manage", "faq:manage",
-			"factory:manage", "certification:manage", "production:manage",
+			"factory:manage", "certification:manage",
 			"media:upload", "media:manage",
 			"lead:view", "lead:update", "lead:followup",
 			"seo:manage", "dashboard:view",
@@ -667,7 +666,7 @@ func (s *AuthService) assignRolePermissions() {
 		"content_admin": { // 内容管理员：CMS 相关
 			"page:view", "page:update", "page:publish", "navigation:manage",
 			"blog:manage", "case:manage", "faq:manage",
-			"factory:manage", "certification:manage", "production:manage",
+			"factory:manage", "certification:manage",
 			"media:upload", "media:manage",
 		},
 		"product_admin": { // 产品管理员：产品相关

@@ -75,7 +75,7 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 	publicHandler := handlers.NewPublicHandler(productService, cmsService, leadService, cacheService)
 	trashHandler := handlers.NewTrashHandler(trashService)
 	analyticsHandler := handlers.NewAnalyticsHandler(analyticsService)
-	portalHandler := handlers.NewPortalHandler(portalService)
+	portalHandler := handlers.NewPortalHandler(portalService, cacheService, db)
 	i18nHandler := handlers.NewI18nHandler(i18nService)
 	localizationHandler := handlers.NewLocalizationHandler(seoService, currencyService, geoService, unitService)
 	storageSourceHandler := handlers.NewStorageSourceHandler(storageSourceService)
@@ -103,7 +103,6 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 		public.GET("/fabrics", publicHandler.ListFabrics)
 		public.GET("/factories", publicHandler.ListFactories)
 		public.GET("/certifications", publicHandler.ListCertifications)
-		public.GET("/production-processes", publicHandler.ListProductionProcesses)
 		public.GET("/navigations", publicHandler.ListNavigations)
 		public.POST("/leads", publicHandler.CreateLead)                        // 询盘提交（受频率限制保护）
 		public.POST("/click-track", publicHandler.TrackClick)                  // 外部链接点击跟踪（社交媒体跳转）
@@ -309,19 +308,6 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 			auth.POST("/certifications/:id/unpublish",
 				middleware.RequirePermission("certification:manage"), cmsHandler.UnpublishCertification)
 
-			// 生产流程管理
-			auth.GET("/production-processes",
-				middleware.RequireAnyPermission("production:manage", "page:view"), cmsHandler.ListProductionProcesses)
-			auth.POST("/production-processes",
-				middleware.RequirePermission("production:manage"), cmsHandler.CreateProductionProcess)
-			auth.PUT("/production-processes/:id",
-				middleware.RequirePermission("production:manage"), cmsHandler.UpdateProductionProcess)
-			auth.DELETE("/production-processes/:id",
-				middleware.RequirePermission("production:manage"), cmsHandler.DeleteProductionProcess)
-			auth.POST("/production-processes/:id/publish",
-				middleware.RequirePermission("production:manage"), cmsHandler.PublishProductionProcess)
-			auth.POST("/production-processes/:id/unpublish",
-				middleware.RequirePermission("production:manage"), cmsHandler.UnpublishProductionProcess)
 
 			// ---------- 媒体管理 ----------
 			auth.GET("/media",
@@ -395,6 +381,16 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 			auth.GET("/theme", portalHandler.ListThemeConfigs)
 			auth.PUT("/theme/:key",
 				middleware.RequirePermission("setting:manage"), portalHandler.UpdateThemeConfig)
+
+			// portal cache: status / toggle / refresh / publish
+			auth.GET("/portal-cache",
+				middleware.RequirePermission("setting:manage"), portalHandler.GetPortalCacheStatus)
+			auth.PUT("/portal-cache/enabled",
+				middleware.RequirePermission("setting:manage"), portalHandler.SetPortalCacheEnabled)
+			auth.POST("/portal-cache/refresh",
+				middleware.RequirePermission("setting:manage"), portalHandler.RefreshPortalCache)
+			auth.POST("/portal-cache/publish",
+				middleware.RequirePermission("setting:manage"), portalHandler.PublishPortalCache)
 
 			// ---------- 国际化词条管理（i18n 词典） ----------
 			auth.GET("/i18n/entries",

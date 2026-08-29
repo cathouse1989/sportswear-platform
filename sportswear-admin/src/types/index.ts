@@ -341,17 +341,6 @@ export interface Certification {
   is_active: boolean
 }
 
-export interface ProductionProcess {
-  id: string
-  name: string
-  status: string
-  description: string
-  image?: string
-  video?: string
-  sort_order: number
-  is_active: boolean
-}
-
 export interface Navigation {
   id: string
   name: string

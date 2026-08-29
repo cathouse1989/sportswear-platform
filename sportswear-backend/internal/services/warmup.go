@@ -1,4 +1,4 @@
-﻿package services
+package services
 
 import (
 	"sync"
@@ -13,7 +13,7 @@ import (
 // 立即将门户热点数据写入缓存，让首轮访问即可命中，避免冷启动回源变慢。
 // 尽力而为：任意一项预热失败仅跳过该项，不影响服务启动与其余缓存。
 func WarmUpPublicCache(db *gorm.DB, cache *CacheService) {
-	if cache == nil || !cache.IsEnabled() {
+	if cache == nil || !cache.IsRedisOK() {
 		return
 	}
 
@@ -43,9 +43,6 @@ func WarmUpPublicCache(db *gorm.DB, cache *CacheService) {
 		if list, err := cmsSvc.ListPublishedCertifications(); err == nil {
 			cache.Set("cache:certifications:"+lang, list, CacheTTLMedium)
 		}
-		if list, err := cmsSvc.ListPublishedProductionProcesses(); err == nil {
-			cache.Set("cache:production-processes:"+lang, list, CacheTTLMedium)
-		}
 	}
 
 	// 导航（低频变更，长 TTL）
@@ -69,17 +66,15 @@ func buildHomeData(cmsSvc *CMSService, productSvc *ProductService, lang string) 
 		blogs          []models.Blog
 		cases          []models.Case
 		certifications []models.Certification
-		processes      []models.ProductionProcess
 		factories      []models.Factory
 	)
 
-	wg.Add(7)
+	wg.Add(6)
 	go func() { defer wg.Done(); products, _ = productSvc.ListFeaturedProducts(8) }()
 	go func() { defer wg.Done(); categories, _ = productSvc.ListCategories() }()
 	go func() { defer wg.Done(); blogs, _, _ = cmsSvc.ListBlogs(1, 4, "", "published") }()
 	go func() { defer wg.Done(); cases, _, _ = cmsSvc.ListPublishedCases(1, 4, "") }()
 	go func() { defer wg.Done(); certifications, _ = cmsSvc.ListPublishedCertifications() }()
-	go func() { defer wg.Done(); processes, _ = cmsSvc.ListPublishedProductionProcesses() }()
 	go func() { defer wg.Done(); factories, _ = cmsSvc.ListPublishedFactories() }()
 	wg.Wait()
 
@@ -88,13 +83,12 @@ func buildHomeData(cmsSvc *CMSService, productSvc *ProductService, lang string) 
 	LocalizeCases(cases, lang)
 
 	return map[string]interface{}{
-		"page":                 page,
-		"featured_products":    products,
-		"categories":           categories,
-		"blogs":                blogs,
-		"cases":                cases,
-		"certifications":       certifications,
-		"production_processes": processes,
-		"factories":            factories,
+		"page":              page,
+		"featured_products": products,
+		"categories":        categories,
+		"blogs":             blogs,
+		"cases":             cases,
+		"certifications":    certifications,
+		"factories":         factories,
 	}
 }

@@ -27,13 +27,11 @@
         <el-sub-menu index="cms">
           <template #title><el-icon><Document /></el-icon><span>内容管理</span></template>
           <el-menu-item index="/pages">页面管理</el-menu-item>
-          <el-menu-item index="/hero">轮播图管理</el-menu-item>
           <el-menu-item index="/blogs">博客管理</el-menu-item>
           <el-menu-item index="/cases">案例管理</el-menu-item>
           <el-menu-item index="/faqs">FAQ 管理</el-menu-item>
           <el-menu-item index="/factories">工厂管理</el-menu-item>
           <el-menu-item index="/certifications">认证管理</el-menu-item>
-          <el-menu-item index="/production-processes">生产流程</el-menu-item>
         </el-sub-menu>
         <el-menu-item index="/media">
           <el-icon><Picture /></el-icon>
@@ -58,6 +56,7 @@
           <el-menu-item index="/storage-sources">存储源配置</el-menu-item>
           <el-menu-item index="/quotes">报价管理</el-menu-item>
           <el-menu-item index="/notifications">通知列表</el-menu-item>
+          <el-menu-item index="/portal-cache">门户缓存</el-menu-item>
           <el-menu-item index="/trash">回收站</el-menu-item>
         </el-sub-menu>
         <el-menu-item index="/portal-preview">

@@ -73,4 +73,6 @@ var DefaultThemeConfigs = []ThemeConfig{
 	{Key: "hero_show_dots", Value: "true", Group: "hero", Name: "显示轮播指示点", IsActive: true},
 	{Key: "hero_show_arrows", Value: "true", Group: "hero", Name: "显示左右箭头", IsActive: true},
 	{Key: "hero_pause_on_hover", Value: "true", Group: "hero", Name: "悬停暂停轮播", IsActive: true},
+	// 门户内容缓存（后台系统配置可开关；开启=公开接口走缓存并自动刷新，关闭=走数据库且不自动更新缓存）
+	{Key: "portal_cache_enabled", Value: "true", Group: "system", Name: "门户内容缓存开关", IsActive: true},
 }

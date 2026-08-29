@@ -19,7 +19,6 @@ import type {
   FAQ,
   Factory,
   Certification,
-  ProductionProcess,
   Navigation,
   Media,
   StorageSource,
@@ -174,16 +173,6 @@ export const certificationApi = {
   unpublish: (id: string) => http.post(`/admin/certifications/${id}/unpublish`),
 }
 
-// ============ 生产流程 ============
-export const productionProcessApi = {
-  list: (params?: any) => http.get<ProductionProcess[]>('/admin/production-processes', params),
-  create: (data: any) => http.post<ProductionProcess>('/admin/production-processes', data),
-  update: (id: string, data: any) => http.put<ProductionProcess>(`/admin/production-processes/${id}`, data),
-  delete: (id: string) => http.delete(`/admin/production-processes/${id}`),
-  publish: (id: string) => http.post(`/admin/production-processes/${id}/publish`),
-  unpublish: (id: string) => http.post(`/admin/production-processes/${id}/unpublish`),
-}
-
 // ============ 媒体 ============
 export const mediaApi = {
   list: (params?: any) => http.get<PageResult<Media>>('/admin/media', params),
@@ -285,6 +274,14 @@ export const trashApi = {
   restore: (id: string, entityType: string) => http.post(`/admin/trash/${id}/restore`, { entity_type: entityType }),
   purge: (id: string, entityType: string) => http.post(`/admin/trash/${id}/purge`, { entity_type: entityType }),
   empty: () => http.delete('/admin/trash'),
+}
+
+// ============ 门户缓存 ============
+export const portalCacheApi = {
+  status: () => http.get<{ redis_ok: boolean; enabled: boolean; using_cache: boolean; last_refresh_at?: string | null }>('/admin/portal-cache'),
+  setEnabled: (enabled: boolean) => http.put<any>('/admin/portal-cache/enabled', { enabled }),
+  refresh: () => http.post<any>('/admin/portal-cache/refresh'),
+  publish: () => http.post<any>('/admin/portal-cache/publish'),
 }
 
 // ============ 门户版本 ============

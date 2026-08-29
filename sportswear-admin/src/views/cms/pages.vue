@@ -32,7 +32,7 @@
       <el-table-column label="操作" width="360">
         <template #default="{ row }: any">
           <el-button size="small" @click="openEditDialog(row)">编辑</el-button>
-          <el-button size="small" type="warning" @click="goHero" v-if="isHome(row)">轮播图</el-button>
+          <el-button size="small" type="warning" @click="openHeroDrawer(row)" v-if="isHome(row)">轮播图</el-button>
           <el-button v-permission="'page:publish'" size="small" type="success" @click="handlePublish(row)" v-if="row.status !== 'published'">发布</el-button>
           <el-button v-permission="'page:publish'" size="small" type="warning" @click="handleUnpublish(row)" v-else>下线</el-button>
           <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
@@ -80,18 +80,20 @@
         <el-button type="primary" @click="handleSave">保存</el-button>
       </template>
     </el-dialog>
+
+    <el-drawer v-model="heroDrawerVisible" title="配置门户轮播图" size="72%" destroy-on-close>
+      <HeroEditor v-if="heroDrawerVisible && heroPageId" :page-id="heroPageId" />
+    </el-drawer>
   </el-card>
 </template>
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { pageApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
 import type { Page } from '@/types'
-
-const router = useRouter()
+import HeroEditor from '@/components/cms/HeroEditor.vue'
 
 const pages = ref<Page[]>([])
 const loading = ref(false)
@@ -128,7 +130,12 @@ async function handleDelete(row: Page) { await ElMessageBox.confirm(`确定删�
 
 // 首页轮播图：跳转独立管理页
 const isHome = (row: Page) => row.slug === 'home' || row.type === 'home'
-const goHero = () => router.push('/hero')
+const heroDrawerVisible = ref(false)
+const heroPageId = ref('')
+function openHeroDrawer(row: Page) {
+  heroPageId.value = row.id
+  heroDrawerVisible.value = true
+}
 
 onMounted(loadData)
 </script>

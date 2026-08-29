@@ -32,7 +32,6 @@ var trashEntities = map[string]interface{}{
 	"faq":                &models.FAQ{},
 	"factory":            &models.Factory{},
 	"certification":      &models.Certification{},
-	"production_process": &models.ProductionProcess{},
 	"navigation":         &models.Navigation{},
 	"media":              &models.Media{},
 	"lead":               &models.Lead{},
@@ -88,7 +87,7 @@ func (s *TrashService) listByModel(model interface{}, entityType string, page, p
 		titleField = "email"
 	case "media":
 		titleField = "original_name"
-	case "navigation", "production_process", "certification", "fabric", "series", "category", "factory", "faq":
+	case "navigation", "certification", "fabric", "series", "category", "factory", "faq":
 		titleField = "name"
 	}
 

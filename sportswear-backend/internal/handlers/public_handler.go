@@ -101,17 +101,15 @@ func (h *PublicHandler) GetHome(c *gin.Context) {
 			blogs          []models.Blog
 			cases          []models.Case
 			certifications []models.Certification
-			processes      []models.ProductionProcess
 			factories      []models.Factory
 		)
 
-		wg.Add(7)
+		wg.Add(6)
 		go func() { defer wg.Done(); products, _ = h.productService.ListFeaturedProducts(8) }()
 		go func() { defer wg.Done(); categories, _ = h.productService.ListCategories() }()
 		go func() { defer wg.Done(); blogs, _, _ = h.cmsService.ListBlogs(1, 4, "", "published") }()
 		go func() { defer wg.Done(); cases, _, _ = h.cmsService.ListPublishedCases(1, 4, "") }()
 		go func() { defer wg.Done(); certifications, _ = h.cmsService.ListPublishedCertifications() }()
-		go func() { defer wg.Done(); processes, _ = h.cmsService.ListPublishedProductionProcesses() }()
 		go func() { defer wg.Done(); factories, _ = h.cmsService.ListPublishedFactories() }()
 		wg.Wait()
 
@@ -129,7 +127,6 @@ func (h *PublicHandler) GetHome(c *gin.Context) {
 			"blogs":                blogs,
 			"cases":                cases,
 			"certifications":       certifications,
-			"production_processes": processes,
 			"factories":            factories,
 		}, nil
 	})
@@ -497,20 +494,6 @@ func (h *PublicHandler) ListCertifications(c *gin.Context) {
 	utils.Success(c, certifications)
 }
 
-// ListProductionProcesses 生产流程列表（仅已发布 + Redis 缓存）
-func (h *PublicHandler) ListProductionProcesses(c *gin.Context) {
-	lang := middleware.GetLang(c)
-	key := "cache:production-processes:" + lang
-
-	processes, err := cached[[]models.ProductionProcess](h, key, services.CacheTTLMedium, !h.previewMode(c), func() ([]models.ProductionProcess, error) {
-		return h.cmsService.ListPublishedProductionProcesses()
-	})
-	if err != nil {
-		utils.InternalError(c, "获取生产流程列表失败")
-		return
-	}
-	utils.Success(c, processes)
-}
 
 // ListNavigations 导航列表（Redis 缓存，长 TTL）
 func (h *PublicHandler) ListNavigations(c *gin.Context) {

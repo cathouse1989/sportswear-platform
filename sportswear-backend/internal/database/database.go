@@ -116,7 +116,6 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.FAQ{},
 		&models.FAQTranslation{},
 		&models.Factory{},
-		&models.ProductionProcess{},
 		&models.Certification{},
 		// SEO
 		&models.SEO{},
