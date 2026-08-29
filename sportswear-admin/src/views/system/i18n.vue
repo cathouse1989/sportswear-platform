@@ -23,7 +23,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <el-pagination class="pagination" v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, prev, pager, next" @current-change="loadData" />
+    <el-pagination class="pagination" v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, sizes, prev, pager, next, jumper" :page-sizes="[10, 20, 50, 100]" @current-change="loadData" @size-change="loadData" />
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑词条' : '新建词条'" width="560px">
       <el-form :model="form" label-width="80px">
         <el-form-item label="Key" required><el-input v-model="form.key" /></el-form-item>

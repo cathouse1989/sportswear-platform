@@ -126,6 +126,7 @@
 <script setup lang="ts">
 const localePath = useLocalePath()
 const api = useApi()
+const route = useRoute()
 const products = ref<any[]>([])
 const categories = ref<any[]>([])
 const selectedCategory = ref('')
@@ -135,7 +136,7 @@ const searchQuery = ref('')
 const loading = ref(false)
 const loadingMore = ref(false)
 const page = ref(1)
-const pageSize = ref(20)
+const pageSize = ref(Number(route.query._pageSize) || 20)
 const hasMore = ref(true)
 const total = ref(0)
 let searchTimer: ReturnType<typeof setTimeout> | null = null

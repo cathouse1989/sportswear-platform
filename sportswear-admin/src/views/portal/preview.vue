@@ -26,6 +26,7 @@
           <el-radio-button value="tablet">平板</el-radio-button>
           <el-radio-button value="mobile">手机</el-radio-button>
         </el-radio-group>
+        <el-input-number v-model="previewPageSize" size="small" :min="5" :max="100" :step="5" style="width: 120px" controls-position="right" @change="refreshPreview" />
         <el-button size="small" type="primary" :loading="iframeLoading" @click="refreshPreview">刷新</el-button>
         <el-button size="small" @click="openInNewTab">新窗口打开</el-button>
       </div>
@@ -44,8 +45,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { publicApi } from '@/api'
+import { computed, onMounted, ref, watch } from 'vue'
+import { publicApi, themeApi } from '@/api'
 import { ElMessage } from 'element-plus'
 
 const portalBase = (() => { const b = String(import.meta.env.VITE_PORTAL_BASE_URL || 'http://localhost:3000'); return b.endsWith('/') ? b.slice(0, -1) : b })()
@@ -55,7 +56,9 @@ const pathSlug = ref('')
 const device = ref<'desktop' | 'tablet' | 'mobile'>('desktop')
 const languages = ref<Array<{ code: string; name?: string; native_name?: string }>>([])
 const iframeLoading = ref(true)
+const previewPageSize = ref(20)
 const iframeKey = ref(0)
+const themePageSizes = ref<Record<string, number>>({})
 
 const pageOptions = [
   { label: '首页', value: 'home' },
@@ -96,6 +99,7 @@ const iframeSrc = computed(() => {
   const path = buildPortalPath(previewLang.value, previewPage.value, pathSlug.value)
   const url = new URL(path, portalBase + '/')
   url.searchParams.set('preview', '1')
+  url.searchParams.set('_pageSize', String(previewPageSize.value))
   url.searchParams.set('_ts', String(iframeKey.value))
   return url.toString()
 })
@@ -114,6 +118,7 @@ function openInNewTab() {
   const path = buildPortalPath(previewLang.value, previewPage.value, pathSlug.value)
   const url = new URL(path, portalBase + '/')
   url.searchParams.set('preview', '1')
+  url.searchParams.set('_pageSize', String(previewPageSize.value))
   window.open(url.toString(), '_blank', 'noopener,noreferrer')
 }
 async function loadLanguages() {
@@ -134,7 +139,48 @@ async function loadLanguages() {
     ]
   }
 }
-onMounted(async () => { await loadLanguages(); refreshPreview() })
+
+/** 从主题配置中读取各页面的每页条数 */
+async function loadPageSizes() {
+  try {
+    const theme = await themeApi.adminList()
+    const map: Record<string, number> = {}
+    for (const item of theme) {
+      if (item.key?.endsWith('_page_size') && item.key !== 'admin_page_size') {
+        const n = Number(item.value)
+        if (n > 0) map[item.key.replace('_page_size', '')] = n
+      }
+      if (item.key === 'admin_page_size') {
+        const n = Number(item.value)
+        if (n > 0) previewPageSize.value = n
+      }
+    }
+    themePageSizes.value = map
+    applyPageSize()
+  } catch { /* theme 不可用时使用默认值 */ }
+}
+
+/** 根据当前预览页面自动匹配 pageSize */
+const PAGE_SIZE_KEY: Record<string, string> = {
+  products: 'products',
+  'product-detail': 'products',
+  blogs: 'blogs',
+  'blog-detail': 'blogs',
+  cases: 'cases',
+  faqs: 'faqs',
+}
+function applyPageSize() {
+  const key = PAGE_SIZE_KEY[previewPage.value]
+  if (key && themePageSizes.value[key]) {
+    previewPageSize.value = themePageSizes.value[key]
+  }
+}
+watch(previewPage, applyPageSize)
+
+onMounted(async () => {
+  await Promise.all([loadLanguages(), loadPageSizes()])
+  refreshPreview()
+})
 </script>
 
 <style scoped>

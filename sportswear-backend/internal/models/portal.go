@@ -60,4 +60,17 @@ var DefaultThemeConfigs = []ThemeConfig{
 	{Key: "social_facebook", Value: `"https://facebook.com/sportswear"`, Group: "social", Name: "Facebook 链接", IsActive: true},
 	{Key: "social_twitter", Value: `"https://twitter.com/sportswear"`, Group: "social", Name: "Twitter/X 链接", IsActive: true},
 	{Key: "social_linkedin", Value: `"https://linkedin.com/company/sportswear"`, Group: "social", Name: "LinkedIn 链接", IsActive: true},
+	// 翻页配置
+	{Key: "products_page_size", Value: "20", Group: "pagination", Name: "产品列表每页条数", IsActive: true},
+	{Key: "blogs_page_size", Value: "20", Group: "pagination", Name: "博客列表每页条数", IsActive: true},
+	{Key: "cases_page_size", Value: "20", Group: "pagination", Name: "案例列表每页条数", IsActive: true},
+	{Key: "faqs_page_size", Value: "20", Group: "pagination", Name: "FAQ 每页条数", IsActive: true},
+	{Key: "admin_page_size", Value: "20", Group: "pagination", Name: "管理后台默认每页条数", IsActive: true},
+	// Hero 轮播配置
+	{Key: "hero_autoplay", Value: "true", Group: "hero", Name: "首页轮播自动播放", IsActive: true},
+	{Key: "hero_interval_ms", Value: "5000", Group: "hero", Name: "轮播间隔(毫秒)", IsActive: true},
+	{Key: "hero_transition", Value: "fade", Group: "hero", Name: "轮播过渡动画(fade/slide)", IsActive: true},
+	{Key: "hero_show_dots", Value: "true", Group: "hero", Name: "显示轮播指示点", IsActive: true},
+	{Key: "hero_show_arrows", Value: "false", Group: "hero", Name: "显示左右箭头", IsActive: true},
+	{Key: "hero_pause_on_hover", Value: "true", Group: "hero", Name: "悬停暂停轮播", IsActive: true},
 }

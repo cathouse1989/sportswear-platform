@@ -50,10 +50,19 @@ const localePath = useLocalePath()
 const { t, locale } = useI18n()
 
 const api = useApi()
+
+// 首页数据（SSR 内联到 HTML）
 const { data: homeData } = await useAsyncData<any>(
   'home-' + (locale.value || 'en'),
   () => api.getHome().catch(() => null),
 )
+
+// 主题配置（hero 轮播参数 + pageSize 等）
+const { data: themeData } = await useAsyncData<Record<string, any>>(
+  'theme-' + (locale.value || 'en'),
+  () => api.getTheme().catch(() => ({})),
+)
+
 const products = computed<any[]>(() => homeData.value?.featured_products || [])
 
 const DEFAULT_IMAGES = [
@@ -84,16 +93,43 @@ const heroSlides = computed(() => {
   }))
 })
 
-// 展示参数：/public/home.hero_settings（后台可配）
+/** 主题兜底值：theme 表 hero_* 配置 → 数据库不存在时回退硬编码默认值 */
+const themeHero = computed(() => {
+  const t = themeData.value || {}
+  const toBool = (key: string, def: boolean) => {
+    if (!(key in t)) return def
+    const v = t[key]
+    if (typeof v === 'boolean') return v
+    if (typeof v === 'string') return v.toLowerCase() === 'true'
+    return def
+  }
+  const toNum = (key: string, def: number) => {
+    if (!(key in t)) return def
+    const n = Number(t[key])
+    return Number.isFinite(n) ? n : def
+  }
+  const toString = (key: string, def: string) => (typeof t[key] === 'string' ? t[key] : def)
+  return {
+    autoplay: toBool('hero_autoplay', true),
+    interval_ms: toNum('hero_interval_ms', 5000),
+    transition: toString('hero_transition', 'fade'),
+    show_dots: toBool('hero_show_dots', true),
+    show_arrows: toBool('hero_show_arrows', false),
+    pause_on_hover: toBool('hero_pause_on_hover', true),
+  }
+})
+
+// 展示参数：banner 模块 settings > theme 配置 > 硬编码默认
 const heroSettings = computed(() => {
   const s = homeData.value?.hero_settings || {}
+  const th = themeHero.value
   return {
-    autoplay: s.autoplay !== false,
-    interval_ms: Number(s.interval_ms) || 5000,
-    transition: s.transition === 'slide' ? 'slide' : 'fade',
-    show_dots: s.show_dots !== false,
-    show_arrows: s.show_arrows === true,
-    pause_on_hover: s.pause_on_hover !== false,
+    autoplay: s.autoplay !== undefined ? s.autoplay !== false : th.autoplay,
+    interval_ms: Number(s.interval_ms) || th.interval_ms || 5000,
+    transition: (s.transition === 'slide' || s.transition === 'fade') ? s.transition : th.transition,
+    show_dots: s.show_dots !== undefined ? s.show_dots !== false : th.show_dots,
+    show_arrows: s.show_arrows !== undefined ? s.show_arrows === true : th.show_arrows,
+    pause_on_hover: s.pause_on_hover !== undefined ? s.pause_on_hover !== false : th.pause_on_hover,
   }
 })
 </script>

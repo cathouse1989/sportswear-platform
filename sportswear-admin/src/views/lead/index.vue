@@ -42,8 +42,10 @@
       v-model:current-page="page"
       v-model:page-size="pageSize"
       :total="total"
-      layout="total, prev, pager, next"
+      layout="total, sizes, prev, pager, next, jumper"
+      :page-sizes="[10, 20, 50, 100]"
       @current-change="loadData"
+      @size-change="loadData"
     />
 
     <!-- 详情对话框 -->

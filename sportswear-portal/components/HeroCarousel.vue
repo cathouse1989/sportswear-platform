@@ -158,14 +158,17 @@ function clearTimer() {
 function startTimer() {
   clearTimer()
   if (!import.meta.client) return
-  if (!autoplay.value || slideCount.value <= 1) return
+  if (slideCount.value <= 1) return
   if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+  // 根据当前 autoplay 决定是否启动；若 autoplay 被主题/后台配为 false，则不自动转
+  if (!autoplay.value) return
   timer = setInterval(() => {
     if (paused.value) return
     goNext()
   }, intervalMs.value)
 }
 
+// 监听参数变化时重启 timer
 watch(
   () => [autoplay.value, intervalMs.value, slideCount.value],
   () => {
@@ -173,7 +176,22 @@ watch(
     startTimer()
   },
 )
-onMounted(startTimer)
-onUnmounted(clearTimer)
+
+// 确保挂载后 timer 一定启动（即使在 Nuxt 异步 hydrate 场景下）
+let mounted = false
+onMounted(() => {
+  mounted = true
+  startTimer()
+})
+// 在下次 DOM 更新后再次尝试（覆盖极端的 props 延迟场景）
+watchEffect(() => {
+  if (mounted && slideCount.value > 1 && autoplay.value && !timer) {
+    startTimer()
+  }
+})
+onUnmounted(() => {
+  mounted = false
+  clearTimer()
+})
 
 </script>
