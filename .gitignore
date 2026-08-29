@@ -1,0 +1,7 @@
+*.log
+*.err.log
+*.log.err
+bb.log
+build*.log
+server.exe
+__debug_bin
