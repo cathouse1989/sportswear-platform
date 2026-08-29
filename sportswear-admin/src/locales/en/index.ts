@@ -10,6 +10,7 @@ export default {
     products: 'Products',
     content: 'Content Management',
     pages: 'Pages',
+    hero: 'Hero Carousel',
     blogs: 'Blogs',
     cases: 'Cases',
     faqs: 'FAQs',

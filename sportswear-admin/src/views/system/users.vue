@@ -69,13 +69,14 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { userApi } from '@/api'
+import { useAdminPageSize } from '@/composables/useAdminPageSize'
 import type { User } from '@/types'
 
 const users = ref<User[]>([])
 const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
-const pageSize = ref(20)
+const pageSize = useAdminPageSize()
 const keyword = ref('')
 
 const dialogVisible = ref(false)

@@ -8,6 +8,7 @@ export default {
     products: '产品管理',
     content: '内容管理',
     pages: '页面管理',
+    hero: '轮播图管理',
     blogs: '博客管理',
     cases: '案例管理',
     faqs: 'FAQ 管理',

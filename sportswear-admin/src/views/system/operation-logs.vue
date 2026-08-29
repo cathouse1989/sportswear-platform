@@ -47,13 +47,14 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { operationLogApi } from '@/api'
+import { useAdminPageSize } from '@/composables/useAdminPageSize'
 import type { OperationLog } from '@/types'
 
 const logs = ref<OperationLog[]>([])
 const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
-const pageSize = ref(20)
+const pageSize = useAdminPageSize()
 const module = ref('')
 const operation = ref('')
 

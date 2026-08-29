@@ -71,6 +71,6 @@ var DefaultThemeConfigs = []ThemeConfig{
 	{Key: "hero_interval_ms", Value: "5000", Group: "hero", Name: "轮播间隔(毫秒)", IsActive: true},
 	{Key: "hero_transition", Value: "fade", Group: "hero", Name: "轮播过渡动画(fade/slide)", IsActive: true},
 	{Key: "hero_show_dots", Value: "true", Group: "hero", Name: "显示轮播指示点", IsActive: true},
-	{Key: "hero_show_arrows", Value: "false", Group: "hero", Name: "显示左右箭头", IsActive: true},
+	{Key: "hero_show_arrows", Value: "true", Group: "hero", Name: "显示左右箭头", IsActive: true},
 	{Key: "hero_pause_on_hover", Value: "true", Group: "hero", Name: "悬停暂停轮播", IsActive: true},
 }

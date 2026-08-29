@@ -21,7 +21,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <el-pagination class="pagination" v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, sizes, prev, pager, next, jumper" :page-sizes="[10, 20, 50, 100]" @size-change="handleSearch" />
+    <el-pagination class="pagination" v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, sizes, prev, pager, next, jumper" :page-sizes="[10, 20, 50, 100]" @current-change="(val: number) => { page = val }" @size-change="handleSearch" />
     <ProFormDialog v-model="dialogVisible" :title="editingId ? '编辑认证' : '新建认证'" :form="form" :rules="rules" @submit="handleSave">
       <el-form-item label="名称" prop="name"><el-input v-model="form.name" /></el-form-item>
       <el-form-item label="编号"><el-input v-model="form.code" /></el-form-item>
@@ -34,6 +34,7 @@ import { onMounted, computed, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormRules } from 'element-plus'
 import { certificationApi } from '@/api'
+import { useAdminPageSize } from '@/composables/useAdminPageSize'
 import ProFormDialog from '@/components/pro/ProFormDialog.vue'
 
 const allItems = ref<any[]>([])
@@ -46,7 +47,7 @@ const total = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
   return kw ? allItems.value.filter((i: any) => (i.name || '').toLowerCase().includes(kw) || (i.code || '').toLowerCase().includes(kw)).length : allItems.value.length
 })
-const loading = ref(false); const page = ref(1); const pageSize = ref(20); const keyword = ref('')
+const loading = ref(false); const page = ref(1); const pageSize = useAdminPageSize(); const keyword = ref('')
 async function loadData() { loading.value = true; try { allItems.value = await certificationApi.list() } finally { loading.value = false } }
 const dialogVisible = ref(false); const editingId = ref(''); const form = reactive({ name: '', code: '', description: '' })
 const rules: FormRules = { name: [{ required: true, message: '请输入名称', trigger: 'blur' }] }

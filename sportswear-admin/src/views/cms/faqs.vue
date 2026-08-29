@@ -61,6 +61,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { cmsApi } from '@/api/cms'
+import { useAdminPageSize } from '@/composables/useAdminPageSize'
 import type { FAQ } from '@/types'
 
 // 分类统一定义：列表筛选与表单共用
@@ -91,7 +92,7 @@ const loading = ref(false)
 const saving = ref(false)
 const total = ref(0)
 const page = ref(1)
-const pageSize = ref(20)
+const pageSize = useAdminPageSize()
 const keyword = ref('')
 const category = ref('')
 

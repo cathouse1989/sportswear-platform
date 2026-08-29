@@ -25,8 +25,9 @@
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { notificationApi } from '@/api'
+import { useAdminPageSize } from '@/composables/useAdminPageSize'
 
-const items = ref<any[]>([]); const loading = ref(false); const total = ref(0); const page = ref(1); const pageSize = ref(20); const onlyUnread = ref(false)
+const items = ref<any[]>([]); const loading = ref(false); const total = ref(0); const page = ref(1); const pageSize = useAdminPageSize(); const onlyUnread = ref(false)
 const hasUnread = computed(() => items.value.some(i => !i.is_read))
 async function loadData() { loading.value = true; try { const r = await notificationApi.list({ page: page.value, pageSize: pageSize.value, only_unread: onlyUnread.value }); items.value = r.items; total.value = r.total } finally { loading.value = false } }
 async function handleMarkRead(row: any) { await notificationApi.markRead(row.id); ElMessage.success('已标记'); loadData() }

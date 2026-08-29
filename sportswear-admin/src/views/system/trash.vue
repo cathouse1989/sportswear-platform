@@ -28,6 +28,7 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { trashApi } from '@/api'
+import { useAdminPageSize } from '@/composables/useAdminPageSize'
 
 // 与后端 trash_service.go 的 trashEntities 注册表保持一致（缺陷 B-02 修复：此前硬编码仅 5 种）
 const ENTITY_TYPES = [
@@ -49,7 +50,7 @@ const ENTITY_TYPES = [
 ]
 function entityLabel(value: string) { return ENTITY_TYPES.find((t) => t.value === value)?.label || value }
 
-const items = ref<any[]>([]); const loading = ref(false); const total = ref(0); const page = ref(1); const pageSize = ref(20); const entityType = ref('')
+const items = ref<any[]>([]); const loading = ref(false); const total = ref(0); const page = ref(1); const pageSize = useAdminPageSize(); const entityType = ref('')
 async function loadData() { loading.value = true; try { const r = await trashApi.list({ page: page.value, pageSize: pageSize.value, entity_type: entityType.value }); items.value = r.items; total.value = r.total } finally { loading.value = false } }
 function handleSearch() { page.value = 1; loadData() }
 // 恢复/彻底删除必须携带 entity_type（后端 binding:"required"，缺失会 400，缺陷 B-11 修复）

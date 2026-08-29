@@ -228,7 +228,7 @@ func extractHeroSettings(page *models.Page) gin.H {
 		"interval_ms":    settings.IntervalMs,
 		"transition":     settings.Transition,
 		"show_dots":      boolOr(settings.ShowDots, true),
-		"show_arrows":    boolOr(settings.ShowArrows, false),
+		"show_arrows":    boolOr(settings.ShowArrows, true),
 		"pause_on_hover": boolOr(settings.PauseOnHover, true),
 	}
 }

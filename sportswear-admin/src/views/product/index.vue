@@ -1,4 +1,4 @@
-<template>
+ei<template>
   <div class="product-page">
     <!-- 统计卡片 -->
     <el-row :gutter="16" class="stat-row">
@@ -582,6 +582,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Star, Delete, ArrowDown, Search } from '@element-plus/icons-vue'
 import { productApi, mediaApi, categoryApi, seriesApi, fabricApi } from '@/api'
+import { useAdminPageSize } from '@/composables/useAdminPageSize'
 import type { Product, Media, Category, Series, Fabric } from '@/types'
 import { checkProductGate, gateAlertMessage } from '@/utils/publish-gate'
 
@@ -589,7 +590,7 @@ const products = ref<Product[]>([])
 const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
-const pageSize = ref(20)
+const pageSize = useAdminPageSize()
 const keyword = ref('')
 const status = ref('')
 const gender = ref('')

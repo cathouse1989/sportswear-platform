@@ -70,6 +70,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { cmsApi } from '@/api/cms'
+import { useAdminPageSize } from '@/composables/useAdminPageSize'
 import type { Blog } from '@/types'
 import { checkBlogGate, gateAlertMessage } from '@/utils/publish-gate'
 
@@ -88,7 +89,7 @@ const loading = ref(false)
 const saving = ref(false)
 const total = ref(0)
 const page = ref(1)
-const pageSize = ref(20)
+const pageSize = useAdminPageSize()
 const keyword = ref('')
 const category = ref('')
 

@@ -46,8 +46,9 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { i18nApi } from '@/api'
+import { useAdminPageSize } from '@/composables/useAdminPageSize'
 
-const items = ref<any[]>([]); const loading = ref(false); const total = ref(0); const page = ref(1); const pageSize = ref(20); const keyword = ref(''); const lang = ref('')
+const items = ref<any[]>([]); const loading = ref(false); const total = ref(0); const page = ref(1); const pageSize = useAdminPageSize(); const keyword = ref(''); const lang = ref('')
 const dialogVisible = ref(false); const editingId = ref(''); const form = reactive({ key: '', language: 'en', value: '', module: '' })
 async function loadData() { loading.value = true; try { const r = await i18nApi.entries({ page: page.value, pageSize: pageSize.value, keyword: keyword.value, language: lang.value }); items.value = r.items; total.value = r.total } finally { loading.value = false } }
 function handleSearch() { page.value = 1; loadData() }

@@ -114,7 +114,7 @@ const themeHero = computed(() => {
     interval_ms: toNum('hero_interval_ms', 5000),
     transition: toString('hero_transition', 'fade'),
     show_dots: toBool('hero_show_dots', true),
-    show_arrows: toBool('hero_show_arrows', false),
+    show_arrows: toBool('hero_show_arrows', true),
     pause_on_hover: toBool('hero_pause_on_hover', true),
   }
 })
@@ -128,7 +128,7 @@ const heroSettings = computed(() => {
     interval_ms: Number(s.interval_ms) || th.interval_ms || 5000,
     transition: (s.transition === 'slide' || s.transition === 'fade') ? s.transition : th.transition,
     show_dots: s.show_dots !== undefined ? s.show_dots !== false : th.show_dots,
-    show_arrows: s.show_arrows !== undefined ? s.show_arrows === true : th.show_arrows,
+    show_arrows: s.show_arrows !== undefined ? s.show_arrows !== false : th.show_arrows,
     pause_on_hover: s.pause_on_hover !== undefined ? s.pause_on_hover !== false : th.pause_on_hover,
   }
 })

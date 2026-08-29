@@ -22,7 +22,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <el-pagination class="pagination" v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, sizes, prev, pager, next, jumper" :page-sizes="[10, 20, 50, 100]" @size-change="handleSearch" />
+    <el-pagination class="pagination" v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, sizes, prev, pager, next, jumper" :page-sizes="[10, 20, 50, 100]" @current-change="(val: number) => { page = val }" @size-change="handleSearch" />
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑工厂' : '新建工厂'" width="560px">
       <el-form :model="form" label-width="90px">
         <el-form-item label="名称" required><el-input v-model="form.name" /></el-form-item>
@@ -38,6 +38,7 @@
 import { onMounted, computed, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { factoryApi } from '@/api'
+import { useAdminPageSize } from '@/composables/useAdminPageSize'
 
 const allItems = ref<any[]>([])
 const items = computed(() => {
@@ -51,7 +52,7 @@ const total = computed(() => {
 })
 const loading = ref(false)
 const page = ref(1)
-const pageSize = ref(20)
+const pageSize = useAdminPageSize()
 const keyword = ref('')
 const dialogVisible = ref(false)
 const editingId = ref('')

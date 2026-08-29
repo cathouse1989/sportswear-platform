@@ -50,8 +50,9 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { quoteApi } from '@/api'
+import { useAdminPageSize } from '@/composables/useAdminPageSize'
 
-const items = ref<any[]>([]); const loading = ref(false); const total = ref(0); const page = ref(1); const pageSize = ref(20); const status = ref('')
+const items = ref<any[]>([]); const loading = ref(false); const total = ref(0); const page = ref(1); const pageSize = useAdminPageSize(); const status = ref('')
 const dialogVisible = ref(false); const editingId = ref('')
 const form = reactive({ lead_id: '', quantity: 0, unit_price: 0, total_price: 0, currency: 'USD', moq: 0, lead_time: '' })
 async function loadData() { loading.value = true; try { const r = await quoteApi.list({ page: page.value, pageSize: pageSize.value, status: status.value }); items.value = r.items; total.value = r.total } finally { loading.value = false } }

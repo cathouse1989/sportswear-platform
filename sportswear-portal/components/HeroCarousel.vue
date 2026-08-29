@@ -6,11 +6,17 @@
     @mouseenter="onMouseEnter"
     @mouseleave="onMouseLeave"
   >
-    <div v-for="(s, i) in slides" :key="i" class="absolute inset-0" :class="slideClass(i)">
+    <!-- 背景层：始终低于文案与控件，避免挡住标题/指示点点击 -->
+    <div
+      v-for="(s, i) in slides"
+      :key="'bg-' + i"
+      class="absolute inset-0 z-0 pointer-events-none"
+      :class="slideClass(i)"
+    >
       <img
         v-if="s.image && !imgFailed[i]"
         :src="s.image"
-        :alt="s.title"
+        :alt="s.title || ''"
         class="w-full h-full object-cover"
         :fetchpriority="i === 0 ? 'high' : 'auto'"
         :loading="i === 0 ? 'eager' : 'lazy'"
@@ -19,35 +25,55 @@
       <div class="absolute inset-0 bg-gradient-to-r from-[#0D1B2A]/95 via-[#0D1B2A]/70 to-transparent" />
     </div>
 
-    <div class="relative max-w-7xl mx-auto px-4 lg:px-8 py-20 w-full">
+    <!-- 文案层：高于背景，链接可点 -->
+    <div class="relative z-20 max-w-7xl mx-auto px-4 lg:px-8 py-20 w-full pointer-events-none">
       <div class="max-w-2xl">
         <div v-for="(s, i) in slides" :key="'c-' + i" :class="current === i ? '' : 'hidden'">
-          <h1 class="text-4xl sm:text-5xl md:text-7xl font-bold text-white mb-4 md:mb-6 leading-tight">{{ s.title }}</h1>
-          <p v-if="s.subtitle" class="text-base sm:text-lg md:text-xl text-white/60 mb-8 md:mb-10">{{ s.subtitle }}</p>
+          <h1 class="text-4xl sm:text-5xl md:text-7xl font-bold text-white mb-4 md:mb-6 leading-tight">
+            {{ s.title }}
+          </h1>
+          <p v-if="s.subtitle" class="text-base sm:text-lg md:text-xl text-white/60 mb-8 md:mb-10">
+            {{ s.subtitle }}
+          </p>
           <NuxtLink
             :to="localePath(s.button_url || '/contact')"
-            class="inline-flex items-center gap-3 bg-[#D4A853] text-white px-8 md:px-10 py-3.5 md:py-4 rounded-full font-semibold hover:bg-[#C49A3F] transition text-sm md:text-base min-h-[48px]"
+            class="pointer-events-auto inline-flex items-center gap-3 bg-[#D4A853] text-white px-8 md:px-10 py-3.5 md:py-4 rounded-full font-semibold hover:bg-[#C49A3F] transition text-sm md:text-base min-h-[48px]"
           >{{ s.button_text || defaultButtonText }}</NuxtLink>
         </div>
       </div>
     </div>
 
+    <!-- 左右箭头：可手动切换；移动端也显示 -->
     <template v-if="showArrows && slides.length > 1">
-      <button type="button" class="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/15 hover:bg-white/30 text-white items-center justify-center transition hidden md:flex" aria-label="Previous slide" @click="goPrev">
+      <button
+        type="button"
+        class="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center transition"
+        aria-label="Previous slide"
+        @click="goPrev"
+      >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
       </button>
-      <button type="button" class="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/15 hover:bg-white/30 text-white items-center justify-center transition hidden md:flex" aria-label="Next slide" @click="goNext">
+      <button
+        type="button"
+        class="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center transition"
+        aria-label="Next slide"
+        @click="goNext"
+      >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
       </button>
     </template>
 
-    <div v-if="showDots && slides.length > 1" class="absolute bottom-12 left-1/2 -translate-x-1/2 flex gap-3">
+    <!-- 指示点：高于背景，可点击切换 -->
+    <div
+      v-if="showDots && slides.length > 1"
+      class="absolute bottom-12 left-1/2 -translate-x-1/2 z-30 flex gap-3"
+    >
       <button
         v-for="(s, i) in slides"
         :key="'d-' + i"
         type="button"
-        class="w-2.5 h-2.5 rounded-full transition-all min-h-[10px]"
-        :class="current === i ? 'bg-[#D4A853] w-8' : 'bg-white/30'"
+        class="w-2.5 h-2.5 rounded-full transition-all min-h-[10px] min-w-[10px]"
+        :class="current === i ? 'bg-[#D4A853] w-8' : 'bg-white/30 hover:bg-white/50'"
         :aria-label="`Go to slide ${i + 1}`"
         @click="goTo(i)"
       />
@@ -98,7 +124,8 @@ const intervalMs = computed(() => {
 })
 const transition = computed(() => (props.settings?.transition === 'slide' ? 'slide' : 'fade'))
 const showDots = computed(() => props.settings?.show_dots !== false)
-const showArrows = computed(() => props.settings?.show_arrows === true)
+// 默认开启箭头，便于手动切换；仅当明确配置为 false 时隐藏
+const showArrows = computed(() => props.settings?.show_arrows !== false)
 const pauseOnHover = computed(() => props.settings?.pause_on_hover !== false)
 const slideCount = computed(() => props.slides?.length || 0)
 
@@ -106,12 +133,12 @@ function slideClass(i: number) {
   if (transition.value === 'slide') {
     return [
       'transition-transform duration-700 ease-out',
-      current.value === i ? 'translate-x-0 opacity-100 z-10' : 'translate-x-full opacity-0 z-0',
+      current.value === i ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0',
     ]
   }
   return [
     'transition-opacity duration-1000',
-    current.value === i ? 'opacity-100 z-10' : 'opacity-0 z-0',
+    current.value === i ? 'opacity-100' : 'opacity-0',
   ]
 }
 
@@ -160,7 +187,6 @@ function startTimer() {
   if (!import.meta.client) return
   if (slideCount.value <= 1) return
   if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
-  // 根据当前 autoplay 决定是否启动；若 autoplay 被主题/后台配为 false，则不自动转
   if (!autoplay.value) return
   timer = setInterval(() => {
     if (paused.value) return
@@ -168,7 +194,6 @@ function startTimer() {
   }, intervalMs.value)
 }
 
-// 监听参数变化时重启 timer
 watch(
   () => [autoplay.value, intervalMs.value, slideCount.value],
   () => {
@@ -177,13 +202,11 @@ watch(
   },
 )
 
-// 确保挂载后 timer 一定启动（即使在 Nuxt 异步 hydrate 场景下）
 let mounted = false
 onMounted(() => {
   mounted = true
   startTimer()
 })
-// 在下次 DOM 更新后再次尝试（覆盖极端的 props 延迟场景）
 watchEffect(() => {
   if (mounted && slideCount.value > 1 && autoplay.value && !timer) {
     startTimer()
@@ -193,5 +216,4 @@ onUnmounted(() => {
   mounted = false
   clearTimer()
 })
-
 </script>

@@ -283,7 +283,7 @@ type HeroSettings struct {
 func DefaultHeroSettings() HeroSettings {
 	autoplay := true
 	showDots := true
-	showArrows := false
+	showArrows := true
 	pauseOnHover := true
 	return HeroSettings{
 		Autoplay:     &autoplay,
