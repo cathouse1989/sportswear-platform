@@ -230,6 +230,17 @@ export interface HeroSlide {
   button_url: string
 }
 
+// 首页轮播展示参数（与 slides 一并保存到 banner.config.settings）
+export interface HeroSettings {
+  autoplay?: boolean
+  interval_ms?: number
+  transition?: 'fade' | 'slide' | string
+  show_dots?: boolean
+  show_arrows?: boolean
+  pause_on_hover?: boolean
+}
+
+
 export interface Blog {
   id: string
   title: string

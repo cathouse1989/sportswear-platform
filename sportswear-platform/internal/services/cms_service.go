@@ -260,7 +260,7 @@ func (s *CMSService) UpdatePage(id string, req *PageRequest) (*models.Page, erro
 // 门户首页顶部的可滑动大图。后台在"页面管理 → 轮播图"中编辑，
 // 通过 UpdateHeroSlides 以 JSONB 形式保存到首页 type=banner 模块的 config：
 //
-//	{"slides":[{"image":"...","title":"...","subtitle":"...","button_text":"...","button_url":"..."}, ...]}
+//	{"settings":{...},"slides":[{"image":"...","title":"...","subtitle":"...","button_text":"...","button_url":"..."}, ...]}
 type HeroSlide struct {
 	Image      string `json:"image"`
 	Title      string `json:"title"`
@@ -269,8 +269,69 @@ type HeroSlide struct {
 	ButtonURL  string `json:"button_url"`
 }
 
+// HeroSettings 首页轮播图展示参数（与 slides 一并写入 banner.config）
+type HeroSettings struct {
+	Autoplay     *bool  `json:"autoplay,omitempty"`
+	IntervalMs   int    `json:"interval_ms,omitempty"`
+	Transition   string `json:"transition,omitempty"` // fade | slide
+	ShowDots     *bool  `json:"show_dots,omitempty"`
+	ShowArrows   *bool  `json:"show_arrows,omitempty"`
+	PauseOnHover *bool  `json:"pause_on_hover,omitempty"`
+}
+
+// DefaultHeroSettings 门户默认轮播行为（后台未配置时使用）
+func DefaultHeroSettings() HeroSettings {
+	autoplay := true
+	showDots := true
+	showArrows := false
+	pauseOnHover := true
+	return HeroSettings{
+		Autoplay:     &autoplay,
+		IntervalMs:   5000,
+		Transition:   "fade",
+		ShowDots:     &showDots,
+		ShowArrows:   &showArrows,
+		PauseOnHover: &pauseOnHover,
+	}
+}
+
+// NormalizeHeroSettings 合并缺省值并校正非法字段
+func NormalizeHeroSettings(in *HeroSettings) HeroSettings {
+	out := DefaultHeroSettings()
+	if in == nil {
+		return out
+	}
+	if in.Autoplay != nil {
+		out.Autoplay = in.Autoplay
+	}
+	if in.IntervalMs > 0 {
+		ms := in.IntervalMs
+		if ms < 2000 {
+			ms = 2000
+		}
+		if ms > 30000 {
+			ms = 30000
+		}
+		out.IntervalMs = ms
+	}
+	if in.Transition == "fade" || in.Transition == "slide" {
+		out.Transition = in.Transition
+	}
+	if in.ShowDots != nil {
+		out.ShowDots = in.ShowDots
+	}
+	if in.ShowArrows != nil {
+		out.ShowArrows = in.ShowArrows
+	}
+	if in.PauseOnHover != nil {
+		out.PauseOnHover = in.PauseOnHover
+	}
+	return out
+}
+
 // UpdateHeroSlides 更新页面轮播图配置（仅 upsert type=banner 模块，不影响页面其它模块）
-func (s *CMSService) UpdateHeroSlides(pageID string, slides []HeroSlide) error {
+// settings 可为 nil：此时保留已有 settings，若无则写入默认值。
+func (s *CMSService) UpdateHeroSlides(pageID string, slides []HeroSlide, settings *HeroSettings) error {
 	pid, err := uuid.Parse(pageID)
 	if err != nil {
 		return errors.New("页面 ID 无效")
@@ -278,16 +339,10 @@ func (s *CMSService) UpdateHeroSlides(pageID string, slides []HeroSlide) error {
 	if len(slides) == 0 {
 		return errors.New("至少需要一张轮播图")
 	}
-	// 每张轮播图必须有图片地址
 	for i, slide := range slides {
 		if strings.TrimSpace(slide.Image) == "" {
 			return fmt.Errorf("第 %d 张轮播图缺少图片地址", i+1)
 		}
-	}
-
-	configJSON, err := json.Marshal(map[string]interface{}{"slides": slides})
-	if err != nil {
-		return errors.New("配置序列化失败")
 	}
 
 	var page models.Page
@@ -295,9 +350,34 @@ func (s *CMSService) UpdateHeroSlides(pageID string, slides []HeroSlide) error {
 		return errors.New("页面不存在")
 	}
 
-	// 已存在 banner 模块则更新，否则新建
 	var module models.PageModule
 	err = s.db.Where("page_id = ? AND type = ?", pid, "banner").First(&module).Error
+
+	finalSettings := DefaultHeroSettings()
+	if err == nil && module.Config != "" {
+		var existing map[string]interface{}
+		if json.Unmarshal([]byte(module.Config), &existing) == nil {
+			if raw, ok := existing["settings"]; ok {
+				b, _ := json.Marshal(raw)
+				var parsed HeroSettings
+				if json.Unmarshal(b, &parsed) == nil {
+					finalSettings = NormalizeHeroSettings(&parsed)
+				}
+			}
+		}
+	}
+	if settings != nil {
+		finalSettings = NormalizeHeroSettings(settings)
+	}
+
+	configJSON, err2 := json.Marshal(map[string]interface{}{
+		"settings": finalSettings,
+		"slides":   slides,
+	})
+	if err2 != nil {
+		return errors.New("配置序列化失败")
+	}
+
 	if err == nil {
 		return s.db.Model(&module).Updates(map[string]interface{}{
 			"config":     string(configJSON),
@@ -319,6 +399,7 @@ func (s *CMSService) UpdateHeroSlides(pageID string, slides []HeroSlide) error {
 }
 
 // DeletePage 删除页面（级联软删除模块与翻译）
+
 func (s *CMSService) DeletePage(id string) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("page_id = ?", id).Delete(&models.PageModule{}).Error; err != nil {

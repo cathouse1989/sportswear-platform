@@ -13,6 +13,7 @@ import type {
   User,
   Page,
   HeroSlide,
+  HeroSettings,
   Blog,
   Case,
   FAQ,
@@ -28,6 +29,7 @@ import type {
   Series,
   Fabric,
 } from '@/types'
+
 
 // ============ 认证 ============
 export interface LoginResult {
@@ -112,9 +114,9 @@ export const pageApi = {
   delete: (id: string) => http.delete(`/admin/pages/${id}`),
   publish: (id: string) => http.post(`/admin/pages/${id}/publish`),
   unpublish: (id: string) => http.post(`/admin/pages/${id}/unpublish`),
-  // 轮播图（首页 hero banner）配置
-  updateHeroSlides: (id: string, slides: HeroSlide[]) =>
-    http.put<any>(`/admin/pages/${id}/hero`, { slides }),
+  // 轮播图（首页 hero banner）配置：slides + 可选展示参数 settings
+  updateHeroSlides: (id: string, slides: HeroSlide[], settings?: HeroSettings) =>
+    http.put<any>(`/admin/pages/${id}/hero`, settings ? { slides, settings } : { slides }),
 }
 
 // ============ 导航 ============

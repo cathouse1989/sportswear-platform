@@ -85,8 +85,42 @@
       <template v-else>
         <div class="hero-tip">
           共 {{ heroSlides.length }} 张轮播大图（门户首页顶部滑动展示）。支持添加 / 删除 / 排序，图片可在媒体库选择或粘贴 URL。
-          文案留空时默认使用各语言内置文案。
+          文案留空时默认使用各语言内置文案。展示参数（自动播放等）与门户保持一致。
         </div>
+
+        <div class="hero-settings">
+          <div class="hero-settings-title">展示参数</div>
+          <div class="hero-settings-grid">
+            <div class="hero-setting-item">
+              <span class="hero-label">自动播放</span>
+              <el-switch v-model="heroSettings.autoplay" />
+            </div>
+            <div class="hero-setting-item">
+              <span class="hero-label">间隔(ms)</span>
+              <el-input-number v-model="heroSettings.interval_ms" :min="2000" :max="30000" :step="500" :disabled="!heroSettings.autoplay" controls-position="right" />
+            </div>
+            <div class="hero-setting-item">
+              <span class="hero-label">切换动效</span>
+              <el-select v-model="heroSettings.transition" style="width: 120px">
+                <el-option label="淡入淡出" value="fade" />
+                <el-option label="左右滑动" value="slide" />
+              </el-select>
+            </div>
+            <div class="hero-setting-item">
+              <span class="hero-label">指示点</span>
+              <el-switch v-model="heroSettings.show_dots" />
+            </div>
+            <div class="hero-setting-item">
+              <span class="hero-label">左右箭头</span>
+              <el-switch v-model="heroSettings.show_arrows" />
+            </div>
+            <div class="hero-setting-item">
+              <span class="hero-label">悬停暂停</span>
+              <el-switch v-model="heroSettings.pause_on_hover" :disabled="!heroSettings.autoplay" />
+            </div>
+          </div>
+        </div>
+
         <div class="hero-list">
           <div v-for="(s, idx) in heroSlides" :key="idx" class="hero-card">
             <div class="hero-index">{{ idx + 1 }}</div>
@@ -160,9 +194,11 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { pageApi, mediaApi } from '@/api'
-import type { Page, HeroSlide } from '@/types'
+import type { Page, HeroSlide, HeroSettings } from '@/types'
+
 
 const pages = ref<Page[]>([])
 const loading = ref(false)
@@ -204,8 +240,39 @@ const heroDialogVisible = ref(false)
 const heroLoading = ref(false)
 const heroPageId = ref('')
 const heroSlides = ref<HeroSlide[]>([])
+const heroSettings = reactive<Required<Pick<HeroSettings, 'autoplay' | 'interval_ms' | 'transition' | 'show_dots' | 'show_arrows' | 'pause_on_hover'>>>({
+  autoplay: true,
+  interval_ms: 5000,
+  transition: 'fade',
+  show_dots: true,
+  show_arrows: false,
+  pause_on_hover: true,
+})
+
+function defaultHeroSettings() {
+  return {
+    autoplay: true,
+    interval_ms: 5000,
+    transition: 'fade' as const,
+    show_dots: true,
+    show_arrows: false,
+    pause_on_hover: true,
+  }
+}
+
+function applyHeroSettings(raw?: Partial<HeroSettings> | null) {
+  const d = defaultHeroSettings()
+  const src = raw || {}
+  heroSettings.autoplay = src.autoplay !== false
+  heroSettings.interval_ms = Number(src.interval_ms) > 0 ? Number(src.interval_ms) : d.interval_ms
+  heroSettings.transition = src.transition === 'slide' ? 'slide' : 'fade'
+  heroSettings.show_dots = src.show_dots !== false
+  heroSettings.show_arrows = src.show_arrows === true
+  heroSettings.pause_on_hover = src.pause_on_hover !== false
+}
 
 // 默认四张轮播图（与门户内置默认一致，后台可在此基础上编辑）
+
 function defaultHeroSlides(): HeroSlide[] {
   return [
     { image: 'https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?w=1600&h=900&fit=crop', title: 'Custom Sportswear Manufacturer', subtitle: 'OEM & ODM Solutions for Global Brands', button_text: 'Get a Quote', button_url: '/contact' },
@@ -219,32 +286,41 @@ async function openHeroDialog(row: Page) {
   heroPageId.value = row.id
   heroDialogVisible.value = true
   heroLoading.value = true
+  applyHeroSettings(defaultHeroSettings())
   try {
     const page = await pageApi.get(row.id)
     const banner = (page.modules || []).find((m: any) => m.type === 'banner')
-    const parsed = banner?.config ? parseBannerConfig(banner.config) : []
-    heroSlides.value = parsed.length ? parsed : defaultHeroSlides()
+    const parsed = banner?.config ? parseBannerConfig(banner.config) : { slides: [], settings: null }
+    heroSlides.value = parsed.slides.length ? parsed.slides : defaultHeroSlides()
+    applyHeroSettings(parsed.settings)
   } catch {
     heroSlides.value = defaultHeroSlides()
+    applyHeroSettings(defaultHeroSettings())
   } finally {
     heroLoading.value = false
   }
 }
 
-// 解析 banner 模块 config：兼容 {"slides":[...]} 与旧的单对象 {"image":"...",...} 两种结构
-function parseBannerConfig(config: string | unknown): HeroSlide[] {
-  if (typeof config !== 'string') return []
+// 解析 banner 模块 config：兼容 slides 数组 / 旧单对象，以及可选 settings
+function parseBannerConfig(config: string | unknown): { slides: HeroSlide[]; settings: Partial<HeroSettings> | null } {
+  if (typeof config !== 'string') return { slides: [], settings: null }
   try {
     const obj = JSON.parse(config)
     const norm = (s: any): HeroSlide => ({
       image: s?.image || '', title: s?.title || '', subtitle: s?.subtitle || '',
       button_text: s?.button_text || '', button_url: s?.button_url || '',
     })
-    if (obj && Array.isArray(obj.slides)) return (obj.slides as any[]).map(norm)
-    if (obj && !Array.isArray(obj) && typeof obj === 'object' && 'image' in obj) return [norm(obj)]
+    let slides: HeroSlide[] = []
+    if (obj && Array.isArray(obj.slides)) slides = (obj.slides as any[]).map(norm)
+    else if (obj && !Array.isArray(obj) && typeof obj === 'object' && 'image' in obj) slides = [norm(obj)]
+    const settings = obj && typeof obj === 'object' && obj.settings && typeof obj.settings === 'object'
+      ? (obj.settings as Partial<HeroSettings>)
+      : null
+    return { slides, settings }
   } catch { /* ignore */ }
-  return []
+  return { slides: [], settings: null }
 }
+
 
 const addSlide = () => heroSlides.value.push({ image: '', title: '', subtitle: '', button_text: 'Get a Quote', button_url: '/contact' })
 const removeSlide = (idx: number) => { heroSlides.value.splice(idx, 1); if (!heroSlides.value.length) addSlide() }
@@ -259,11 +335,19 @@ async function saveHeroSlides() {
   const valid = heroSlides.value.filter(s => s.image && s.image.trim())
   if (!valid.length) { ElMessage.warning('请至少为一张轮播图填写图片地址'); return }
   try {
-    await pageApi.updateHeroSlides(heroPageId.value, valid)
+    await pageApi.updateHeroSlides(heroPageId.value, valid, {
+      autoplay: heroSettings.autoplay,
+      interval_ms: heroSettings.interval_ms,
+      transition: heroSettings.transition,
+      show_dots: heroSettings.show_dots,
+      show_arrows: heroSettings.show_arrows,
+      pause_on_hover: heroSettings.pause_on_hover,
+    })
     ElMessage.success('轮播图保存成功，刷新门户/门户预览即可查看')
     heroDialogVisible.value = false
   } catch { /* error handled */ }
 }
+
 
 // ============ 媒体库选择 ============
 const mediaDialogVisible = ref(false)
@@ -309,7 +393,20 @@ onMounted(loadData)
   background: #fbf9f6; border: 1px solid #eae5dd; border-radius: 8px;
   padding: 10px 14px; margin-bottom: 14px;
 }
-.hero-list { display: flex; flex-direction: column; gap: 12px; max-height: 60vh; overflow-y: auto; }
+.hero-settings {
+  border: 1px solid #eae5dd; border-radius: 10px; padding: 12px 14px;
+  background: #fff; margin-bottom: 14px;
+}
+.hero-settings-title {
+  font-size: 13px; font-weight: 600; color: #0d1b2a; margin-bottom: 10px;
+}
+.hero-settings-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px 16px; align-items: center;
+}
+.hero-setting-item { display: flex; align-items: center; gap: 10px; }
+.hero-list { display: flex; flex-direction: column; gap: 12px; max-height: 50vh; overflow-y: auto; }
+
 .hero-card {
   display: flex; gap: 14px; align-items: flex-start;
   border: 1px solid #eae5dd; border-radius: 10px; padding: 14px;

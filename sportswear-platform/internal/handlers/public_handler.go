@@ -123,6 +123,7 @@ func (h *PublicHandler) GetHome(c *gin.Context) {
 		return gin.H{
 			"page":                 page,
 			"hero_slides":          extractHeroSlides(page),
+			"hero_settings":        extractHeroSettings(page),
 			"featured_products":    products,
 			"categories":           categories,
 			"blogs":                blogs,
@@ -194,7 +195,46 @@ func slideFromMap(m map[string]interface{}) gin.H {
 	}
 }
 
+// extractHeroSettings 从首页 banner 模块提取轮播展示参数；无配置时返回默认值。
+func extractHeroSettings(page *models.Page) gin.H {
+	settings := services.DefaultHeroSettings()
+	if page != nil {
+		for _, m := range page.Modules {
+			if m.Type != "banner" || !m.IsVisible {
+				continue
+			}
+			var raw map[string]interface{}
+			if err := json.Unmarshal([]byte(m.Config), &raw); err != nil {
+				continue
+			}
+			if sraw, ok := raw["settings"]; ok {
+				b, _ := json.Marshal(sraw)
+				var parsed services.HeroSettings
+				if json.Unmarshal(b, &parsed) == nil {
+					settings = services.NormalizeHeroSettings(&parsed)
+				}
+			}
+			break
+		}
+	}
+	boolOr := func(p *bool, def bool) bool {
+		if p == nil {
+			return def
+		}
+		return *p
+	}
+	return gin.H{
+		"autoplay":       boolOr(settings.Autoplay, true),
+		"interval_ms":    settings.IntervalMs,
+		"transition":     settings.Transition,
+		"show_dots":      boolOr(settings.ShowDots, true),
+		"show_arrows":    boolOr(settings.ShowArrows, false),
+		"pause_on_hover": boolOr(settings.PauseOnHover, true),
+	}
+}
+
 // GetPage 获取页面（Redis 缓存）
+
 func (h *PublicHandler) GetPage(c *gin.Context) {
 	lang := middleware.GetLang(c)
 	key := "cache:page:" + c.Param("slug") + ":" + lang

@@ -89,9 +89,11 @@ func (h *CMSHandler) UpdatePage(c *gin.Context) {
 }
 
 // UpdateHeroSlides 更新页面轮播图配置（首页 banner 模块）
+// 请求体：{ "slides": [...], "settings"?: { autoplay, interval_ms, transition, show_dots, show_arrows, pause_on_hover } }
 func (h *CMSHandler) UpdateHeroSlides(c *gin.Context) {
 	var req struct {
-		Slides []services.HeroSlide `json:"slides" binding:"required"`
+		Slides   []services.HeroSlide   `json:"slides" binding:"required"`
+		Settings *services.HeroSettings `json:"settings"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.BadRequest(c, "参数错误: "+err.Error())
@@ -101,13 +103,14 @@ func (h *CMSHandler) UpdateHeroSlides(c *gin.Context) {
 		utils.BadRequest(c, "至少需要一张轮播图")
 		return
 	}
-	if err := h.cmsService.UpdateHeroSlides(c.Param("id"), req.Slides); err != nil {
+	if err := h.cmsService.UpdateHeroSlides(c.Param("id"), req.Slides, req.Settings); err != nil {
 		utils.BadRequest(c, err.Error())
 		return
 	}
 	h.invalidateCache("page", "")
 	utils.Success(c, gin.H{"updated": true})
 }
+
 
 // DeletePage 删除页面
 func (h *CMSHandler) DeletePage(c *gin.Context) {
