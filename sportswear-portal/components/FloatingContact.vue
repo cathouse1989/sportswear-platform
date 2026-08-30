@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Desktop: Floating Sidebar (hidden on mobile) -->
-    <div class="fixed right-0 top-1/2 -translate-y-1/2 z-50 flex-col gap-1 hidden md:flex">
+    <div class="fixed right-0 top-1/2 -translate-y-1/2 z-40 flex-col gap-1 hidden md:flex pointer-events-auto">
       <!-- WhatsApp -->
       <a
         :href="waUrl"
