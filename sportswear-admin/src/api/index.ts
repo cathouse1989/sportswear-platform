@@ -1,4 +1,4 @@
-import { http } from './client'
+﻿import { http } from './client'
 import type {
   DashboardStats,
   Lead,
@@ -30,7 +30,7 @@ import type {
 } from '@/types'
 
 
-// ============ 认证 ============
+// ============ 璁よ瘉 ============
 export interface LoginResult {
   token: string
   user: User
@@ -43,12 +43,12 @@ export const authApi = {
   profile: () => http.get<User>('/admin/auth/profile'),
 }
 
-// ============ 仪表盘 ============
+// ============ 浠〃鐩?============
 export const dashboardApi = {
   stats: () => http.get<DashboardStats>('/admin/dashboard'),
 }
 
-// ============ 用户与角色 ============
+// ============ 鐢ㄦ埛涓庤鑹?============
 export const userApi = {
   list: (params?: any) => http.get<PageResult<User>>('/admin/users', params),
   create: (data: any) => http.post<User>('/admin/users', data),
@@ -65,7 +65,7 @@ export const roleApi = {
   permissions: () => http.get<Permission[]>('/admin/permissions'),
 }
 
-// ============ 产品 ============
+// ============ 浜у搧 ============
 export const productApi = {
   list: (params?: any) => http.get<PageResult<Product>>('/admin/products', params),
   stats: () =>
@@ -80,7 +80,7 @@ export const productApi = {
   unpublish: (id: string) => http.post(`/admin/products/${id}/unpublish`),
 }
 
-// ============ 分类 ============
+// ============ 鍒嗙被 ============
 export const categoryApi = {
   list: () => http.get<Category[]>('/admin/categories'),
   create: (data: any) => http.post<Category>('/admin/categories', data),
@@ -88,7 +88,7 @@ export const categoryApi = {
   delete: (id: string) => http.delete(`/admin/categories/${id}`),
 }
 
-// ============ 系列 ============
+// ============ 绯诲垪 ============
 export const seriesApi = {
   list: () => http.get<Series[]>('/admin/series'),
   create: (data: any) => http.post<Series>('/admin/series', data),
@@ -96,7 +96,7 @@ export const seriesApi = {
   unpublish: (id: string) => http.post(`/admin/series/${id}/unpublish`),
 }
 
-// ============ 面料 ============
+// ============ 闈㈡枡 ============
 export const fabricApi = {
   list: () => http.get<Fabric[]>('/admin/fabrics'),
   create: (data: any) => http.post<Fabric>('/admin/fabrics', data),
@@ -104,7 +104,7 @@ export const fabricApi = {
   unpublish: (id: string) => http.post(`/admin/fabrics/${id}/unpublish`),
 }
 
-// ============ 页面 ============
+// ============ 椤甸潰 ============
 export const pageApi = {
   list: (params?: any) => http.get<PageResult<Page>>('/admin/pages', params),
   get: (id: string) => http.get<Page>(`/admin/pages/${id}`),
@@ -113,12 +113,12 @@ export const pageApi = {
   delete: (id: string) => http.delete(`/admin/pages/${id}`),
   publish: (id: string) => http.post(`/admin/pages/${id}/publish`),
   unpublish: (id: string) => http.post(`/admin/pages/${id}/unpublish`),
-  // 轮播图（首页 hero banner）配置：slides + 可选展示参数 settings
+  // 杞挱鍥撅紙棣栭〉 hero banner锛夐厤缃細slides + 鍙€夊睍绀哄弬鏁?settings
   updateHeroSlides: (id: string, slides: HeroSlide[], settings?: HeroSettings) =>
     http.put<any>(`/admin/pages/${id}/hero`, { slides, settings: settings || {} }),
 }
 
-// ============ 导航 ============
+// ============ 瀵艰埅 ============
 export const navigationApi = {
   list: (params?: any) => http.get<Navigation[]>('/admin/navigations', params),
   create: (data: any) => http.post<Navigation>('/admin/navigations', data),
@@ -126,7 +126,7 @@ export const navigationApi = {
   delete: (id: string) => http.delete(`/admin/navigations/${id}`),
 }
 
-// ============ 博客 ============
+// ============ 鍗氬 ============
 export const blogApi = {
   list: (params?: any) => http.get<PageResult<Blog>>('/admin/blogs', params),
   get: (id: string) => http.get<Blog>(`/admin/blogs/${id}`),
@@ -136,7 +136,7 @@ export const blogApi = {
   publish: (id: string) => http.post(`/admin/blogs/${id}/publish`),
 }
 
-// ============ 案例 ============
+// ============ 妗堜緥 ============
 export const caseApi = {
   list: (params?: any) => http.get<PageResult<Case>>('/admin/cases', params),
   get: (id: string) => http.get<Case>(`/admin/cases/${id}`),
@@ -153,7 +153,7 @@ export const faqApi = {
   delete: (id: string) => http.delete(`/admin/faqs/${id}`),
 }
 
-// ============ 工厂 ============
+// ============ 宸ュ巶 ============
 export const factoryApi = {
   list: (params?: any) => http.get<Factory[]>('/admin/factories', params),
   create: (data: any) => http.post<Factory>('/admin/factories', data),
@@ -163,7 +163,7 @@ export const factoryApi = {
   unpublish: (id: string) => http.post(`/admin/factories/${id}/unpublish`),
 }
 
-// ============ 认证 ============
+// ============ 璁よ瘉 ============
 export const certificationApi = {
   list: (params?: any) => http.get<Certification[]>('/admin/certifications', params),
   create: (data: any) => http.post<Certification>('/admin/certifications', data),
@@ -173,7 +173,7 @@ export const certificationApi = {
   unpublish: (id: string) => http.post(`/admin/certifications/${id}/unpublish`),
 }
 
-// ============ 媒体 ============
+// ============ 濯掍綋 ============
 export const mediaApi = {
   list: (params?: any) => http.get<PageResult<Media>>('/admin/media', params),
   get: (id: string) => http.get<Media>(`/admin/media/${id}`),
@@ -183,7 +183,7 @@ export const mediaApi = {
   delete: (id: string) => http.delete(`/admin/media/${id}`),
 }
 
-// ============ 询盘 ============
+// ============ 璇㈢洏 ============
 export const leadApi = {
   list: (params?: any) => http.get<PageResult<Lead>>('/admin/leads', params),
   get: (id: string) => http.get<Lead>(`/admin/leads/${id}`),
@@ -193,7 +193,7 @@ export const leadApi = {
     http.post<LeadFollowUp>(`/admin/leads/${id}/followups`, data),
 }
 
-// ============ 报价 ============
+// ============ 鎶ヤ环 ============
 export const quoteApi = {
   list: (params?: any) => http.get<PageResult<Quote>>('/admin/quotes', params),
   get: (id: string) => http.get<Quote>(`/admin/quotes/${id}`),
@@ -202,7 +202,7 @@ export const quoteApi = {
   delete: (id: string) => http.delete(`/admin/quotes/${id}`),
 }
 
-// ============ 通知 ============
+// ============ 閫氱煡 ============
 export const notificationApi = {
   list: (params?: any) => http.get<PageResult<Notification>>('/admin/notifications', params),
   unreadCount: () => http.get<{ count: number }>('/admin/notifications/unread-count'),
@@ -210,13 +210,13 @@ export const notificationApi = {
   markAllRead: () => http.post('/admin/notifications/read-all'),
 }
 
-// ============ 操作日志 ============
+// ============ 鎿嶄綔鏃ュ織 ============
 export const operationLogApi = {
   list: (params?: any) =>
     http.get<PageResult<OperationLog>>('/admin/operation-logs', params),
 }
 
-// ============ 数据分析 ============
+// ============ 鏁版嵁鍒嗘瀽 ============
 export const analyticsApi = {
   overview: (params?: any) => http.get<any>('/admin/analytics/overview', params),
   topPages: (params?: any) => http.get<any>('/admin/analytics/top-pages', params),
@@ -224,27 +224,28 @@ export const analyticsApi = {
   sources: (params?: any) => http.get<any>('/admin/analytics/sources', params),
   countries: (params?: any) => http.get<any>('/admin/analytics/countries', params),
   devices: (params?: any) => http.get<any>('/admin/analytics/devices', params),
-  // 门户访问日志明细（IP/国家/来源/实体/时间范围筛选，跨季度分表组合查询）
+  socialClicks: (params?: any) => http.get<any[]>('/admin/analytics/social-clicks', params),
+  // 闂ㄦ埛璁块棶鏃ュ織鏄庣粏锛圛P/鍥藉/鏉ユ簮/瀹炰綋/鏃堕棿鑼冨洿绛涢€夛紝璺ㄥ搴﹀垎琛ㄧ粍鍚堟煡璇級
   visitLogs: (params?: any) => http.get<PageResult<any>>('/admin/analytics/visit-logs', params),
 }
 
-// ============ 国际化 ============
+// ============ 鍥介檯鍖?============
 export const i18nApi = {
   entries: (params?: any) => http.get<PageResult<I18nEntry>>('/admin/i18n/entries', params),
   upsert: (data: any) => http.post<I18nEntry>('/admin/i18n/entries', data),
   delete: (id: string) => http.delete(`/admin/i18n/entries/${id}`),
 }
 
-// ============ 主题配置 ============
+// ============ 涓婚閰嶇疆 ============
 export const themeApi = {
   get: () => http.get<any>('/public/theme'),
   adminList: () => http.get<any[]>('/admin/theme'),
   update: (key: string, value: any) => http.put<any>(`/admin/theme/${key}`, { value }),
 }
 
-// ============ 门户公开接口（后台预览用） ============
-// 注意：预览读取统一带 preview=1，后端将强制绕过 Redis 缓存直查 DB，
-// 保证"门户预览"始终反映数据库最新状态（发布/下线立即可见），且不污染线上缓存。
+// ============ 闂ㄦ埛鍏紑鎺ュ彛锛堝悗鍙伴瑙堢敤锛?============
+// 娉ㄦ剰锛氶瑙堣鍙栫粺涓€甯?preview=1锛屽悗绔皢寮哄埗缁曡繃 Redis 缂撳瓨鐩存煡 DB锛?
+// 淇濊瘉"闂ㄦ埛棰勮"濮嬬粓鍙嶆槧鏁版嵁搴撴渶鏂扮姸鎬侊紙鍙戝竷/涓嬬嚎绔嬪嵆鍙锛夛紝涓斾笉姹℃煋绾夸笂缂撳瓨銆?
 export const publicApi = {
   i18n: (lang?: string) => http.get<any>('/public/i18n', lang ? { lang, preview: 1 } : { preview: 1 }),
   languages: () => http.get<any[]>('/public/languages'),
@@ -253,14 +254,14 @@ export const publicApi = {
   products: (params?: any) => http.get<any>('/public/products', { ...params, preview: 1 }),
   product: (slug: string, lang?: string) =>
     http.get<any>(`/public/products/${slug}`, lang ? { lang, preview: 1 } : { preview: 1 }),
-  // 预览页通用读取（path 需含 /public 前缀，如 /public/blogs、/public/home）
+  // 棰勮椤甸€氱敤璇诲彇锛坧ath 闇€鍚?/public 鍓嶇紑锛屽 /public/blogs銆?public/home锛?
   fetch: (path: string, lang?: string) =>
     http.get<any>(path, lang ? { lang, preview: 1 } : { preview: 1 }),
   trackClick: (target: string, url: string) =>
     http.post('/public/click-track', { target, url }),
 }
 
-// ============ 存储源 ============
+// ============ 瀛樺偍婧?============
 export const storageSourceApi = {
   list: () => http.get<StorageSource[]>('/admin/storage-sources'),
   get: (id: string) => http.get<StorageSource>(`/admin/storage-sources/${id}`),
@@ -269,8 +270,8 @@ export const storageSourceApi = {
   delete: (id: string) => http.delete(`/admin/storage-sources/${id}`),
 }
 
-// ============ 回收站 ============
-// 注意：后端 RestoreItem/PurgeItem 均要求 body 携带 entity_type（binding:"required"），缺失会 400
+// ============ 鍥炴敹绔?============
+// 娉ㄦ剰锛氬悗绔?RestoreItem/PurgeItem 鍧囪姹?body 鎼哄甫 entity_type锛坆inding:"required"锛夛紝缂哄け浼?400
 export const trashApi = {
   list: (params?: any) => http.get<PageResult<any>>('/admin/trash', params),
   restore: (id: string, entityType: string) => http.post(`/admin/trash/${id}/restore`, { entity_type: entityType }),
@@ -278,7 +279,7 @@ export const trashApi = {
   empty: () => http.delete('/admin/trash'),
 }
 
-// ============ 门户缓存 ============
+// ============ 闂ㄦ埛缂撳瓨 ============
 export const portalCacheApi = {
   status: () => http.get<{ redis_ok: boolean; enabled: boolean; using_cache: boolean; last_refresh_at?: string | null }>('/admin/portal-cache'),
   setEnabled: (enabled: boolean) => http.put<any>('/admin/portal-cache/enabled', { enabled }),
@@ -286,7 +287,7 @@ export const portalCacheApi = {
   publish: () => http.post<any>('/admin/portal-cache/publish'),
 }
 
-// ============ 门户版本 ============
+// ============ 闂ㄦ埛鐗堟湰 ============
 export const portalApi = {
   saveDraft: (pageId: string, data: any) => http.post<any>(`/admin/pages/${pageId}/versions`, data),
   listVersions: (pageId: string) => http.get<any[]>(`/admin/pages/${pageId}/versions`),
@@ -299,7 +300,7 @@ export const seoApi = {
   upsert: (data: any) => http.post<any>('/admin/seo', data),
 }
 
-// ============ 货币 ============
+// ============ 璐у竵 ============
 export const currencyApi = {
   list: () => http.get<Currency[]>('/public/currencies'),
   convert: (params: any) => http.get<any>('/public/currencies/convert', params),

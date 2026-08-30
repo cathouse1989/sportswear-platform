@@ -157,7 +157,7 @@ func (s *OperationLogService) resolveTables(start, end time.Time) ([]string, err
 }
 
 // List 操作日志列表（按时间范围组合查询对应季度分表）
-func (s *OperationLogService) List(page, pageSize int, userID, module, operation string, start, end time.Time) ([]map[string]interface{}, int64, error) {
+func (s *OperationLogService) List(page, pageSize int, userID, module, operation, entityType, ip string, start, end time.Time) ([]map[string]interface{}, int64, error) {
 	tables, err := s.resolveTables(start, end)
 	if err != nil {
 		return nil, 0, err
@@ -176,6 +176,14 @@ func (s *OperationLogService) List(page, pageSize int, userID, module, operation
 	if operation != "" {
 		conds = append(conds, "operation = ?")
 		args = append(args, operation)
+	}
+	if entityType != "" {
+		conds = append(conds, "entity_type = ?")
+		args = append(args, entityType)
+	}
+	if ip != "" {
+		conds = append(conds, "ip = ?")
+		args = append(args, ip)
 	}
 	if !start.IsZero() {
 		conds = append(conds, "created_at >= ?")

@@ -88,16 +88,18 @@ func (h *SystemHandler) MarkAllRead(c *gin.Context) {
 
 // ==================== 操作日志 ====================
 
-// ListOperationLogs 操作日志列表（支持时间范围，跨季度分表组合查询）
+// ListOperationLogs 操作日志列表（支持时间范围、用户ID、实体类型、IP，跨季度分表组合查询）
 func (h *SystemHandler) ListOperationLogs(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
 	userID := c.Query("user_id")
 	module := c.Query("module")
 	operation := c.Query("operation")
+	entityType := c.Query("entity_type")
+	ip := c.Query("ip")
 	start, end := ParseDateRange(c.Query("start_date"), c.Query("end_date"))
 
-	logs, total, err := h.operationLogService.List(page, pageSize, userID, module, operation, start, end)
+	logs, total, err := h.operationLogService.List(page, pageSize, userID, module, operation, entityType, ip, start, end)
 	if err != nil {
 		utils.InternalError(c, "获取操作日志失败")
 		return
