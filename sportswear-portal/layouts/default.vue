@@ -257,13 +257,22 @@ function navToItem(n: any) {
   return { path: n.url || '/', label: n.name }
 }
 
+function flattenNav(items: any[]): any[] {
+  const result: any[] = []
+  for (const item of items) {
+    if (item.is_visible !== false) result.push(item)
+    if (item.children?.length) result.push(...flattenNav(item.children))
+  }
+  return result
+}
+
 const navItems = computed(() => {
-  if (headerNavData.value?.length) return headerNavData.value.filter((n: any) => n.is_visible !== false).map(navToItem)
+  if (headerNavData.value?.length) return flattenNav(headerNavData.value).map(navToItem)
   return DEFAULT_NAV
 })
 
 const footerLinks = computed(() => {
-  if (footerNavData.value?.length) return footerNavData.value.filter((n: any) => n.is_visible !== false).map(navToItem)
+  if (footerNavData.value?.length) return flattenNav(footerNavData.value).map(navToItem)
   return DEFAULT_FOOTER
 })
 

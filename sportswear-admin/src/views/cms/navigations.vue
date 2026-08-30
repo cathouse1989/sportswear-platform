@@ -129,10 +129,11 @@ async function loadPublishedPages() {
 }
 
 const PAGE_TYPE_URL_MAP: Record<string, string> = {
-  home: '/', product: '/products', oem: '/oem', odm: '/odm',
-  factory: '/factory', blog: '/blog', case: '/cases', faq: '/faq',
-  contact: '/contact', production: '/production',
-  private_label: '/private-label', normal: '',
+  home: '/', product: '/products', product_category: '/products',
+  oem: '/oem', odm: '/odm', private_label: '/private-label',
+  factory: '/factory', production: '/production',
+  blog: '/blog', case: '/cases', faq: '/faq',
+  contact: '/contact', seo_landing: '/landing',
 }
 
 function onPageSelect(pageId: string) {
@@ -189,9 +190,10 @@ async function handleSave() {
   saving.value = true
   const payload: any = {
     name: form.name, url: form.url, type: form.type, target: form.target,
-    sort_order: form.sort_order, is_visible: form.is_visible, page_id: form.page_id || undefined,
-    parent_id: parentId.value || undefined,
+    sort_order: form.sort_order, is_visible: form.is_visible,
+    page_id: form.page_id || null,
   }
+  if (parentId.value) payload.parent_id = parentId.value
   try {
     if (editingId.value) {
       await navigationApi.update(editingId.value, payload)
@@ -208,13 +210,13 @@ async function handleSave() {
 
 async function toggleVisible(row: Navigation, val: boolean) {
   try {
-    await navigationApi.update(row.id, { name: row.name, url: row.url, type: row.type, target: row.target || '_self', sort_order: row.sort_order, is_visible: val, page_id: row.page_id || undefined })
+    await navigationApi.update(row.id, { name: row.name, url: row.url, type: row.type, target: row.target || '_self', sort_order: row.sort_order, is_visible: val, page_id: row.page_id || null })
   } catch { row.is_visible = !val }
 }
 
 async function handleMoveUp(row: Navigation) {
   try {
-    await navigationApi.update(row.id, { name: row.name, url: row.url, type: row.type, target: row.target || '_self', sort_order: Math.max(0, row.sort_order - 1), is_visible: row.is_visible, page_id: row.page_id || undefined })
+    await navigationApi.update(row.id, { name: row.name, url: row.url, type: row.type, target: row.target || '_self', sort_order: Math.max(0, row.sort_order - 1), is_visible: row.is_visible, page_id: row.page_id || null })
     loadData()
   } catch { }
 }

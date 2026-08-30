@@ -508,7 +508,7 @@ func (s *CMSService) ListNavigations(navType string) ([]models.Navigation, error
 	if navType != "" {
 		query = query.Where("type = ?", navType)
 	}
-	err := query.Preload("Children").Order("sort_order ASC").Find(&navigations).Error
+	err := query.Preload("Children").Preload("Page").Order("sort_order ASC").Find(&navigations).Error
 	return navigations, err
 }
 
@@ -556,9 +556,12 @@ func (s *CMSService) UpdateNavigation(id string, req *NavigationRequest) (*model
 		"target":     req.Target,
 		"sort_order": req.SortOrder,
 		"is_visible": req.IsVisible,
-		"parent_id":  req.ParentID,
-		"page_id":    utils.StringPtrToUUIDPtr(req.PageID),
 	}
+	if req.ParentID != nil {
+		updates["parent_id"] = utils.StringPtrToUUIDPtr(req.ParentID)
+	}
+	// page_id always present: frontend sends string or null; null clears the association
+	updates["page_id"] = utils.StringPtrToUUIDPtr(req.PageID)
 	if err := s.db.Model(&nav).Updates(updates).Error; err != nil {
 		return nil, err
 	}

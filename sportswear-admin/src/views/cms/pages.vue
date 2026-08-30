@@ -88,11 +88,17 @@
             <el-option label="普通" value="normal" />
             <el-option label="首页" value="home" />
             <el-option label="产品" value="product" />
+            <el-option label="产品分类" value="product_category" />
             <el-option label="OEM" value="oem" />
             <el-option label="ODM" value="odm" />
+            <el-option label="贴牌" value="private_label" />
             <el-option label="工厂" value="factory" />
+            <el-option label="生产流程" value="production" />
+            <el-option label="博客" value="blog" />
+            <el-option label="案例" value="case" />
             <el-option label="FAQ" value="faq" />
             <el-option label="联系我们" value="contact" />
+            <el-option label="SEO 落地页" value="seo_landing" />
           </el-select>
         </el-form-item>
             <el-form-item label="模板">
@@ -274,10 +280,11 @@ const navStatusLabel = (row: Page) => {
 }
 
 const PAGE_TYPE_URL_MAP: Record<string, string> = {
-  home: '/', product: '/products', oem: '/oem', odm: '/odm',
-  factory: '/factory', blog: '/blog', case: '/cases', faq: '/faq',
-  contact: '/contact', production: '/production',
-  private_label: '/private-label', normal: '',
+  home: '/', product: '/products', product_category: '/products',
+  oem: '/oem', odm: '/odm', private_label: '/private-label',
+  factory: '/factory', production: '/production',
+  blog: '/blog', case: '/cases', faq: '/faq',
+  contact: '/contact', seo_landing: '/landing',
 }
 
 // 页面类型 → 门户预览页映射（portal 无通用 CMS 页面路由，仅映射有对应路由的类型）
