@@ -115,7 +115,7 @@ export const pageApi = {
   unpublish: (id: string) => http.post(`/admin/pages/${id}/unpublish`),
   // 轮播图（首页 hero banner）配置：slides + 可选展示参数 settings
   updateHeroSlides: (id: string, slides: HeroSlide[], settings?: HeroSettings) =>
-    http.put<any>(`/admin/pages/${id}/hero`, settings ? { slides, settings } : { slides }),
+    http.put<any>(`/admin/pages/${id}/hero`, { slides, settings: settings || {} }),
 }
 
 // ============ 导航 ============

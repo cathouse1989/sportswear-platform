@@ -384,13 +384,13 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 
 			// portal cache: status / toggle / refresh / publish
 			auth.GET("/portal-cache",
-				middleware.RequirePermission("setting:manage"), portalHandler.GetPortalCacheStatus)
+				middleware.RequireAnyPermission("setting:manage", "page:view"), portalHandler.GetPortalCacheStatus)
 			auth.PUT("/portal-cache/enabled",
-				middleware.RequirePermission("setting:manage"), portalHandler.SetPortalCacheEnabled)
+				middleware.RequireAnyPermission("setting:manage", "page:update"), portalHandler.SetPortalCacheEnabled)
 			auth.POST("/portal-cache/refresh",
-				middleware.RequirePermission("setting:manage"), portalHandler.RefreshPortalCache)
+				middleware.RequireAnyPermission("setting:manage", "page:update"), portalHandler.RefreshPortalCache)
 			auth.POST("/portal-cache/publish",
-				middleware.RequirePermission("setting:manage"), portalHandler.PublishPortalCache)
+				middleware.RequireAnyPermission("setting:manage", "page:publish"), portalHandler.PublishPortalCache)
 
 			// ---------- 国际化词条管理（i18n 词典） ----------
 			auth.GET("/i18n/entries",

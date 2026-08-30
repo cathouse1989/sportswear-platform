@@ -141,17 +141,18 @@ const intervalMs = computed(() => {
 })
 const transition = computed(() => (props.settings?.transition === 'slide' ? 'slide' : 'fade'))
 const showDots = computed(() => flagOn(props.settings?.show_dots, true))
-const showArrows = computed(() => flagOn(props.settings?.show_arrows, true))
 const pauseOnHover = computed(() => flagOn(props.settings?.pause_on_hover, true))
 const slideCount = computed(() => props.slides?.length || 0)
-const hasNav = computed(() => slideCount.value > 1 && showArrows.value)
+const hasNav = computed(() => slideCount.value > 1)
 
 function slideClass(i: number) {
   if (transition.value === 'slide') {
-    return [
-      'transition-transform duration-700 ease-out',
-      current.value === i ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0',
-    ]
+    const n = slideCount.value
+    if (n <= 1) return ['translate-x-0 opacity-100']
+    const offset = ((i - current.value) % n + n) % n
+    if (offset === 0) return ['z-10 translate-x-0 opacity-100 transition-transform duration-700 ease-out']
+    if (offset === n - 1) return ['z-0 -translate-x-full opacity-0 transition-transform duration-700 ease-out']
+    return ['z-0 translate-x-full opacity-0 transition-transform duration-700 ease-out']
   }
   return [
     'transition-opacity duration-1000',

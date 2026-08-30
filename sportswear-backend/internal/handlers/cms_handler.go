@@ -1,4 +1,4 @@
-﻿package handlers
+package handlers
 
 import (
 	"strconv"
@@ -108,9 +108,9 @@ func (h *CMSHandler) UpdateHeroSlides(c *gin.Context) {
 		return
 	}
 	h.invalidateCache("page", "")
+	h.invalidateCache("theme", "")
 	utils.Success(c, gin.H{"updated": true})
 }
-
 
 // DeletePage 删除页面
 func (h *CMSHandler) DeletePage(c *gin.Context) {
@@ -562,4 +562,3 @@ func (h *CMSHandler) UnpublishCertification(c *gin.Context) {
 	h.invalidateCache("certification", "")
 	utils.Success(c, gin.H{"unpublished": true})
 }
-

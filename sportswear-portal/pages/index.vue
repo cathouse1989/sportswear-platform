@@ -55,15 +55,39 @@ const api = useApi()
 const { data: homeData } = await useAsyncData<any>(
   'home-' + (locale.value || 'en'),
   () => api.getHome().catch(() => null),
+  {
+    getCachedData(key, nuxtApp) {
+      return nuxtApp.isHydrating ? nuxtApp.payload.data[key] : undefined
+    },
+  },
 )
 
-// 主题配置（hero 轮播参数 + pageSize 等）
 const { data: themeData } = await useAsyncData<Record<string, any>>(
   'theme-' + (locale.value || 'en'),
   () => api.getTheme().catch(() => ({})),
+  {
+    getCachedData(key, nuxtApp) {
+      return nuxtApp.isHydrating ? nuxtApp.payload.data[key] : undefined
+    },
+  },
 )
 
 const products = computed<any[]>(() => homeData.value?.featured_products || [])
+
+// 轮播文案词条字典（来自后台「词条管理」i18n_entries，按语言翻页配置）
+// Key：home.hero_title_1..N / home.hero_sub_1..N / home.get_quote
+const { data: heroDict } = await useAsyncData<Record<string, string>>(
+  'hero-i18n-' + (locale.value || 'en'),
+  async () => {
+    const res = await api.getI18n().catch(() => null)
+    return res?.dictionary || {}
+  },
+  {
+    getCachedData(key, nuxtApp) {
+      return nuxtApp.isHydrating ? nuxtApp.payload.data[key] : undefined
+    },
+  },
+)
 
 const DEFAULT_IMAGES = [
   'https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?w=1600&h=900&fit=crop',
@@ -72,23 +96,29 @@ const DEFAULT_IMAGES = [
   'https://images.unsplash.com/photo-1577221084712-45b0445d2b00?w=1600&h=900&fit=crop',
 ]
 
-// 优先后台 hero_slides；缺失时回退内置默认图/文案
+// 从词条字典取文案；未配置时回退 slides 存量文本 / 静态语言包
+const pickDict = (key: string, fallback: string) => {
+  const v = heroDict.value?.[key]
+  return typeof v === 'string' && v.trim() ? v.trim() : fallback
+}
+
+// 优先后台 hero_slides 图片；文本按当前语言取自（词条字典 → slides 存量 → 语言包）
 const heroSlides = computed(() => {
   const raw = homeData.value?.hero_slides
   if (Array.isArray(raw) && raw.length) {
     return raw.map((s: any, i: number) => ({
-      image: String(s?.image || ''),
-      title: String(s?.title || t(`home.hero_title_${i + 1}`)),
-      subtitle: String(s?.subtitle || t(`home.hero_sub_${i + 1}`)),
-      button_text: String(s?.button_text || t('home.get_quote')),
+      image: String(s?.image || DEFAULT_IMAGES[i] || ''),
+      title: pickDict(`home.hero_title_${i + 1}`, String(s?.title || t(`home.hero_title_${i + 1}`))),
+      subtitle: pickDict(`home.hero_sub_${i + 1}`, String(s?.subtitle || t(`home.hero_sub_${i + 1}`))),
+      button_text: pickDict('home.get_quote', String(s?.button_text || t('home.get_quote'))),
       button_url: String(s?.button_url || '/contact'),
     }))
   }
   return [0, 1, 2, 3].map((i) => ({
     image: DEFAULT_IMAGES[i],
-    title: t(`home.hero_title_${i + 1}`),
-    subtitle: t(`home.hero_sub_${i + 1}`),
-    button_text: t('home.get_quote'),
+    title: pickDict(`home.hero_title_${i + 1}`, t(`home.hero_title_${i + 1}`)),
+    subtitle: pickDict(`home.hero_sub_${i + 1}`, t(`home.hero_sub_${i + 1}`)),
+    button_text: pickDict('home.get_quote', t('home.get_quote')),
     button_url: '/contact',
   }))
 })
@@ -114,7 +144,6 @@ const themeHero = computed(() => {
     interval_ms: toNum('hero_interval_ms', 5000),
     transition: toString('hero_transition', 'fade'),
     show_dots: toBool('hero_show_dots', true),
-    show_arrows: toBool('hero_show_arrows', true),
     pause_on_hover: toBool('hero_pause_on_hover', true),
   }
 })
@@ -134,9 +163,7 @@ const heroSettings = computed(() => {
     interval_ms: Number(s.interval_ms) || th.interval_ms || 5000,
     transition: (s.transition === 'slide' || s.transition === 'fade') ? s.transition : th.transition,
     show_dots: pick(s.show_dots, th.show_dots),
-    // 箭头默认开启。theme.hero_show_arrows 若为 false 不能把多图轮播的箭头关掉
-    // （当前库里该主题项为 false，会导致门户左右箭头整段不渲染）
-    show_arrows: pick(s.show_arrows, true),
+    show_arrows: true,
     pause_on_hover: pick(s.pause_on_hover, th.pause_on_hover),
   }
 })

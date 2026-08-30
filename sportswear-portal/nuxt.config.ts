@@ -74,6 +74,11 @@ export default defineNuxtConfig({
   // 因此对稳定 locale 子路径启用 Nitro SWR，可大幅减少服务端渲染开销，命中后直接返回 HTML。
   // 静态资源与 /sitemap.xml 由后端 Go 提供；这里仅缓存各 locale 的渲染页。
   routeRules: {
+    // 首页轮播等配置需即时生效，locale 根路径不走 SWR
+    '/en': { swr: false, headers: { 'cache-control': 'no-store' } },
+    '/zh': { swr: false, headers: { 'cache-control': 'no-store' } },
+    '/es': { swr: false, headers: { 'cache-control': 'no-store' } },
+    '/fr': { swr: false, headers: { 'cache-control': 'no-store' } },
     '/en/**': { swr: 300 },
     '/zh/**': { swr: 300 },
     '/es/**': { swr: 300 },

@@ -1,123 +1,140 @@
 <template>
   <div class="hero-editor">
+    <div class="hero-head">
+      <div>
+        <h3>轮播图管理</h3>
+        <p>在此管理门户首页轮播图片。自动播放、指示点、左右箭头等展示参数已默认开启，无需逐项配置；门户轮播文案按当前访问语言自动展示。</p>
+      </div>
+      <div class="hero-head-actions">
+        <el-button @click="loadHero" :loading="loading">刷新</el-button>
+        <el-button :disabled="loading" @click="addSlide">添加一张</el-button>
+        <el-button type="primary" :loading="saving" :disabled="loading" @click="saveHeroSlides">保存配置</el-button>
+      </div>
+    </div>
+
     <el-alert
       v-if="!loading && !pageId"
       type="warning"
       :closable="false"
       show-icon
-      title="No home page"
-      description="Please pass home pageId."
-      class="mb-alert"
+      title="未指定首页"
+      class="mb-16"
     />
 
     <div v-loading="loading">
       <template v-if="pageId">
-        <div class="hero-tip">
-          {{ heroSlides.length }} hero slides. Add / remove / reorder. Image from media library or URL.
+        <div class="preview-strip" v-if="heroSlides.length">
+          <button
+            v-for="(s, idx) in heroSlides"
+            :key="'p-' + idx"
+            type="button"
+            class="preview-thumb"
+            :class="{ active: previewIndex === idx }"
+            @click="previewIndex = idx"
+          >
+            <img v-if="s.image" :src="s.image" alt="" />
+            <span v-else>空</span>
+            <em>{{ idx + 1 }}</em>
+          </button>
         </div>
 
-        <div class="hero-settings">
-          <div class="hero-settings-title">Display settings</div>
-          <div class="hero-settings-grid">
-            <div class="hero-setting-item">
-              <span class="hero-label">Autoplay</span>
-              <el-switch v-model="heroSettings.autoplay" />
-            </div>
-            <div class="hero-setting-item">
-              <span class="hero-label">Interval</span>
-              <el-input-number v-model="heroSettings.interval_ms" :min="2000" :max="30000" :step="500" :disabled="!heroSettings.autoplay" controls-position="right" />
-            </div>
-            <div class="hero-setting-item">
-              <span class="hero-label">Transition</span>
-              <el-select v-model="heroSettings.transition" style="width: 120px">
-                <el-option label="Fade" value="fade" />
-                <el-option label="Slide" value="slide" />
-              </el-select>
-            </div>
-            <div class="hero-setting-item">
-              <span class="hero-label">Dots</span>
-              <el-switch v-model="heroSettings.show_dots" />
-            </div>
-            <div class="hero-setting-item">
-              <span class="hero-label">Arrows</span>
-              <el-switch v-model="heroSettings.show_arrows" />
-            </div>
-            <div class="hero-setting-item">
-              <span class="hero-label">Pause hover</span>
-              <el-switch v-model="heroSettings.pause_on_hover" :disabled="!heroSettings.autoplay" />
-            </div>
-          </div>
+        <div class="cache-bar">
+          <div class="cache-title">门户缓存</div>
+          <el-switch
+            v-model="cacheEnabled"
+            :loading="cacheToggling"
+            :disabled="!cacheRedisOk && !cacheEnabled"
+            active-text="读缓存"
+            inactive-text="读DB配置"
+            @change="onCacheToggle"
+          />
+          <el-button
+            size="small"
+            type="primary"
+            plain
+            :loading="cacheRefreshing"
+            :disabled="!cacheRedisOk"
+            @click="handleCacheRefresh"
+          >
+            刷新缓存
+          </el-button>
+          <span class="cache-hint">
+            {{ cacheRedisOk ? (cacheEnabled ? '门户当前读取 Redis 缓存，内容变更自动生效' : '门户当前直读数据库配置，改完刷新即可看到') : 'Redis 不可用，门户直读数据库配置' }}
+          </span>
         </div>
 
-        <div class="hero-list">
-          <div v-for="(s, idx) in heroSlides" :key="idx" class="hero-card">
-            <div class="hero-index">{{ idx + 1 }}</div>
-            <div class="hero-thumb">
-              <el-image v-if="s.image" :src="s.image" fit="cover" style="width: 120px; height: 80px; border-radius: 6px" :preview-src-list="[s.image]" preview-teleported />
-              <div v-else class="hero-thumb-empty">No image</div>
+        <div class="slide-list">
+          <article v-for="(s, idx) in heroSlides" :key="idx" class="slide-card">
+            <div class="slide-media">
+              <el-image
+                v-if="s.image"
+                :src="s.image"
+                fit="cover"
+                class="slide-img"
+                :preview-src-list="[s.image]"
+                preview-teleported
+              />
+              <div v-else class="slide-img empty">暂无图片</div>
+              <span class="slide-badge">{{ idx + 1 }}</span>
             </div>
-            <div class="hero-fields">
-              <div class="hero-field">
-                <span class="hero-label">Image</span>
+            <div class="slide-body">
+              <div class="field">
+                <label>图片</label>
                 <div class="img-input">
-                  <el-input v-model="s.image" placeholder="Image URL" clearable />
-                  <el-button size="small" @click="openMediaPicker(idx)">Media</el-button>
+                  <el-input v-model="s.image" placeholder="图片 URL 或从媒体库选择" clearable />
+                  <el-button @click="openMediaPicker(idx)">媒体库</el-button>
                 </div>
               </div>
-              <div class="hero-field">
-                <span class="hero-label">Title</span>
-                <el-input v-model="s.title" placeholder="Title" clearable />
+              <div class="field">
+                <label>按钮链接</label>
+                <el-input v-model="s.button_url" placeholder="/contact" clearable />
               </div>
-              <div class="hero-field">
-                <span class="hero-label">Subtitle</span>
-                <el-input v-model="s.subtitle" placeholder="Subtitle" clearable />
-              </div>
-              <div class="hero-field">
-                <span class="hero-label">Button</span>
-                <el-input v-model="s.button_text" placeholder="Button text" clearable style="width: 180px" />
-                <el-input v-model="s.button_url" placeholder="Button URL" clearable style="width: 220px" />
+              <div class="text-tip">
+                {{ idx + 1 }} 号图的标题、副标题、按钮文字请到「系统配置 → 词条管理」按语言配置（Key：home.hero_title_{{ idx + 1 }}、
+                home.hero_sub_{{ idx + 1 }}、home.get_quote），门户会根据访问语言自动切换对应翻译。
               </div>
             </div>
-            <div class="hero-ops">
-              <el-button size="small" :disabled="idx === 0" @click="moveSlide(idx, -1)">Up</el-button>
-              <el-button size="small" :disabled="idx === heroSlides.length - 1" @click="moveSlide(idx, 1)">Down</el-button>
-              <el-button size="small" type="danger" @click="removeSlide(idx)">Del</el-button>
+            <div class="slide-ops">
+              <el-button :disabled="idx === 0" @click="moveSlide(idx, -1)">上移</el-button>
+              <el-button :disabled="idx === heroSlides.length - 1" @click="moveSlide(idx, 1)">下移</el-button>
+              <el-button type="danger" plain @click="removeSlide(idx)">删除</el-button>
             </div>
-          </div>
-        </div>
-
-        <div class="footer-actions">
-          <el-button @click="addSlide">Add slide</el-button>
-          <el-button @click="loadHero" :loading="loading">Reload</el-button>
-          <el-button type="primary" :loading="saving" @click="saveHeroSlides">Save</el-button>
+          </article>
         </div>
       </template>
     </div>
 
-    <el-dialog v-model="mediaDialogVisible" title="Pick image" width="760px" append-to-body>
+    <el-dialog v-model="mediaDialogVisible" title="从媒体库选择图片" width="780px" append-to-body>
       <div class="media-toolbar">
-        <el-input v-model="mediaKeyword" placeholder="Search" size="small" style="width: 200px" clearable @keyup.enter="searchMedia" />
-        <el-button size="small" @click="searchMedia">Search</el-button>
+        <el-input v-model="mediaKeyword" placeholder="搜索文件名" style="width: 220px" clearable @keyup.enter="searchMedia" />
+        <el-button @click="searchMedia">查询</el-button>
       </div>
       <div class="media-grid" v-loading="mediaLoading">
         <div v-for="m in mediaItems" :key="m.id" class="media-cell">
           <el-image v-if="m.type === 'image'" :src="m.url" fit="cover" class="media-img" />
           <div v-else class="media-file">{{ m.type }}</div>
           <div class="media-name" :title="m.original_name">{{ m.original_name }}</div>
-          <el-button size="small" type="primary" @click="pickMedia(m)">Use</el-button>
+          <el-button size="small" type="primary" @click="pickMedia(m)">选用</el-button>
         </div>
-        <div v-if="!mediaLoading && !mediaItems.length" class="media-empty">No images</div>
+        <div v-if="!mediaLoading && !mediaItems.length" class="media-empty">暂无图片，请先在「媒体管理」上传</div>
       </div>
-      <el-pagination class="pagination" v-model:current-page="mediaPage" v-model:page-size="mediaPageSize" :total="mediaTotal" layout="total, prev, pager, next" @current-change="loadMedia" />
+      <el-pagination
+        class="pagination"
+        v-model:current-page="mediaPage"
+        v-model:page-size="mediaPageSize"
+        :total="mediaTotal"
+        layout="total, prev, pager, next"
+        @current-change="loadMedia"
+      />
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { pageApi, mediaApi } from '@/api'
-import type { HeroSlide, HeroSettings } from '@/types'
+import { pageApi, mediaApi, portalCacheApi } from '@/api'
+import type { HeroSlide } from '@/types'
 
 const props = defineProps<{ pageId: string }>()
 const emit = defineEmits<{ saved: [] }>()
@@ -126,55 +143,51 @@ const pageId = ref(props.pageId)
 watch(() => props.pageId, (v) => { pageId.value = v; loadHero() })
 
 const heroSlides = ref<HeroSlide[]>([])
-const heroSettings = reactive({
+const previewIndex = ref(0)
+
+// 展示参数固定为默认开启（自动播放/指示点/箭头/悬停暂停等不再暴露开关）
+const DEFAULT_HERO_SETTINGS = {
   autoplay: true,
   interval_ms: 5000,
-  transition: 'fade' as 'fade' | 'slide',
+  transition: 'fade' as const,
   show_dots: true,
   show_arrows: true,
   pause_on_hover: true,
-})
-
-function defaultHeroSettings() {
-  return { autoplay: true, interval_ms: 5000, transition: 'fade' as const, show_dots: true, show_arrows: true, pause_on_hover: true }
-}
-
-function applyHeroSettings(raw?: Partial<HeroSettings> | null) {
-  const d = defaultHeroSettings()
-  const src = raw || {}
-  heroSettings.autoplay = src.autoplay !== false
-  heroSettings.interval_ms = Number(src.interval_ms) > 0 ? Number(src.interval_ms) : d.interval_ms
-  heroSettings.transition = src.transition === 'slide' ? 'slide' : 'fade'
-  heroSettings.show_dots = src.show_dots !== false
-  heroSettings.show_arrows = src.show_arrows !== false
-  heroSettings.pause_on_hover = src.pause_on_hover !== false
 }
 
 function defaultHeroSlides(): HeroSlide[] {
   return [
-    { image: 'https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?w=1600&h=900&fit=crop', title: 'Custom Sportswear Manufacturer', subtitle: 'OEM & ODM Solutions for Global Brands', button_text: 'Get a Quote', button_url: '/contact' },
-    { image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1600&h=900&fit=crop', title: 'Advanced Running & Training Apparel', subtitle: 'Technical fabrics for peak performance', button_text: 'Get a Quote', button_url: '/contact' },
-    { image: 'https://images.unsplash.com/photo-1517466787929-bc90951d0974?w=1600&h=900&fit=crop', title: 'Professional Team Uniforms', subtitle: 'Full custom sublimation printing', button_text: 'Get a Quote', button_url: '/contact' },
-    { image: 'https://images.unsplash.com/photo-1577221084712-45b0445d2b00?w=1600&h=900&fit=crop', title: 'From Concept to Product', subtitle: 'End-to-end manufacturing support', button_text: 'Get a Quote', button_url: '/contact' },
+    { image: 'https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?w=1600&h=900&fit=crop', title: '', subtitle: '', button_text: '', button_url: '/contact' },
+    { image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1600&h=900&fit=crop', title: '', subtitle: '', button_text: '', button_url: '/contact' },
+    { image: 'https://images.unsplash.com/photo-1517466787929-bc90951d0974?w=1600&h=900&fit=crop', title: '', subtitle: '', button_text: '', button_url: '/contact' },
+    { image: 'https://images.unsplash.com/photo-1577221084712-45b0445d2b00?w=1600&h=900&fit=crop', title: '', subtitle: '', button_text: '', button_url: '/contact' },
   ]
 }
 
-function parseBannerConfig(config: string | unknown): { slides: HeroSlide[]; settings: Partial<HeroSettings> | null } {
-  if (typeof config !== 'string') return { slides: [], settings: null }
-  try {
-    const obj = JSON.parse(config)
-    const norm = (s: any): HeroSlide => ({
-      image: s?.image || '', title: s?.title || '', subtitle: s?.subtitle || '',
-      button_text: s?.button_text || '', button_url: s?.button_url || '',
-    })
-    let slides: HeroSlide[] = []
-    if (obj && Array.isArray(obj.slides)) slides = (obj.slides as any[]).map(norm)
-    else if (obj && !Array.isArray(obj) && typeof obj === 'object' && 'image' in obj) slides = [norm(obj)]
-    const settings = obj && typeof obj === 'object' && obj.settings && typeof obj.settings === 'object'
-      ? (obj.settings as Partial<HeroSettings>) : null
-    return { slides, settings }
-  } catch { /* ignore */ }
-  return { slides: [], settings: null }
+function parseBannerConfig(config: string | unknown): HeroSlide[] {
+  let obj: any = config
+  if (typeof config === 'string') {
+    try {
+      obj = JSON.parse(config)
+    } catch {
+      return []
+    }
+  }
+  if (typeof obj === 'string') {
+    try {
+      obj = JSON.parse(obj)
+    } catch {
+      return []
+    }
+  }
+  if (!obj || typeof obj !== 'object') return []
+  const norm = (s: any): HeroSlide => ({
+    image: s?.image || '', title: s?.title || '', subtitle: s?.subtitle || '',
+    button_text: s?.button_text || '', button_url: s?.button_url || '',
+  })
+  if (Array.isArray(obj.slides)) return (obj.slides as any[]).map(norm)
+  if ('image' in obj) return [norm(obj)]
+  return []
 }
 
 const loading = ref(false)
@@ -182,42 +195,89 @@ const saving = ref(false)
 
 async function loadHero() {
   loading.value = true
-  applyHeroSettings(defaultHeroSettings())
   try {
     if (!pageId.value) { heroSlides.value = []; return }
     const page = await pageApi.get(pageId.value)
     const banner = (page.modules || []).find((m: any) => m.type === 'banner')
-    const parsed = banner?.config ? parseBannerConfig(banner.config) : { slides: [], settings: null }
-    heroSlides.value = parsed.slides.length ? parsed.slides : defaultHeroSlides()
-    applyHeroSettings(parsed.settings)
+    const parsed = banner?.config ? parseBannerConfig(banner.config) : []
+    heroSlides.value = parsed.length ? parsed : defaultHeroSlides()
+    previewIndex.value = 0
   } catch {
     heroSlides.value = defaultHeroSlides()
-    applyHeroSettings(defaultHeroSettings())
   } finally {
     loading.value = false
   }
 }
 
-const addSlide = () => heroSlides.value.push({ image: '', title: '', subtitle: '', button_text: 'Get a Quote', button_url: '/contact' })
+const addSlide = () => heroSlides.value.push({ image: '', title: '', subtitle: '', button_text: '', button_url: '/contact' })
 const removeSlide = (idx: number) => { heroSlides.value.splice(idx, 1); if (!heroSlides.value.length) addSlide() }
 function moveSlide(idx: number, dir: number) {
   const arr = heroSlides.value
   const to = idx + dir
   if (to < 0 || to >= arr.length) return
-  const t = arr[idx]; arr[idx] = arr[to]; arr[to] = t
+  const cur = arr[idx]
+  arr.splice(idx, 1)
+  arr.splice(to, 0, cur)
 }
 
 async function saveHeroSlides() {
-  if (!pageId.value) { ElMessage.warning('No home page'); return }
-  const valid = heroSlides.value.filter(s => s.image && s.image.trim())
-  if (!valid.length) { ElMessage.warning('At least one slide image is required'); return }
+  if (!pageId.value) { ElMessage.warning('未找到首页页面'); return }
+  const valid = heroSlides.value
+    .filter(s => s.image && s.image.trim())
+    // 文本（标题/副标题/按钮文字）统一由词条管理按语言配置，保存时清空存量文本
+    .map(s => ({ image: s.image, title: '', subtitle: '', button_text: '', button_url: s.button_url }))
+  if (!valid.length) { ElMessage.warning('请至少为一张轮播图填写图片地址'); return }
   saving.value = true
   try {
-    await pageApi.updateHeroSlides(pageId.value, valid, { ...heroSettings })
-    ElMessage.success('Hero saved. If portal cache is on, publish cache under System > Portal Cache.')
+    // 展示参数不再逐项配置，保存时写入默认开启值
+    await pageApi.updateHeroSlides(pageId.value, valid, { ...DEFAULT_HERO_SETTINGS })
+    ElMessage.success('已保存；标题/副标题/按钮文字请在「词条管理」按语言配置')
     emit('saved')
+    await loadHero()
   } catch { /* handled */ }
   finally { saving.value = false }
+}
+
+// ============ 门户缓存（读缓存 / 读DB配置 / 刷新缓存） ============
+const cacheEnabled = ref(true)
+const cacheRedisOk = ref(true)
+const cacheToggling = ref(false)
+const cacheRefreshing = ref(false)
+
+function applyCacheStatus(data: any) {
+  cacheRedisOk.value = !!data?.redis_ok
+  cacheEnabled.value = !!data?.enabled
+}
+
+async function loadCacheStatus() {
+  try {
+    const data = await portalCacheApi.status()
+    applyCacheStatus(data)
+  } catch { /* 缓存状态不可用时（如无 Redis）不阻塞编辑 */ }
+}
+
+async function onCacheToggle(val: string | number | boolean) {
+  const next = !!val
+  cacheToggling.value = true
+  try {
+    const data = await portalCacheApi.setEnabled(next)
+    applyCacheStatus(data)
+    ElMessage.success(next ? '已切换为读缓存' : '已切换为读DB配置（直查数据库）')
+  } catch {
+    cacheEnabled.value = !next
+  } finally {
+    cacheToggling.value = false
+  }
+}
+
+async function handleCacheRefresh() {
+  cacheRefreshing.value = true
+  try {
+    const data = await portalCacheApi.refresh()
+    applyCacheStatus(data)
+    ElMessage.success('缓存已刷新')
+  } catch { /* handled */ }
+  finally { cacheRefreshing.value = false }
 }
 
 const mediaDialogVisible = ref(false)
@@ -249,33 +309,168 @@ function pickMedia(m: any) {
   mediaDialogVisible.value = false
 }
 
-onMounted(loadHero)
+onMounted(() => { loadHero(); loadCacheStatus() })
 </script>
 
 <style scoped>
-.mb-alert { margin-bottom: 16px; }
+.hero-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.hero-head h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0d1b2a;
+}
+.hero-head p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #8b7d6b;
+  line-height: 1.5;
+  max-width: 640px;
+}
+.hero-head-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.mb-16 { margin-bottom: 16px; }
 .pagination { margin-top: 16px; justify-content: flex-end; }
-.footer-actions { display: flex; gap: 12px; margin-top: 16px; justify-content: flex-end; }
-.hero-tip { color: #8b7d6b; font-size: 12px; line-height: 1.5; background: #fbf9f6; border: 1px solid #eae5dd; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; }
-.hero-settings { border: 1px solid #eae5dd; border-radius: 10px; padding: 12px 14px; background: #fff; margin-bottom: 14px; }
-.hero-settings-title { font-size: 13px; font-weight: 600; color: #0d1b2a; margin-bottom: 10px; }
-.hero-settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px 16px; align-items: center; }
-.hero-setting-item { display: flex; align-items: center; gap: 10px; }
-.hero-list { display: flex; flex-direction: column; gap: 12px; }
-.hero-card { display: flex; gap: 14px; align-items: flex-start; border: 1px solid #eae5dd; border-radius: 10px; padding: 14px; background: #fff; }
-.hero-index { width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; background: #d4a853; color: #fff; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; margin-top: 30px; }
-.hero-thumb { flex-shrink: 0; }
-.hero-thumb-empty { width: 120px; height: 80px; border-radius: 6px; background: #f0eded; display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 12px; }
-.hero-fields { flex: 1; display: flex; flex-direction: column; gap: 10px; }
-.hero-field { display: flex; align-items: center; gap: 10px; }
-.hero-label { width: 70px; flex-shrink: 0; color: #555; font-size: 13px; }
-.img-input { display: flex; gap: 8px; flex: 1; }
-.hero-ops { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; margin-top: 8px; }
+
+.preview-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+}
+.preview-thumb {
+  position: relative;
+  width: 112px;
+  height: 64px;
+  border: 2px solid #eae5dd;
+  border-radius: 10px;
+  overflow: hidden;
+  padding: 0;
+  background: #f4f1ec;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.preview-thumb.active { border-color: #d4a853; box-shadow: 0 0 0 3px rgba(212, 168, 83, 0.25); }
+.preview-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.preview-thumb span, .preview-thumb em {
+  position: absolute;
+  color: #fff;
+  font-size: 11px;
+}
+.preview-thumb span { inset: 0; display: flex; align-items: center; justify-content: center; color: #999; }
+.preview-thumb em {
+  right: 4px; bottom: 4px;
+  background: rgba(13, 27, 42, 0.7);
+  border-radius: 999px;
+  padding: 0 6px;
+  font-style: normal;
+}
+
+.cache-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  border: 1px solid #eae5dd;
+  border-radius: 14px;
+  padding: 12px 18px;
+  background: linear-gradient(180deg, #fff 0%, #fbf9f6 100%);
+  margin-bottom: 16px;
+}
+.cache-title { font-size: 14px; font-weight: 700; color: #0d1b2a; }
+.cache-hint { font-size: 12px; color: #8b7d6b; max-width: 520px; line-height: 1.5; }
+
+.slide-list { display: flex; flex-direction: column; gap: 14px; }
+.slide-card {
+  display: grid;
+  grid-template-columns: 220px 1fr auto;
+  gap: 16px;
+  align-items: stretch;
+  border: 1px solid #eae5dd;
+  border-radius: 14px;
+  padding: 14px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(13, 27, 42, 0.04);
+}
+.slide-media { position: relative; }
+.slide-img {
+  width: 100%;
+  height: 140px;
+  border-radius: 10px;
+  overflow: hidden;
+  display: block;
+}
+.slide-img.empty {
+  background: #f3eee6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #aaa;
+  font-size: 13px;
+}
+.slide-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #d4a853;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.slide-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.field { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.field label { font-size: 12px; color: #6b7280; }
+.field-row { display: flex; gap: 12px; }
+.img-input { display: flex; gap: 8px; }
+.text-tip {
+  font-size: 12px;
+  color: #8b7d6b;
+  background: #fbf9f6;
+  border: 1px dashed #eae5dd;
+  border-radius: 8px;
+  padding: 8px 10px;
+  line-height: 1.6;
+}
+.slide-ops { display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+
 .media-toolbar { display: flex; gap: 10px; margin-bottom: 12px; }
 .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; min-height: 80px; }
-.media-cell { border: 1px solid #eae5dd; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.media-cell {
+  border: 1px solid #eae5dd;
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
 .media-img { width: 100%; height: 90px; border-radius: 6px; }
-.media-file { width: 100%; height: 90px; display: flex; align-items: center; justify-content: center; background: #f5f5f5; border-radius: 6px; color: #999; font-size: 12px; }
-.media-name { font-size: 11px; color: #666; width: 100%; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.media-file {
+  width: 100%; height: 90px;
+  display: flex; align-items: center; justify-content: center;
+  background: #f5f5f5; border-radius: 6px; color: #999; font-size: 12px;
+}
+.media-name {
+  font-size: 11px; color: #666; width: 100%; text-align: center;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .media-empty { grid-column: 1 / -1; text-align: center; color: #999; padding: 30px 0; }
+
+@media (max-width: 960px) {
+  .slide-card { grid-template-columns: 1fr; }
+  .slide-ops { flex-direction: row; }
+  .hero-head { flex-direction: column; }
+}
 </style>

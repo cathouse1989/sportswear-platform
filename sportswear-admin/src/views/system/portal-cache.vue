@@ -23,16 +23,16 @@
             v-model="enabled"
             :loading="toggling"
             :disabled="!status.redis_ok && !enabled"
-            active-text="走缓存"
-            inactive-text="走数据库"
+            active-text="读缓存"
+            inactive-text="读配置"
             @change="onToggle"
           />
-          <span class="hint">{{ enabled ? '开启：读缓存，变更自动刷新缓存' : '关闭：直查库，仅可手动刷新缓存' }}</span>
+          <span class="hint">{{ enabled ? '开启：门户读 Redis 缓存，内容变更会自动失效' : '关闭：门户直读数据库配置，改完刷新即可看到' }}</span>
         </div>
       </el-descriptions-item>
       <el-descriptions-item label="当前读路径">
         <el-tag :type="status.using_cache ? 'success' : 'info'" size="small">
-          {{ status.using_cache ? '缓存' : '数据库' }}
+          {{ status.using_cache ? '读缓存' : '读配置（数据库）' }}
         </el-tag>
       </el-descriptions-item>
       <el-descriptions-item label="最近刷新/发布时间">
@@ -102,7 +102,7 @@ async function onToggle(val: string | number | boolean) {
   try {
     const data = await portalCacheApi.setEnabled(next)
     applyStatus(data)
-    ElMessage.success(next ? '已开启缓存，并自动刷新门户缓存' : '已关闭缓存，公开接口将直查数据库')
+    ElMessage.success(next ? '已切换为读缓存' : '已切换为读配置（直查数据库）')
   } catch {
     enabled.value = !next
   } finally {

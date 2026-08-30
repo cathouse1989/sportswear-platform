@@ -119,15 +119,15 @@ func (h *PublicHandler) GetHome(c *gin.Context) {
 		services.LocalizeCases(cases, lang)
 
 		return gin.H{
-			"page":                 page,
-			"hero_slides":          extractHeroSlides(page),
-			"hero_settings":        extractHeroSettings(page),
-			"featured_products":    products,
-			"categories":           categories,
-			"blogs":                blogs,
-			"cases":                cases,
-			"certifications":       certifications,
-			"factories":            factories,
+			"page":              page,
+			"hero_slides":       extractHeroSlides(page),
+			"hero_settings":     extractHeroSettings(page),
+			"featured_products": products,
+			"categories":        categories,
+			"blogs":             blogs,
+			"cases":             cases,
+			"certifications":    certifications,
+			"factories":         factories,
 		}, nil
 	})
 	if err != nil {
@@ -150,8 +150,8 @@ func extractHeroSlides(page *models.Page) []gin.H {
 		if m.Type != "banner" || !m.IsVisible {
 			continue
 		}
-		var raw map[string]interface{}
-		if err := json.Unmarshal([]byte(m.Config), &raw); err != nil {
+		raw := services.UnmarshalPageModuleConfig(m.Config)
+		if raw == nil {
 			continue
 		}
 		// 新版：slides 数组
@@ -200,8 +200,8 @@ func extractHeroSettings(page *models.Page) gin.H {
 			if m.Type != "banner" || !m.IsVisible {
 				continue
 			}
-			var raw map[string]interface{}
-			if err := json.Unmarshal([]byte(m.Config), &raw); err != nil {
+			raw := services.UnmarshalPageModuleConfig(m.Config)
+			if raw == nil {
 				continue
 			}
 			if sraw, ok := raw["settings"]; ok {
@@ -225,7 +225,7 @@ func extractHeroSettings(page *models.Page) gin.H {
 		"interval_ms":    settings.IntervalMs,
 		"transition":     settings.Transition,
 		"show_dots":      boolOr(settings.ShowDots, true),
-		"show_arrows":    boolOr(settings.ShowArrows, true),
+		"show_arrows":    true,
 		"pause_on_hover": boolOr(settings.PauseOnHover, true),
 	}
 }
@@ -493,7 +493,6 @@ func (h *PublicHandler) ListCertifications(c *gin.Context) {
 	}
 	utils.Success(c, certifications)
 }
-
 
 // ListNavigations 导航列表（Redis 缓存，长 TTL）
 func (h *PublicHandler) ListNavigations(c *gin.Context) {

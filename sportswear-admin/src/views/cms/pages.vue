@@ -32,7 +32,7 @@
       <el-table-column label="操作" width="360">
         <template #default="{ row }: any">
           <el-button size="small" @click="openEditDialog(row)">编辑</el-button>
-          <el-button size="small" type="warning" @click="openHeroDrawer(row)" v-if="isHome(row)">轮播图</el-button>
+          <el-button size="small" type="warning" @click="$router.push('/hero')" v-if="isHome(row)">轮播图</el-button>
           <el-button v-permission="'page:publish'" size="small" type="success" @click="handlePublish(row)" v-if="row.status !== 'published'">发布</el-button>
           <el-button v-permission="'page:publish'" size="small" type="warning" @click="handleUnpublish(row)" v-else>下线</el-button>
           <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
@@ -80,10 +80,6 @@
         <el-button type="primary" @click="handleSave">保存</el-button>
       </template>
     </el-dialog>
-
-    <el-drawer v-model="heroDrawerVisible" title="配置门户轮播图" size="72%" destroy-on-close>
-      <HeroEditor v-if="heroDrawerVisible && heroPageId" :page-id="heroPageId" />
-    </el-drawer>
   </el-card>
 </template>
 
@@ -93,7 +89,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { pageApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
 import type { Page } from '@/types'
-import HeroEditor from '@/components/cms/HeroEditor.vue'
 
 const pages = ref<Page[]>([])
 const loading = ref(false)
@@ -128,14 +123,7 @@ async function handlePublish(row: Page) { await pageApi.publish(row.id); ElMessa
 async function handleUnpublish(row: Page) { await pageApi.unpublish(row.id); ElMessage.success('已下线'); loadData() }
 async function handleDelete(row: Page) { await ElMessageBox.confirm(`确定删除页面 ${row.title} 吗？`, '警告', { type: 'warning' }); await pageApi.delete(row.id); ElMessage.success('已删除'); loadData() }
 
-// 首页轮播图：跳转独立管理页
 const isHome = (row: Page) => row.slug === 'home' || row.type === 'home'
-const heroDrawerVisible = ref(false)
-const heroPageId = ref('')
-function openHeroDrawer(row: Page) {
-  heroPageId.value = row.id
-  heroDrawerVisible.value = true
-}
 
 onMounted(loadData)
 </script>

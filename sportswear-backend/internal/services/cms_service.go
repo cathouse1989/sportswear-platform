@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -295,6 +296,69 @@ func DefaultHeroSettings() HeroSettings {
 	}
 }
 
+// UnmarshalPageModuleConfig 解析页面模块 JSONB config。
+// 兼容：对象 JSON、被二次编码成 JSON 字符串的对象、前后空白。
+func UnmarshalPageModuleConfig(raw string) map[string]interface{} {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+	var out map[string]interface{}
+	if err := json.Unmarshal([]byte(raw), &out); err == nil && out != nil {
+		return out
+	}
+	var inner string
+	if err := json.Unmarshal([]byte(raw), &inner); err == nil {
+		inner = strings.TrimSpace(inner)
+		if inner != "" && json.Unmarshal([]byte(inner), &out) == nil && out != nil {
+			return out
+		}
+	}
+	return nil
+}
+
+func boolVal(p *bool, def bool) bool {
+	if p == nil {
+		return def
+	}
+	return *p
+}
+
+// heroSettingsPersist 写入 JSONB 时不用 omitempty，确保 false 也能落库
+type heroSettingsPersist struct {
+	Autoplay     bool   `json:"autoplay"`
+	IntervalMs   int    `json:"interval_ms"`
+	Transition   string `json:"transition"`
+	ShowDots     bool   `json:"show_dots"`
+	ShowArrows   bool   `json:"show_arrows"`
+	PauseOnHover bool   `json:"pause_on_hover"`
+}
+
+func persistHeroSettings(s HeroSettings) heroSettingsPersist {
+	return heroSettingsPersist{
+		Autoplay:     boolVal(s.Autoplay, true),
+		IntervalMs:   s.IntervalMs,
+		Transition:   s.Transition,
+		ShowDots:     boolVal(s.ShowDots, true),
+		ShowArrows:   true,
+		PauseOnHover: boolVal(s.PauseOnHover, true),
+	}
+}
+
+func (s *CMSService) syncHeroThemeSettings(settings HeroSettings) {
+	p := persistHeroSettings(settings)
+	pairs := []struct{ key, val string }{
+		{"hero_autoplay", strconv.FormatBool(p.Autoplay)},
+		{"hero_interval_ms", strconv.Itoa(p.IntervalMs)},
+		{"hero_transition", p.Transition},
+		{"hero_show_dots", strconv.FormatBool(p.ShowDots)},
+		{"hero_pause_on_hover", strconv.FormatBool(p.PauseOnHover)},
+	}
+	for _, item := range pairs {
+		s.db.Model(&models.ThemeConfig{}).Where(`"key" = ?`, item.key).Update("value", item.val)
+	}
+}
+
 // NormalizeHeroSettings 合并缺省值并校正非法字段
 func NormalizeHeroSettings(in *HeroSettings) HeroSettings {
 	out := DefaultHeroSettings()
@@ -355,8 +419,7 @@ func (s *CMSService) UpdateHeroSlides(pageID string, slides []HeroSlide, setting
 
 	finalSettings := DefaultHeroSettings()
 	if err == nil && module.Config != "" {
-		var existing map[string]interface{}
-		if json.Unmarshal([]byte(module.Config), &existing) == nil {
+		if existing := UnmarshalPageModuleConfig(module.Config); existing != nil {
 			if raw, ok := existing["settings"]; ok {
 				b, _ := json.Marshal(raw)
 				var parsed HeroSettings
@@ -371,18 +434,23 @@ func (s *CMSService) UpdateHeroSlides(pageID string, slides []HeroSlide, setting
 	}
 
 	configJSON, err2 := json.Marshal(map[string]interface{}{
-		"settings": finalSettings,
+		"settings": persistHeroSettings(finalSettings),
 		"slides":   slides,
 	})
 	if err2 != nil {
 		return errors.New("配置序列化失败")
 	}
 
+	s.syncHeroThemeSettings(finalSettings)
+
 	if err == nil {
-		return s.db.Model(&module).Updates(map[string]interface{}{
-			"config":     string(configJSON),
+		if uerr := s.db.Model(&module).Updates(map[string]interface{}{
+			"config":     gorm.Expr("?::jsonb", string(configJSON)),
 			"is_visible": true,
-		}).Error
+		}).Error; uerr != nil {
+			return uerr
+		}
+		return nil
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
@@ -1222,4 +1290,3 @@ func (s *CMSService) UpdateCertification(id string, req *CertificationRequest) (
 func (s *CMSService) DeleteCertification(id string) error {
 	return s.db.Delete(&models.Certification{}, "id = ?", id).Error
 }
-
