@@ -121,6 +121,7 @@ export const pageApi = {
 // ============ 瀵艰埅 ============
 export const navigationApi = {
   list: (params?: any) => http.get<Navigation[]>('/admin/navigations', params),
+  listAll: () => http.get<Navigation[]>('/admin/navigations', { type: '' }),
   create: (data: any) => http.post<Navigation>('/admin/navigations', data),
   update: (id: string, data: any) => http.put<Navigation>(`/admin/navigations/${id}`, data),
   delete: (id: string) => http.delete(`/admin/navigations/${id}`),

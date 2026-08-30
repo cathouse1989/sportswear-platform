@@ -52,6 +52,8 @@ type Navigation struct {
 	SortOrder int          `gorm:"default:0" json:"sort_order"`
 	IsVisible bool         `gorm:"default:true" json:"is_visible"`
 	ParentID  *uuid.UUID   `gorm:"type:uuid" json:"parent_id"`
+	PageID    *uuid.UUID   `gorm:"type:uuid;index" json:"page_id,omitempty"` // 关联页面（可空外键，实现 Page↔Nav 关联）
+	Page      *Page        `gorm:"foreignKey:PageID" json:"page,omitempty"`  // 预加载关联页面信息
 	Children  []Navigation `gorm:"foreignKey:ParentID" json:"children,omitempty"`
 }
 

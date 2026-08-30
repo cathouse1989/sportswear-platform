@@ -212,7 +212,8 @@ const mobileMenuOpen = ref(false)
 const newsletterEmail = ref('')
 const theme = ref<Record<string, any>>({})
 
-const navItems = [
+// 默认导航（API 失败时的回退值）
+const DEFAULT_NAV = [
   { path: '/', label: 'nav.home' },
   { path: '/products', label: 'nav.products' },
   { path: '/about', label: 'nav.about' },
@@ -222,7 +223,7 @@ const navItems = [
   { path: '/contact', label: 'nav.contact' },
 ]
 
-const footerLinks = [
+const DEFAULT_FOOTER = [
   { path: '/', label: 'nav.home' },
   { path: '/products', label: 'nav.products' },
   { path: '/about', label: 'nav.about' },
@@ -230,6 +231,41 @@ const footerLinks = [
   { path: '/blog', label: 'nav.blog' },
   { path: '/faq', label: 'nav.faq' },
 ]
+
+// 动态导航数据（SSR + 客户端）
+const { getNavigations, getTheme, trackClick } = useApi()
+const { data: headerNavData } = await useAsyncData<any[]>(
+  'nav-header',
+  () => getNavigations('header').catch(() => null),
+  {
+    getCachedData(key, nuxtApp) {
+      return nuxtApp.isHydrating ? nuxtApp.payload.data[key] : undefined
+    },
+  },
+)
+const { data: footerNavData } = await useAsyncData<any[]>(
+  'nav-footer',
+  () => getNavigations('footer').catch(() => null),
+  {
+    getCachedData(key, nuxtApp) {
+      return nuxtApp.isHydrating ? nuxtApp.payload.data[key] : undefined
+    },
+  },
+)
+
+function navToItem(n: any) {
+  return { path: n.url || '/', label: n.name }
+}
+
+const navItems = computed(() => {
+  if (headerNavData.value?.length) return headerNavData.value.filter((n: any) => n.is_visible !== false).map(navToItem)
+  return DEFAULT_NAV
+})
+
+const footerLinks = computed(() => {
+  if (footerNavData.value?.length) return footerNavData.value.filter((n: any) => n.is_visible !== false).map(navToItem)
+  return DEFAULT_FOOTER
+})
 
 const footerCategories = ['Yoga Wear', 'Running Gear', 'Training Apparel', 'Team Uniforms', 'Custom Design']
 
@@ -257,7 +293,6 @@ function handleNewsletter() {
 }
 
 // 加载主题配置（含社交链接和Logo）
-const { getTheme, trackClick } = useApi()
 onMounted(async () => {
   try {
     theme.value = await getTheme()

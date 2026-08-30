@@ -20,6 +20,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'users', name: 'Users', component: () => import('@/views/system/users.vue'), meta: { title: '用户管理', permission: 'user:view' } },
       { path: 'pages', name: 'Pages', component: () => import('@/views/cms/pages.vue'), meta: { title: '页面管理', permission: 'page:view' } },
       { path: 'hero', name: 'Hero', component: () => import('@/views/cms/hero.vue'), meta: { title: '轮播图管理', permission: 'page:view' } },
+      { path: 'navigations', name: 'Navigations', component: () => import('@/views/cms/navigations.vue'), meta: { title: '导航管理', permission: ['navigation:manage', 'page:view'] } },
       { path: 'blogs', name: 'Blogs', component: () => import('@/views/cms/blogs.vue'), meta: { title: '博客管理', permission: ['blog:manage', 'page:view'] } },
       { path: 'cases', name: 'Cases', component: () => import('@/views/cms/cases.vue'), meta: { title: '案例管理', permission: ['case:manage', 'page:view'] } },
       { path: 'faqs', name: 'FAQs', component: () => import('@/views/cms/faqs.vue'), meta: { title: 'FAQ 管理', permission: ['faq:manage', 'page:view'] } },

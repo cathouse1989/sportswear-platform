@@ -522,6 +522,7 @@ func (s *CMSService) CreateNavigation(req *NavigationRequest) (*models.Navigatio
 		SortOrder: req.SortOrder,
 		IsVisible: req.IsVisible,
 		ParentID:  utils.StringPtrToUUIDPtr(req.ParentID),
+		PageID:    utils.StringPtrToUUIDPtr(req.PageID),
 	}
 	if err := s.db.Create(&nav).Error; err != nil {
 		return nil, err
@@ -538,6 +539,7 @@ type NavigationRequest struct {
 	SortOrder int     `json:"sort_order"`
 	IsVisible bool    `json:"is_visible"`
 	ParentID  *string `json:"parent_id"`
+	PageID    *string `json:"page_id"` // 关联页面 ID
 }
 
 // UpdateNavigation 更新导航
@@ -555,6 +557,7 @@ func (s *CMSService) UpdateNavigation(id string, req *NavigationRequest) (*model
 		"sort_order": req.SortOrder,
 		"is_visible": req.IsVisible,
 		"parent_id":  req.ParentID,
+		"page_id":    utils.StringPtrToUUIDPtr(req.PageID),
 	}
 	if err := s.db.Model(&nav).Updates(updates).Error; err != nil {
 		return nil, err
@@ -565,6 +568,27 @@ func (s *CMSService) UpdateNavigation(id string, req *NavigationRequest) (*model
 // DeleteNavigation 删除导航
 func (s *CMSService) DeleteNavigation(id string) error {
 	return s.db.Delete(&models.Navigation{}, "id = ?", id).Error
+}
+
+// ListNavigationsByPageIDs 批量查询指定页面的导航关联（用于列表页状态列）
+func (s *CMSService) ListNavigationsByPageIDs(pageIDs []uuid.UUID) ([]models.Navigation, error) {
+	if len(pageIDs) == 0 {
+		return nil, nil
+	}
+	var navs []models.Navigation
+	err := s.db.Where("page_id IN ?", pageIDs).Find(&navs).Error
+	return navs, err
+}
+
+// GetNavigationByPageID 查询某页面是否已关联导航（轻量判断）
+func (s *CMSService) GetNavigationByPageID(pageID string) ([]models.Navigation, error) {
+	var navs []models.Navigation
+	pid, err := uuid.Parse(pageID)
+	if err != nil {
+		return nil, err
+	}
+	err = s.db.Where("page_id = ?", pid).Find(&navs).Error
+	return navs, err
 }
 
 // ==================== 博客管理 ====================

@@ -350,6 +350,8 @@ export interface Navigation {
   sort_order: number
   is_visible: boolean
   parent_id?: string
+  page_id?: string
+  page?: Page
   children?: Navigation[]
 }
 

@@ -39,6 +39,17 @@
           <span v-else class="muted">—</span>
         </template>
       </el-table-column>
+      <el-table-column label="导航状态" width="120">
+        <template #default="{ row }: any">
+          <template v-if="navStatusMap[row.id]?.length">
+            <el-tag size="small" type="success">{{ navStatusLabel(row) }}</el-tag>
+          </template>
+          <template v-else>
+            <el-button v-if="row.status === 'published'" size="small" link type="primary" @click="handleAddToNav(row)">加入导航</el-button>
+            <span v-else class="muted">—</span>
+          </template>
+        </template>
+      </el-table-column>
       <el-table-column label="操作" width="430">
         <template #default="{ row }: any">
           <el-button size="small" @click="openEditDialog(row)">编辑</el-button>
@@ -186,12 +197,13 @@
 import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { pageApi, portalApi, publicApi } from '@/api'
+import { pageApi, portalApi, publicApi, navigationApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
-import type { Page } from '@/types'
+import type { Page, Navigation } from '@/types'
 
 const router = useRouter()
 const pages = ref<Page[]>([])
+const navStatusMap = ref<Record<string, Navigation[]>>({})   // page_id → nav items
 const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
@@ -232,12 +244,41 @@ async function loadData() {
     const result = await pageApi.list({ page: page.value, pageSize: pageSize.value, keyword: keyword.value, status: status.value })
     pages.value = (result as any).items || result || []
     total.value = (result as any).total ?? pages.value.length
+    // 批量加载导航关联状态
+    loadNavStatus()
   } finally { loading.value = false }
+}
+
+async function loadNavStatus() {
+  try {
+    const allNavs = await navigationApi.listAll()
+    const map: Record<string, Navigation[]> = {}
+    for (const n of (allNavs || [])) {
+      if (n.page_id) {
+        if (!map[n.page_id]) map[n.page_id] = []
+        map[n.page_id].push(n)
+      }
+    }
+    navStatusMap.value = map
+  } catch { navStatusMap.value = {} }
 }
 function handleSearch() { page.value = 1; loadData() }
 
 const isHome = (row: Page) => row.slug === 'home' || row.type === 'home'
 const statusTag = (s: string) => (s === 'published' ? 'success' : s === 'review' ? 'warning' : 'info')
+const navStatusLabel = (row: Page) => {
+  const navs = navStatusMap.value[row.id]
+  if (!navs || navs.length === 0) return ''
+  const types = [...new Set(navs.map(n => n.type))]
+  return types.join(' / ')
+}
+
+const PAGE_TYPE_URL_MAP: Record<string, string> = {
+  home: '/', product: '/products', oem: '/oem', odm: '/odm',
+  factory: '/factory', blog: '/blog', case: '/cases', faq: '/faq',
+  contact: '/contact', production: '/production',
+  private_label: '/private-label', normal: '',
+}
 
 // 页面类型 → 门户预览页映射（portal 无通用 CMS 页面路由，仅映射有对应路由的类型）
 const PREVIEW_PAGE_MAP: Record<string, string> = { home: 'home', product: 'products', blog: 'blogs', case: 'cases', faq: 'faqs', contact: 'contact' }
@@ -329,6 +370,22 @@ async function handleSave() {
 async function handlePublish(row: Page) { await pageApi.publish(row.id); ElMessage.success('已发布'); loadData() }
 async function handleUnpublish(row: Page) { await pageApi.unpublish(row.id); ElMessage.success('已下线'); loadData() }
 async function handleDelete(row: Page) { await ElMessageBox.confirm(`确定删除页面 ${row.title} 吗？`, '警告', { type: 'warning' }); await pageApi.delete(row.id); ElMessage.success('已删除'); loadData() }
+
+async function handleAddToNav(row: Page) {
+  if (row.status !== 'published') {
+    ElMessage.warning('请先发布页面再加入导航')
+    return
+  }
+  try {
+    const url = PAGE_TYPE_URL_MAP[row.type as string] || '/' + row.slug
+    await navigationApi.create({
+      name: row.title, type: 'header', url,
+      target: '_self', sort_order: 99, is_visible: true, page_id: row.id,
+    })
+    ElMessage.success(`已将「${row.title}」加入 Header 导航`)
+    loadNavStatus()
+  } catch { }
+}
 
 // ---------- 版本历史 ----------
 const versions = ref<any[]>([])
