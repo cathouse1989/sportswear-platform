@@ -34,7 +34,7 @@
       </el-table-column>
       <el-table-column label="可见" width="70">
         <template #default="{ row }: any">
-          <el-switch v-model="row.is_visible" size="small" @change="(val: boolean) => toggleVisible(row, val)" />
+          <el-switch v-model="row.is_visible" size="small" @change="(val: string | number | boolean) => toggleVisible(row, Boolean(val))" />
         </template>
       </el-table-column>
       <el-table-column prop="sort_order" label="排序" width="80" />
