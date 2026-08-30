@@ -38,12 +38,12 @@
               </button>
               <div class="absolute left-0 top-full mt-1 bg-white border border-[#EAE5DD] rounded-xl shadow-2xl py-2 min-w-[200px] z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                 <NuxtLink
-                  v-for="child in item.children.filter((c: any) => c.is_visible !== false)"
+                  v-for="child in item.children"
                   :key="child.id"
-                  :to="localePath(child.url || '/')"
+                  :to="localePath(child.path || '/')"
                   class="block px-5 py-3 text-sm text-[#4A4A4A] hover:bg-[#FBF9F6] hover:text-[#0D1B2A] transition-colors"
                 >
-                  {{ $t(child.name) }}
+                  {{ $t(child.label) }}
                 </NuxtLink>
               </div>
             </div>
@@ -305,9 +305,22 @@ function flattenNav(items: any[]): any[] {
   return result
 }
 
+// 将后端导航树（name/url/children）映射为模板所需的 {label, path, children} 结构，
+// 与移动端 navToItem 保持一致，避免 $t(undefined) 触发 vue-i18n INVALID_ARGUMENT（SSR 500）。
+function mapNavTree(items: any[]): any[] {
+  return (items || [])
+    .filter((n: any) => n.is_visible !== false)
+    .map((n: any) => ({
+      id: n.id,
+      label: n.name,
+      path: n.url || '/',
+      children: n.children?.length ? mapNavTree(n.children) : [],
+    }))
+}
+
 // 桌面端：保留树结构以支持下拉菜单
 const navTree = computed(() => {
-  if (headerNavData.value?.length) return headerNavData.value.filter((n: any) => n.is_visible !== false)
+  if (headerNavData.value?.length) return mapNavTree(headerNavData.value)
   return DEFAULT_NAV.map(n => ({ ...n, children: [] }))
 })
 

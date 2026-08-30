@@ -1,9 +1,3 @@
-import { fileURLToPath } from 'node:url'
-import { resolve, dirname } from 'node:path'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-
 export default defineNuxtConfig({
   devtools: { enabled: true },
 
@@ -43,7 +37,10 @@ export default defineNuxtConfig({
     ],
     defaultLocale: 'en',
     strategy: 'prefix',
-    langDir: resolve(__dirname, 'locales'),
+    // v9 默认 restructureDir 为 "i18n"，langDir 会解析到 <root>/i18n/locales；
+    // 本项目语言包位于项目根 <root>/locales，关闭 restructure 使其相对 srcDir 解析。
+    restructureDir: false,
+    langDir: 'locales',
     detectBrowserLanguage: {
       useCookie: true,
       cookieKey: 'i18n_redirected',
@@ -90,6 +87,16 @@ export default defineNuxtConfig({
     // 构建产物（_nuxt/*.js/css）做长缓存，改文件后哈希变化自动失效
     '/_nuxt/**': {
       headers: { 'cache-control': 'public, max-age=31536000, immutable' },
+    },
+  },
+
+  // estree-walker@3 是纯 ESM（exports 只含 import/types，无 require 条件）。
+  // Nitro 若将其外部化到 .output/server/node_modules，运行期 CJS require 会抛
+  // ERR_PACKAGE_PATH_NOT_EXPORTED: No "exports" main defined，导致 SSR 全部 500。
+  // 这里强制内联打包，避免运行期对外部 ESM-only 包做 require。
+  nitro: {
+    externals: {
+      inline: ['estree-walker'],
     },
   },
 
