@@ -59,6 +59,9 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { publicApi, themeApi } from '@/api'
 import { ElMessage } from 'element-plus'
 import { Switch, FullScreen } from '@element-plus/icons-vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
 
 const portalBase = (() => { const b = String(import.meta.env.VITE_PORTAL_BASE_URL || 'http://localhost:3000'); return b.endsWith('/') ? b.slice(0, -1) : b })()
 const previewLang = ref('en')
@@ -208,6 +211,11 @@ function applyPageSize() {
 watch(previewPage, applyPageSize)
 
 onMounted(async () => {
+  // 支持从页面管理等处深链定位：/portal-preview?page=faqs&slug=xxx
+  const qp = String(route.query.page || '')
+  const qs = String(route.query.slug || '')
+  if (qp) previewPage.value = qp
+  if (qs) pathSlug.value = qs
   document.addEventListener('fullscreenchange', syncFullscreenState)
   await Promise.all([loadLanguages(), loadPageSizes()])
   refreshPreview()

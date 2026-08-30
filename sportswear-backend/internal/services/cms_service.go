@@ -169,13 +169,18 @@ func (s *CMSService) UpdatePage(id string, req *PageRequest) (*models.Page, erro
 		return nil, errors.New("页面不存在")
 	}
 
+	// status/template 为空时不覆盖（编辑保存只传基础字段，避免清空发布状态）
 	updates := map[string]interface{}{
 		"title":      req.Title,
 		"slug":       req.Slug,
 		"type":       req.Type,
-		"status":     req.Status,
-		"template":   req.Template,
 		"sort_order": req.SortOrder,
+	}
+	if req.Status != "" {
+		updates["status"] = req.Status
+	}
+	if req.Template != "" {
+		updates["template"] = req.Template
 	}
 	if err := s.db.Model(&page).Updates(updates).Error; err != nil {
 		return nil, err
