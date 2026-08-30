@@ -39,6 +39,8 @@ if (-not $composeCmd) {
 # 1. 拉取基础镜像 -------------------------------------------------
 Write-Host ""
 Write-Host "[1/4] 拉取基础镜像..." -ForegroundColor Yellow
+$savedEAP = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
 & docker pull postgres:15-alpine  2>&1 | Out-Null
 & docker pull redis:7-alpine      2>&1 | Out-Null
 & docker pull minio/minio:latest  2>&1 | Out-Null
@@ -46,6 +48,7 @@ Write-Host "[1/4] 拉取基础镜像..." -ForegroundColor Yellow
 & docker pull nginx:1.27-alpine   2>&1 | Out-Null
 & docker pull golang:1.25-alpine  2>&1 | Out-Null
 & docker pull alpine:3.20         2>&1 | Out-Null
+$ErrorActionPreference = $savedEAP
 Write-Host "  基础镜像拉取完成" -ForegroundColor Green
 
 # 2. 构建并启动所有服务 -------------------------------------------
@@ -54,9 +57,12 @@ Write-Host "[2/4] 构建镜像并启动容器（--build）..." -ForegroundColor 
 Write-Host "  编排文件: $composeFile" -ForegroundColor Gray
 
 $startTime = Get-Date
-& $composeCmd[0] $composeCmd[1] -p sportswear -f $composeFile up -d --build 2>&1 | Tee-Object -FilePath $logFile
+# 先捕获输出保存退出码，再输出 —— 避免管道末端的 Tee-Object 覆写 $LASTEXITCODE
+$output = & $composeCmd[0] $composeCmd[1] -p sportswear -f $composeFile up -d --build 2>&1
+$exitCode = $LASTEXITCODE
+$output | Tee-Object -FilePath $logFile
 
-if ($LASTEXITCODE -ne 0) {
+if ($exitCode -ne 0) {
     Write-Host ""
     Write-Host "[ERROR] 部署失败，请查看日志：$logFile" -ForegroundColor Red
     pause
@@ -86,7 +92,10 @@ Write-Host ""
 Write-Host "[4/4] 容器运行状态：" -ForegroundColor Yellow
 Write-Host ""
 
+$savedEAP = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
 & docker ps -a --filter "name=sportswear" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+$ErrorActionPreference = $savedEAP
 
 # 访问地址 --------------------------------------------------------
 Write-Host ""

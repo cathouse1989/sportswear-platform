@@ -20,8 +20,11 @@ function Invoke-Native {
     $savedEAP = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     try {
-        & $ScriptBlock 2>&1 | ForEach-Object { "$_" } | Write-Host
-        return $LASTEXITCODE
+        # 先捕获输出保存退出码，再打印 —— 避免管道末端的 Write-Host 覆写 $LASTEXITCODE
+        $output = & $ScriptBlock 2>&1
+        $exitCode = $LASTEXITCODE
+        if ($output) { $output | ForEach-Object { "$_" } | Write-Host }
+        return $exitCode
     }
     finally {
         $ErrorActionPreference = $savedEAP
@@ -84,7 +87,7 @@ if ($healthy -eq 'healthy') {
 Write-Host ""
 Write-Host "[4/4] 容器运行状态：" -ForegroundColor Yellow
 Write-Host ""
-docker ps -a --filter "name=sportswear" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+Invoke-Native { & docker ps -a --filter "name=sportswear" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" }
 
 # 访问地址 --------------------------------------------------------
 Write-Host ""
