@@ -5,14 +5,14 @@
         <el-radio-button value="header">Header 导航</el-radio-button>
         <el-radio-button value="footer">Footer 导航</el-radio-button>
       </el-radio-group>
-      <el-input v-model="searchKeyword" placeholder="搜索导航名称" clearable style="width:200px" @input="filterTreeData" />
+      <el-input v-model="searchKeyword" placeholder="搜索导航名称" clearable style="width:200px" />
       <div class="spacer" />
       <el-button type="primary" @click="openCreateDialog(null)">新建导航</el-button>
       <el-button type="success" plain @click="handleSync">一键同步已发布页面</el-button>
     </div>
 
     <el-table
-      :data="treeData"
+      :data="filteredNavigations"
       v-loading="loading"
       row-key="id"
       stripe
@@ -92,7 +92,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { navigationApi, pageApi } from '@/api'
 import type { Navigation, Page } from '@/types'
@@ -102,30 +102,39 @@ const loading = ref(false)
 const navType = ref('header')
 const searchKeyword = ref('')
 
-const treeData = ref<Navigation[]>([])
-
-function flattenTree(items: Navigation[], depth = 0): Navigation[] {
+// 用于搜索过滤的展平数据
+const filteredNavigations = computed(() => {
+  const kw = searchKeyword.value.toLowerCase().trim()
+  if (!kw) return navigations.value
+  // 递归过滤：保留匹配的节点及其祖先
   const result: Navigation[] = []
-  for (const item of items) {
-    result.push(item)
-    if (item.children?.length) result.push(...flattenTree(item.children, depth + 1))
+  function collect(items: Navigation[], ancestors: Navigation[]): boolean {
+    let hasMatch = false
+    for (const item of items) {
+      const path = [...ancestors, item]
+      const childrenMatch = item.children?.length ? collect(item.children, path) : false
+      if (item.name.toLowerCase().includes(kw) || childrenMatch) {
+        // 确保祖先都在结果中
+        for (const a of path) {
+          if (!result.find(r => r.id === a.id)) result.push(a)
+        }
+        hasMatch = true
+      }
+    }
+    return hasMatch
+  }
+  for (const item of navigations.value) {
+    collect([item], [])
   }
   return result
-}
-
-function filterTreeData() {
-  const kw = searchKeyword.value.toLowerCase().trim()
-  if (!kw) { treeData.value = flattenTree(navigations.value); return }
-  treeData.value = flattenTree(navigations.value).filter(n => n.name.toLowerCase().includes(kw))
-}
+})
 
 async function loadData() {
   loading.value = true
   try {
     const result = await navigationApi.list({ type: navType.value })
     navigations.value = result || []
-    filterTreeData()
-  } catch { navigations.value = []; treeData.value = [] }
+  } catch { navigations.value = [] }
   finally { loading.value = false }
 }
 
@@ -274,7 +283,11 @@ async function toggleVisible(row: Navigation, val: boolean) {
 }
 
 async function handleDelete(row: Navigation) {
-  await ElMessageBox.confirm(`确定删除导航「${row.name}」吗？`, '警告', { type: 'warning' })
+  const hasChildren = row.children?.length
+  const msg = hasChildren
+    ? `确定删除导航「${row.name}」吗？其子级导航不会被删除，但会成为顶级导航。`
+    : `确定删除导航「${row.name}」吗？`
+  await ElMessageBox.confirm(msg, '警告', { type: 'warning' })
   await navigationApi.delete(row.id)
   ElMessage.success('已删除')
   loadData()

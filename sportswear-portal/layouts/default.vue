@@ -103,13 +103,33 @@
             </button>
           </div>
           <div class="flex-1 overflow-y-auto px-4 py-6 space-y-1">
-            <NuxtLink v-for="item in navItems" :key="item.path" :to="localePath(item.path)" @click="mobileMenuOpen = false"
-              class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm text-[#4A4A4A] hover:bg-[#FBF9F6] active:bg-[#F0EBE3] transition min-h-[48px]">
-              <span>{{ $t(item.label) }}</span>
-              <svg class="ml-auto w-4 h-4 text-[#C4B8A8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </NuxtLink>
+            <template v-for="item in navTree" :key="item.id || item.path">
+              <template v-if="!item.children?.length">
+                <NuxtLink :to="localePath(item.path)" @click="mobileMenuOpen = false"
+                  class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm text-[#4A4A4A] hover:bg-[#FBF9F6] active:bg-[#F0EBE3] transition min-h-[48px]">
+                  <span>{{ $t(item.label) }}</span>
+                  <svg class="ml-auto w-4 h-4 text-[#C4B8A8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </NuxtLink>
+              </template>
+              <template v-else>
+                <button @click="toggleExpand(item.id || item.path)"
+                  class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm text-[#4A4A4A] hover:bg-[#FBF9F6] active:bg-[#F0EBE3] transition min-h-[48px] w-full">
+                  <span>{{ $t(item.label) }}</span>
+                  <svg class="ml-auto w-4 h-4 text-[#C4B8A8] transition-transform" :class="expandedItems[item.id || item.path] ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                <div v-show="expandedItems[item.id || item.path]" class="pl-8 space-y-1 border-l-2 border-[#EAE5DD] ml-6">
+                  <NuxtLink v-for="child in item.children.filter((c: any) => c.is_visible !== false)" :key="child.id"
+                    :to="localePath(child.url || '/')" @click="mobileMenuOpen = false"
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-[#4A4A4A] hover:bg-[#FBF9F6] active:bg-[#F0EBE3] transition min-h-[48px]">
+                    <span>{{ $t(child.name) }}</span>
+                  </NuxtLink>
+                </div>
+              </template>
+            </template>
           </div>
         </div>
       </transition>
@@ -290,6 +310,12 @@ const navTree = computed(() => {
   if (headerNavData.value?.length) return headerNavData.value.filter((n: any) => n.is_visible !== false)
   return DEFAULT_NAV.map(n => ({ ...n, children: [] }))
 })
+
+// 移动端：手风琴展开/折叠状态
+const expandedItems = reactive<Record<string, boolean>>({})
+function toggleExpand(key: string) {
+  expandedItems[key] = !expandedItems[key]
+}
 
 // 移动端 / Footer：展平为列表
 const navItems = computed(() => {
