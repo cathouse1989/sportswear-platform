@@ -225,6 +225,7 @@ export const analyticsApi = {
   countries: (params?: any) => http.get<any>('/admin/analytics/countries', params),
   devices: (params?: any) => http.get<any>('/admin/analytics/devices', params),
   socialClicks: (params?: any) => http.get<any[]>('/admin/analytics/social-clicks', params),
+  utmCampaigns: (params?: any) => http.get<any[]>('/admin/analytics/utm-campaigns', params),
   // 闂ㄦ埛璁块棶鏃ュ織鏄庣粏锛圛P/鍥藉/鏉ユ簮/瀹炰綋/鏃堕棿鑼冨洿绛涢€夛紝璺ㄥ搴﹀垎琛ㄧ粍鍚堟煡璇級
   visitLogs: (params?: any) => http.get<PageResult<any>>('/admin/analytics/visit-logs', params),
 }

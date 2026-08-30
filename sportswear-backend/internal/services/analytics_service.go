@@ -130,7 +130,7 @@ func (s *AnalyticsService) GetTopPages(days, limit int) ([]map[string]interface{
 		return nil, err
 	}
 
-	selectFmt := `SELECT path, entity_type, entity_slug, COUNT(*) AS views, COUNT(DISTINCT ip) AS unique_visitors FROM __T__ WHERE created_at >= ? AND device != 'bot'`
+	selectFmt := `SELECT path, entity_type, entity_slug, COUNT(*) AS views, COUNT(DISTINCT ip) AS unique_visitors FROM __T__ WHERE created_at >= ? AND device != 'bot' GROUP BY path, entity_type, entity_slug`
 	unionSQL, unionArgs := database.UnionAll(tables, selectFmt, []interface{}{since})
 
 	var topPages []map[string]interface{}
@@ -153,7 +153,7 @@ func (s *AnalyticsService) GetTopProducts(days, limit int) ([]map[string]interfa
 		return nil, err
 	}
 
-	selectFmt := `SELECT entity_slug AS slug, MAX(entity_name) AS name, COUNT(*) AS views, COUNT(DISTINCT ip) AS unique_visitors FROM __T__ WHERE created_at >= ? AND entity_type = 'product' AND device != 'bot'`
+	selectFmt := `SELECT entity_slug AS slug, MAX(entity_name) AS name, COUNT(*) AS views, COUNT(DISTINCT ip) AS unique_visitors FROM __T__ WHERE created_at >= ? AND entity_type = 'product' AND device != 'bot' GROUP BY entity_slug`
 	unionSQL, unionArgs := database.UnionAll(tables, selectFmt, []interface{}{since})
 
 	var topProducts []map[string]interface{}
@@ -173,7 +173,7 @@ func (s *AnalyticsService) GetSourceAnalysis(days int) ([]map[string]interface{}
 		return nil, err
 	}
 
-	selectFmt := `SELECT source, medium, COUNT(*) AS visits, COUNT(DISTINCT ip) AS unique_visitors FROM __T__ WHERE created_at >= ? AND device != 'bot' AND source != ''`
+	selectFmt := `SELECT source, medium, COUNT(*) AS visits, COUNT(DISTINCT ip) AS unique_visitors FROM __T__ WHERE created_at >= ? AND device != 'bot' AND source != '' GROUP BY source, medium`
 	unionSQL, unionArgs := database.UnionAll(tables, selectFmt, []interface{}{since})
 
 	var sources []map[string]interface{}
@@ -196,13 +196,36 @@ func (s *AnalyticsService) GetCountryAnalysis(days, limit int) ([]map[string]int
 		return nil, err
 	}
 
-	selectFmt := `SELECT COALESCE(NULLIF(country, ''), 'unknown') AS country, COUNT(*) AS visits, COUNT(DISTINCT ip) AS unique_visitors FROM __T__ WHERE created_at >= ? AND device != 'bot'`
+	selectFmt := `SELECT COALESCE(NULLIF(country, ''), 'unknown') AS country, COUNT(*) AS visits, COUNT(DISTINCT ip) AS unique_visitors FROM __T__ WHERE created_at >= ? AND device != 'bot' GROUP BY country`
 	unionSQL, unionArgs := database.UnionAll(tables, selectFmt, []interface{}{since})
 
 	var countries []map[string]interface{}
 	sql := fmt.Sprintf(`SELECT country, SUM(visits) AS visits, SUM(unique_visitors) AS unique_visitors FROM (%s) t GROUP BY country ORDER BY visits DESC LIMIT ?`, unionSQL)
 	err = s.db.Raw(sql, append(unionArgs, limit)...).Scan(&countries).Error
 	return countries, err
+}
+
+// GetUtmCampaignAnalysis 广告归因分析（按 utm_campaign 分组，衡量各广告 Campaign 带来的流量）
+func (s *AnalyticsService) GetUtmCampaignAnalysis(days, limit int) ([]map[string]interface{}, error) {
+	if days <= 0 {
+		days = 30
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	since := time.Now().AddDate(0, 0, -days)
+	tables, err := s.visitTables(since, time.Now())
+	if err != nil {
+		return nil, err
+	}
+
+	selectFmt := `SELECT utm_campaign AS campaign, MAX(source) AS source, MAX(medium) AS medium, COUNT(*) AS visits, COUNT(DISTINCT ip) AS unique_visitors FROM __T__ WHERE created_at >= ? AND device != 'bot' AND utm_campaign != '' GROUP BY utm_campaign`
+	unionSQL, unionArgs := database.UnionAll(tables, selectFmt, []interface{}{since})
+
+	var campaigns []map[string]interface{}
+	sql := fmt.Sprintf(`SELECT campaign, MAX(source) AS source, MAX(medium) AS medium, SUM(visits) AS visits, SUM(unique_visitors) AS unique_visitors FROM (%s) t GROUP BY campaign ORDER BY visits DESC LIMIT ?`, unionSQL)
+	err = s.db.Raw(sql, append(unionArgs, limit)...).Scan(&campaigns).Error
+	return campaigns, err
 }
 
 // GetSocialClickAnalysis 社交媒体点击分析（外部链接跳转跟踪）
@@ -216,7 +239,7 @@ func (s *AnalyticsService) GetSocialClickAnalysis(days int) ([]map[string]interf
 		return nil, err
 	}
 
-	selectFmt := `SELECT entity_slug AS platform, COUNT(*) AS clicks, COUNT(DISTINCT ip) AS unique_visitors FROM __T__ WHERE created_at >= ? AND entity_type = 'social_click' AND device != 'bot'`
+	selectFmt := `SELECT entity_slug AS platform, COUNT(*) AS clicks, COUNT(DISTINCT ip) AS unique_visitors FROM __T__ WHERE created_at >= ? AND entity_type = 'social_click' AND device != 'bot' GROUP BY entity_slug`
 	unionSQL, unionArgs := database.UnionAll(tables, selectFmt, []interface{}{since})
 
 	var socialClicks []map[string]interface{}
@@ -238,13 +261,13 @@ func (s *AnalyticsService) GetDeviceAnalysis(days int) (map[string]interface{}, 
 
 	var devices, browsers []map[string]interface{}
 
-	deviceSelect := `SELECT device, COUNT(*) AS visits FROM __T__ WHERE created_at >= ? AND device != 'bot' AND device != ''`
+	deviceSelect := `SELECT device, COUNT(*) AS visits FROM __T__ WHERE created_at >= ? AND device != 'bot' AND device != '' GROUP BY device`
 	deviceSQL, deviceArgs := database.UnionAll(tables, deviceSelect, []interface{}{since})
 	if err := s.db.Raw(fmt.Sprintf(`SELECT device, SUM(visits) AS visits FROM (%s) t GROUP BY device ORDER BY visits DESC`, deviceSQL), deviceArgs...).Scan(&devices).Error; err != nil {
 		return nil, err
 	}
 
-	browserSelect := `SELECT browser, COUNT(*) AS visits FROM __T__ WHERE created_at >= ? AND device != 'bot' AND browser != ''`
+	browserSelect := `SELECT browser, COUNT(*) AS visits FROM __T__ WHERE created_at >= ? AND device != 'bot' AND browser != '' GROUP BY browser`
 	browserSQL, browserArgs := database.UnionAll(tables, browserSelect, []interface{}{since})
 	if err := s.db.Raw(fmt.Sprintf(`SELECT browser, SUM(visits) AS visits FROM (%s) t GROUP BY browser ORDER BY visits DESC`, browserSQL), browserArgs...).Scan(&browsers).Error; err != nil {
 		return nil, err

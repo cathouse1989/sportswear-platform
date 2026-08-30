@@ -57,6 +57,19 @@ func (h *AnalyticsHandler) GetTopProducts(c *gin.Context) {
 	utils.Success(c, data)
 }
 
+// GetUtmCampaignAnalysis 广告归因分析（utm_campaign 维度）
+func (h *AnalyticsHandler) GetUtmCampaignAnalysis(c *gin.Context) {
+	days, _ := strconv.Atoi(c.DefaultQuery("days", "30"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	data, err := h.analyticsService.GetUtmCampaignAnalysis(days, limit)
+	if err != nil {
+		utils.InternalError(c, "获取广告归因分析失败")
+		return
+	}
+	utils.Success(c, data)
+}
+
 // GetSourceAnalysis 来源分析（SEO/广告归因）
 func (h *AnalyticsHandler) GetSourceAnalysis(c *gin.Context) {
 	days, _ := strconv.Atoi(c.DefaultQuery("days", "30"))

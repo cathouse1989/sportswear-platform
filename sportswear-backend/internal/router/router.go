@@ -364,6 +364,9 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 				middleware.RequireAnyPermission("dashboard:view", "lead:view"), analyticsHandler.GetDeviceAnalysis)
 			auth.GET("/analytics/social-clicks",
 				middleware.RequireAnyPermission("dashboard:view", "lead:view"), analyticsHandler.GetSocialClickAnalysis)
+			// 广告归因（utm_campaign 维度，衡量各广告 Campaign 转化来源）
+			auth.GET("/analytics/utm-campaigns",
+				middleware.RequireAnyPermission("dashboard:view", "lead:view"), analyticsHandler.GetUtmCampaignAnalysis)
 			// 门户访问日志明细（IP/国家/来源/实体/时间范围筛选，跨季度分表组合查询）
 			auth.GET("/analytics/visit-logs",
 				middleware.RequireAnyPermission("dashboard:view", "lead:view"), analyticsHandler.ListVisitLogs)
