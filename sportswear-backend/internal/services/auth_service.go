@@ -663,8 +663,8 @@ func (s *AuthService) assignRolePermissions() {
 			"lead:view", "lead:update", "lead:followup",
 			"seo:manage", "dashboard:view",
 		},
-		"content_admin": { // 内容管理员：CMS 相关
-			"page:view", "page:update", "page:publish", "navigation:manage",
+		"content_admin": { // 内容管理员：CMS 相关（页面管理只读，通过导航管理+轮播图管理操作）
+			"page:view", "navigation:manage",
 			"blog:manage", "case:manage", "faq:manage",
 			"factory:manage", "certification:manage",
 			"media:upload", "media:manage",

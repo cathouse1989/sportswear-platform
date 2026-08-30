@@ -26,7 +26,6 @@
         </el-menu-item>
         <el-sub-menu index="cms">
           <template #title><el-icon><Document /></el-icon><span>内容管理</span></template>
-          <el-menu-item index="/pages">页面管理</el-menu-item>
           <el-menu-item index="/hero">轮播图管理</el-menu-item>
           <el-menu-item index="/navigations">导航管理</el-menu-item>
           <el-menu-item index="/blogs">博客管理</el-menu-item>

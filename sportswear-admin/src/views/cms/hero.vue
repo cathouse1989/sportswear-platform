@@ -6,7 +6,7 @@
       :closable="false"
       show-icon
       title="未找到首页页面"
-      description="请先在「页面管理」中创建并发布 slug 为 home（或类型为 home）的页面，再配置轮播图。"
+      description="请先创建并发布首页页面（slug=home），再配置轮播图。"
     />
     <HeroEditor v-else-if="pageId" :page-id="pageId" />
   </div>
