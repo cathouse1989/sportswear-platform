@@ -65,8 +65,10 @@
           </button>
         </div>
       </div>
+    </header>
 
-      <!-- Mobile Drawer Menu -->
+    <!-- Mobile Drawer Menu：Teleport 到 body，避免 header 的 backdrop-filter 使 fixed 相对 header 定位而被裁剪 -->
+    <Teleport to="body">
       <transition name="drawer-fade">
         <div v-if="mobileMenuOpen" class="lg:hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" @click="mobileMenuOpen = false"></div>
       </transition>
@@ -92,7 +94,7 @@
           </div>
         </div>
       </transition>
-    </header>
+    </Teleport>
 
     <!-- Main -->
     <main class="flex-1 pb-[52px] md:pb-0">
