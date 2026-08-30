@@ -1,5 +1,5 @@
 <template>
-  <div class="portal-preview">
+  <div ref="previewRoot" class="portal-preview">
     <div class="preview-toolbar">
       <div class="toolbar-left">
         <span class="toolbar-title">门户预览</span>
@@ -26,6 +26,16 @@
           <el-radio-button value="tablet">平板</el-radio-button>
           <el-radio-button value="mobile">手机</el-radio-button>
         </el-radio-group>
+        <el-tooltip v-if="device !== 'desktop'" :content="landscape ? '切换为竖屏' : '切换为横屏'">
+          <el-button size="small" @click="landscape = !landscape">
+            <el-icon><Switch /></el-icon>
+          </el-button>
+        </el-tooltip>
+        <el-tooltip :content="isFullscreen ? '退出全屏' : '全屏预览'">
+          <el-button size="small" @click="toggleFullscreen">
+            <el-icon><FullScreen /></el-icon>
+          </el-button>
+        </el-tooltip>
         <el-input-number v-model="previewPageSize" size="small" :min="5" :max="100" :step="5" style="width: 120px" controls-position="right" @change="refreshPreview" />
         <el-button size="small" type="primary" :loading="iframeLoading" @click="refreshPreview">刷新</el-button>
         <el-button size="small" @click="openInNewTab">新窗口打开</el-button>
@@ -45,9 +55,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { publicApi, themeApi } from '@/api'
 import { ElMessage } from 'element-plus'
+import { Switch, FullScreen } from '@element-plus/icons-vue'
 
 const portalBase = (() => { const b = String(import.meta.env.VITE_PORTAL_BASE_URL || 'http://localhost:3000'); return b.endsWith('/') ? b.slice(0, -1) : b })()
 const previewLang = ref('en')
@@ -74,8 +85,27 @@ const pageOptions = [
 
 const needsSlug = computed(() => previewPage.value === 'product-detail' || previewPage.value === 'blog-detail')
 const slugPlaceholder = computed(() => (previewPage.value === 'blog-detail' ? '输入博客 slug' : '输入产品 slug'))
-const deviceWidth: Record<string, string> = { desktop: '100%', tablet: '768px', mobile: '390px' }
-const frameStyle = computed(() => ({ width: deviceWidth[device.value] || '100%', maxWidth: '100%' }))
+
+// ---------- 设备横竖屏 / 全屏预览 ----------
+const landscape = ref(false)
+const isFullscreen = ref(false)
+const previewRoot = ref<HTMLElement>()
+
+const deviceWidth = computed(() => {
+  if (device.value === 'desktop') return '100%'
+  if (device.value === 'tablet') return landscape.value ? '1024px' : '768px'
+  return landscape.value ? '844px' : '390px'
+})
+const frameStyle = computed(() => ({ width: deviceWidth.value || '100%', maxWidth: '100%' }))
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    previewRoot.value?.requestFullscreen?.().catch(() => ElMessage.warning('当前浏览器不支持全屏预览'))
+  } else {
+    document.exitFullscreen?.()
+  }
+}
+function syncFullscreenState() { isFullscreen.value = !!document.fullscreenElement }
 
 function buildPortalPath(lang: string, page: string, slug: string): string {
   const l = lang || 'en'
@@ -178,8 +208,15 @@ function applyPageSize() {
 watch(previewPage, applyPageSize)
 
 onMounted(async () => {
+  document.addEventListener('fullscreenchange', syncFullscreenState)
   await Promise.all([loadLanguages(), loadPageSizes()])
   refreshPreview()
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('fullscreenchange', syncFullscreenState)
+  // 离开页面时若仍在全屏，主动退出避免布局残留
+  if (document.fullscreenElement) document.exitFullscreen?.()
 })
 </script>
 
@@ -201,4 +238,17 @@ onMounted(async () => {
 }
 .preview-iframe { width: 100%; height: 100%; border: 0; display: block; background: #FBF9F6; }
 .preview-loading-mask { position: absolute; inset: 0; z-index: 2; padding: 24px; background: rgba(255,255,255,0.92); }
+
+/* 全屏预览：工具栏保留（可切设备/横竖屏/退出），iframe 占满剩余空间 */
+.portal-preview:fullscreen {
+  height: 100vh;
+  min-height: 100vh;
+  background: #f3f4f6;
+}
+.portal-preview:fullscreen .preview-frame-wrap { padding: 10px; }
+.portal-preview:fullscreen .preview-frame-inner {
+  height: 100%;
+  min-height: 0;
+  border-radius: 8px;
+}
 </style>

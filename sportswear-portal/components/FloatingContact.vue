@@ -58,7 +58,7 @@
     <!-- Inquiry Popup -->
     <transition name="fade">
       <div v-if="showPopup" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" @click.self="dismissPopup">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-8 relative">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-3 p-5 sm:mx-4 sm:p-8 relative max-h-[92vh] overflow-y-auto">
           <button @click="dismissPopup" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />

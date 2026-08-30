@@ -72,7 +72,7 @@
       </transition>
 
       <transition name="drawer">
-        <div v-if="mobileMenuOpen" class="lg:hidden fixed top-0 right-0 bottom-0 z-[60] w-[300px] max-w-[85vw] bg-white shadow-2xl flex flex-col">
+        <div v-if="mobileMenuOpen" class="lg:hidden fixed top-0 right-0 bottom-0 z-[60] w-[86vw] max-w-[92vw] sm:w-[360px] sm:max-w-[380px] md:w-[420px] md:max-w-[440px] bg-white shadow-2xl flex flex-col">
           <div class="flex items-center justify-between px-6 py-4 border-b border-[#EAE5DD]">
             <span class="text-sm font-bold text-[#0D1B2A]">{{ $t('nav.menu') || 'Menu' }}</span>
             <button @click="mobileMenuOpen = false" class="p-2 -mr-2 hover:bg-[#FBF9F6] rounded-lg transition">
