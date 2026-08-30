@@ -375,8 +375,24 @@ async function handleSave() {
 
 // ---------- 行操作 ----------
 async function handlePublish(row: Page) { await pageApi.publish(row.id); ElMessage.success('已发布'); loadData() }
-async function handleUnpublish(row: Page) { await pageApi.unpublish(row.id); ElMessage.success('已下线'); loadData() }
-async function handleDelete(row: Page) { await ElMessageBox.confirm(`确定删除页面 ${row.title} 吗？`, '警告', { type: 'warning' }); await pageApi.delete(row.id); ElMessage.success('已删除'); loadData() }
+async function handleUnpublish(row: Page) { 
+  await checkNavBeforeStatusChange(row, '下线')
+  await pageApi.unpublish(row.id); ElMessage.success('已下线'); loadData() 
+}
+async function handleDelete(row: Page) { 
+  await checkNavBeforeStatusChange(row, '删除')
+  await ElMessageBox.confirm(`确定删除页面 ${row.title} 吗？`, '警告', { type: 'warning' }); await pageApi.delete(row.id); ElMessage.success('已删除'); loadData() 
+}
+
+async function checkNavBeforeStatusChange(row: Page, action: string) {
+  const navs = navStatusMap.value[row.id]
+  if (!navs || navs.length === 0) return
+  const navNames = navs.map(n => `「${n.name}」(${n.type === 'header' ? 'Header' : 'Footer'})`).join('、')
+  await ElMessageBox.confirm(
+    `该页面关联了 ${navs.length} 个导航项：${navNames}。\n${action}后导航仍显示但点击将跳转到不可用页面。\n建议先到「导航管理」中移除或隐藏对应导航项。\n\n确定继续${action}？`,
+    `${action}已关联导航的页面`, { type: 'warning', confirmButtonText: `确认${action}`, cancelButtonText: '取消' }
+  )
+}
 
 async function handleAddToNav(row: Page) {
   if (row.status !== 'published') {

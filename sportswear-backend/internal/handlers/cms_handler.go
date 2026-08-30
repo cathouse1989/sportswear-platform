@@ -199,6 +199,25 @@ func (h *CMSHandler) DeleteNavigation(c *gin.Context) {
 	utils.Success(c, gin.H{"deleted": true})
 }
 
+// BatchSortNavigations 批量更新导航排序
+func (h *CMSHandler) BatchSortNavigations(c *gin.Context) {
+	var req services.SortNavigationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, "参数错误: "+err.Error())
+		return
+	}
+	if len(req.Items) == 0 {
+		utils.BadRequest(c, "排序列表不能为空")
+		return
+	}
+	if err := h.cmsService.BatchSortNavigations(&req); err != nil {
+		utils.InternalError(c, "批量排序失败")
+		return
+	}
+	h.invalidateCache("navigation", "")
+	utils.Success(c, gin.H{"sorted": true})
+}
+
 // ==================== 博客 ====================
 
 // ListBlogs 博客列表

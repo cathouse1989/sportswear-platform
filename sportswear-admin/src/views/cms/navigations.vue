@@ -5,6 +5,7 @@
         <el-radio-button value="header">Header 导航</el-radio-button>
         <el-radio-button value="footer">Footer 导航</el-radio-button>
       </el-radio-group>
+      <el-input v-model="searchKeyword" placeholder="搜索导航名称" clearable style="width:200px" @input="filterTreeData" />
       <div class="spacer" />
       <el-button type="primary" @click="openCreateDialog(null)">新建导航</el-button>
       <el-button type="success" plain @click="handleSync">一键同步已发布页面</el-button>
@@ -37,11 +38,12 @@
         </template>
       </el-table-column>
       <el-table-column prop="sort_order" label="排序" width="80" />
-      <el-table-column label="操作" width="280">
+      <el-table-column label="操作" width="310">
         <template #default="{ row }: any">
           <el-button size="small" @click="openCreateDialog(row.id)">添加子级</el-button>
           <el-button size="small" @click="openEditDialog(row)">编辑</el-button>
-          <el-button size="small" type="warning" @click="handleMoveUp(row)">上移</el-button>
+          <el-button size="small" @click="handleMoveUp(row)" :disabled="isFirstSibling(row)">↑</el-button>
+          <el-button size="small" @click="handleMoveDown(row)" :disabled="isLastSibling(row)">↓</el-button>
           <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
@@ -98,6 +100,7 @@ import type { Navigation, Page } from '@/types'
 const navigations = ref<Navigation[]>([])
 const loading = ref(false)
 const navType = ref('header')
+const searchKeyword = ref('')
 
 const treeData = ref<Navigation[]>([])
 
@@ -110,12 +113,18 @@ function flattenTree(items: Navigation[], depth = 0): Navigation[] {
   return result
 }
 
+function filterTreeData() {
+  const kw = searchKeyword.value.toLowerCase().trim()
+  if (!kw) { treeData.value = flattenTree(navigations.value); return }
+  treeData.value = flattenTree(navigations.value).filter(n => n.name.toLowerCase().includes(kw))
+}
+
 async function loadData() {
   loading.value = true
   try {
     const result = await navigationApi.list({ type: navType.value })
     navigations.value = result || []
-    treeData.value = flattenTree(navigations.value)
+    filterTreeData()
   } catch { navigations.value = []; treeData.value = [] }
   finally { loading.value = false }
 }
@@ -208,17 +217,60 @@ async function handleSave() {
   finally { saving.value = false }
 }
 
+function getSiblings(row: Navigation): Navigation[] {
+  if (row.parent_id) {
+    for (const n of navigations.value) {
+      if (n.children?.length) {
+        const sibs = n.children.filter(c => c.parent_id === row.parent_id)
+        if (sibs.length) return sibs
+      }
+    }
+  }
+  return navigations.value.filter(n => !n.parent_id)
+}
+
+function isFirstSibling(row: Navigation): boolean {
+  const sibs = getSiblings(row)
+  return sibs.length > 0 && sibs[0].id === row.id
+}
+
+function isLastSibling(row: Navigation): boolean {
+  const sibs = getSiblings(row)
+  return sibs.length > 0 && sibs[sibs.length - 1].id === row.id
+}
+
+async function handleMoveUp(row: Navigation) {
+  const sibs = getSiblings(row)
+  const idx = sibs.findIndex(s => s.id === row.id)
+  if (idx <= 0) return
+  const items = [
+    { id: sibs[idx].id, sort_order: sibs[idx - 1].sort_order },
+    { id: sibs[idx - 1].id, sort_order: sibs[idx].sort_order },
+  ]
+  try {
+    await navigationApi.batchSort(items)
+    loadData()
+  } catch { }
+}
+
+async function handleMoveDown(row: Navigation) {
+  const sibs = getSiblings(row)
+  const idx = sibs.findIndex(s => s.id === row.id)
+  if (idx < 0 || idx >= sibs.length - 1) return
+  const items = [
+    { id: sibs[idx].id, sort_order: sibs[idx + 1].sort_order },
+    { id: sibs[idx + 1].id, sort_order: sibs[idx].sort_order },
+  ]
+  try {
+    await navigationApi.batchSort(items)
+    loadData()
+  } catch { }
+}
+
 async function toggleVisible(row: Navigation, val: boolean) {
   try {
     await navigationApi.update(row.id, { name: row.name, url: row.url, type: row.type, target: row.target || '_self', sort_order: row.sort_order, is_visible: val, page_id: row.page_id || null })
   } catch { row.is_visible = !val }
-}
-
-async function handleMoveUp(row: Navigation) {
-  try {
-    await navigationApi.update(row.id, { name: row.name, url: row.url, type: row.type, target: row.target || '_self', sort_order: Math.max(0, row.sort_order - 1), is_visible: row.is_visible, page_id: row.page_id || null })
-    loadData()
-  } catch { }
 }
 
 async function handleDelete(row: Navigation) {
@@ -241,8 +293,8 @@ async function handleSync() {
     let created = 0
     for (const p of pages) {
       if (usedIds.has(p.id)) continue
-      const url = PAGE_TYPE_URL_MAP[p.type as string] || ''
-      if (!url) continue
+      const url = PAGE_TYPE_URL_MAP[p.type as string] || '/' + p.slug
+      if (!url || url === '/') continue  // skip home page (already in nav)
       await navigationApi.create({
         name: p.title, type: navType.value, url,
         target: '_self', sort_order: 99, is_visible: true, page_id: p.id,

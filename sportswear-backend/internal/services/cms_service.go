@@ -594,6 +594,27 @@ func (s *CMSService) GetNavigationByPageID(pageID string) ([]models.Navigation, 
 	return navs, err
 }
 
+// SortNavigationRequest 批量排序请求
+type SortNavigationRequest struct {
+	Items []SortNavigationItem `json:"items" binding:"required"`
+}
+
+// SortNavigationItem 单条排序项
+type SortNavigationItem struct {
+	ID        string `json:"id" binding:"required"`
+	SortOrder int    `json:"sort_order"`
+}
+
+// BatchSortNavigations 批量更新导航排序
+func (s *CMSService) BatchSortNavigations(req *SortNavigationRequest) error {
+	for _, item := range req.Items {
+		if err := s.db.Model(&models.Navigation{}).Where("id = ?", item.ID).Update("sort_order", item.SortOrder).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // ==================== 博客管理 ====================
 
 // ListBlogs 博客列表

@@ -20,15 +20,34 @@
         </NuxtLink>
 
         <!-- Desktop Nav -->
-        <nav class="hidden lg:flex items-center gap-8">
-          <NuxtLink
-            v-for="item in navItems"
-            :key="item.path"
-            :to="localePath(item.path)"
-            class="text-sm text-[#4A4A4A] hover:text-[#0D1B2A] transition-colors relative py-1 after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-[#D4A853] after:transition-all after:duration-300 hover:after:w-full"
-          >
-            {{ $t(item.label) }}
-          </NuxtLink>
+        <nav class="hidden lg:flex items-center gap-1">
+          <template v-for="item in navTree" :key="item.id || item.path">
+            <!-- 无子级：普通链接 -->
+            <NuxtLink
+              v-if="!item.children?.length"
+              :to="localePath(item.path)"
+              class="text-sm text-[#4A4A4A] hover:text-[#0D1B2A] transition-colors relative px-3 py-1 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-[2px] after:w-0 after:bg-[#D4A853] after:transition-all after:duration-300 hover:after:w-[calc(100%-24px)]"
+            >
+              {{ $t(item.label) }}
+            </NuxtLink>
+            <!-- 有子级：下拉菜单 -->
+            <div v-else class="relative group">
+              <button class="flex items-center gap-1 text-sm text-[#4A4A4A] hover:text-[#0D1B2A] transition-colors px-3 py-1 rounded-lg hover:bg-[#F5F0E8]">
+                {{ $t(item.label) }}
+                <svg class="w-2.5 h-2.5 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+              </button>
+              <div class="absolute left-0 top-full mt-1 bg-white border border-[#EAE5DD] rounded-xl shadow-2xl py-2 min-w-[200px] z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                <NuxtLink
+                  v-for="child in item.children.filter((c: any) => c.is_visible !== false)"
+                  :key="child.id"
+                  :to="localePath(child.url || '/')"
+                  class="block px-5 py-3 text-sm text-[#4A4A4A] hover:bg-[#FBF9F6] hover:text-[#0D1B2A] transition-colors"
+                >
+                  {{ $t(child.name) }}
+                </NuxtLink>
+              </div>
+            </div>
+          </template>
         </nav>
 
         <!-- Right -->
@@ -266,6 +285,13 @@ function flattenNav(items: any[]): any[] {
   return result
 }
 
+// 桌面端：保留树结构以支持下拉菜单
+const navTree = computed(() => {
+  if (headerNavData.value?.length) return headerNavData.value.filter((n: any) => n.is_visible !== false)
+  return DEFAULT_NAV.map(n => ({ ...n, children: [] }))
+})
+
+// 移动端 / Footer：展平为列表
 const navItems = computed(() => {
   if (headerNavData.value?.length) return flattenNav(headerNavData.value).map(navToItem)
   return DEFAULT_NAV

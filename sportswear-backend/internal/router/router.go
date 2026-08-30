@@ -244,6 +244,8 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 			auth.DELETE("/navigations/:id",
 				middleware.RequirePermission("navigation:manage"), cmsHandler.DeleteNavigation)
 
+auth.PUT("/navigations/sort",
+			middleware.RequirePermission("navigation:manage"), cmsHandler.BatchSortNavigations)
 			// 博客管理
 			auth.GET("/blogs",
 				middleware.RequireAnyPermission("blog:manage", "page:view"), cmsHandler.ListBlogs)

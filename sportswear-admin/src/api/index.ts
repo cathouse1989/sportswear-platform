@@ -125,6 +125,7 @@ export const navigationApi = {
   create: (data: any) => http.post<Navigation>('/admin/navigations', data),
   update: (id: string, data: any) => http.put<Navigation>(`/admin/navigations/${id}`, data),
   delete: (id: string) => http.delete(`/admin/navigations/${id}`),
+  batchSort: (items: { id: string; sort_order: number }[]) => http.put('/admin/navigations/sort', { items }),
 }
 
 // ============ 鍗氬 ============
