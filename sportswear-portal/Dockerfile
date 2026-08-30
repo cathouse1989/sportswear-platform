@@ -3,19 +3,20 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+# 先安装依赖（利用 Docker 层缓存加速重复构建）
 COPY package.json package-lock.json* ./
-RUN npm ci || npm install
+RUN npm ci 2>/dev/null || npm install
 
+# 复制全部源码并构建
 COPY . .
-
-# 浏览器端 API 地址在运行时通过 NUXT_PUBLIC_API_BASE 注入
-# SSR 服务端地址通过 NUXT_API_SERVER 注入（见 useApi.ts）
 RUN npm run build
 
-# ============ 运行阶段：Nitro SSR 服务 ============
+# ============ 运行阶段 ============
 FROM node:22-alpine
 
 WORKDIR /app
+
+# 从构建阶段复制输出
 COPY --from=builder /app/.output ./.output
 
 ENV NODE_ENV=production

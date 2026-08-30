@@ -1,4 +1,8 @@
-import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { resolve, dirname } from 'node:path'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 export default defineNuxtConfig({
   devtools: { enabled: true },
@@ -38,14 +42,14 @@ export default defineNuxtConfig({
       { code: 'fr', name: 'Français', flag: '🇫🇷', iso: 'fr-FR', file: 'fr.json' },
     ],
     defaultLocale: 'en',
-    strategy: 'prefix', // 子路径前缀：/en/, /zh/, /es/, /fr/
+    strategy: 'prefix',
     langDir: resolve(__dirname, 'locales'),
     detectBrowserLanguage: {
       useCookie: true,
       cookieKey: 'i18n_redirected',
       redirectOn: 'root',
     },
-    seo: true, // 自动生成 hreflang 标签
+    seo: true,
   },
 
   // SEO 优化
