@@ -43,6 +43,11 @@ func Init(cfg *config.Config) (*gorm.DB, error) {
 		return nil, fmt.Errorf("数据库迁移失败: %w", err)
 	}
 
+	// 预建当前季度的操作日志/访问日志分表
+	if err := EnsureCurrentQuarterTables(db); err != nil {
+		return nil, fmt.Errorf("创建季度日志分表失败: %w", err)
+	}
+
 	return db, nil
 }
 

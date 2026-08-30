@@ -5,6 +5,82 @@ export const useApi = () => {
   const { locale } = useI18n()
   const route = useRoute()
 
+  // ==================== 流量归因（UTM/来源追踪，用于广告转化分析） ====================
+  // 策略：
+  // 1. 每次请求附带当前 URL 的 utm_* 参数（SSR 首屏天然携带）；
+  // 2. 首次命中的归因信息写入 Cookie（sw_attribution），后续 SPA 内页面跳转持续透传；
+  // 3. 后端中间件读取 X-UTM-* 头落库到 visit_logs / leads。
+  const ATTRIBUTION_COOKIE = 'sw_attribution'
+
+  const readStoredAttribution = () => {
+    if (import.meta.server) return {}
+    try {
+      const raw = document.cookie.split('; ').find((c) => c.startsWith(ATTRIBUTION_COOKIE + '='))
+      if (!raw) return {}
+      const val = decodeURIComponent(raw.split('=').slice(1).join('='))
+      return JSON.parse(val || '{}') as Record<string, string>
+    } catch {
+      return {}
+    }
+  }
+
+  const writeStoredAttribution = (data: Record<string, string>) => {
+    if (import.meta.server) return
+    try {
+      document.cookie = `${ATTRIBUTION_COOKIE}=${encodeURIComponent(JSON.stringify(data))}; path=/; max-age=31536000`
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const currentAttribution = () => {
+    const q = route.query
+    const pick = (key: string) => {
+      const v = q[key]
+      if (typeof v === 'string') return v
+      if (Array.isArray(v)) return v[0] || ''
+      return ''
+    }
+    const fresh: Record<string, string> = {
+      source: pick('utm_source'),
+      medium: pick('utm_medium'),
+      campaign: pick('utm_campaign'),
+      content: pick('utm_content'),
+      term: pick('utm_term'),
+      ref: pick('ref'),
+    }
+    const stored = readStoredAttribution()
+    const merged: Record<string, string> = { ...stored }
+    let hasFresh = false
+    for (const k of Object.keys(fresh)) {
+      if (fresh[k]) {
+        merged[k] = fresh[k]
+        hasFresh = true
+      }
+    }
+    // 首次访问无 UTM 时，用 document.referrer 记录来源网站（便于"网站推送来源"归因）
+    if (import.meta.client && !merged.ref && !fresh.ref && document.referrer) {
+      merged.ref = document.referrer
+    }
+    if (hasFresh && import.meta.client) writeStoredAttribution(merged)
+    return merged
+  }
+
+  const utmHeaders = (attr: Record<string, string>) => {
+    const out: Record<string, string> = {}
+    const mapping: Array<[string, string]> = [
+      ['source', 'X-UTM-Source'],
+      ['medium', 'X-UTM-Medium'],
+      ['campaign', 'X-UTM-Campaign'],
+      ['content', 'X-UTM-Content'],
+      ['term', 'X-UTM-Term'],
+    ]
+    for (const [key, header] of mapping) {
+      if (attr[key]) out[header] = attr[key]
+    }
+    return out
+  }
+
   // 管理后台 iframe 预览会带 ?preview=1；门户请求公开 API 时透传，强制后端绕过缓存
   const isPreview = () => {
     const q = route.query?.preview
@@ -30,9 +106,12 @@ export const useApi = () => {
     return out
   }
 
-  // 解包 ApiResponse，返回 data 字段
+  // 解包 ApiResponse，返回 data 字段；自动附带 UTM 归因请求头
   async function unwrap<T>(url: string, opts?: any): Promise<T> {
-    const res = await api<{ success: boolean; data: T }>(url, opts)
+    const res = await api<{ success: boolean; data: T }>(url, {
+      ...opts,
+      headers: { ...(opts?.headers || {}), ...utmHeaders(currentAttribution()) },
+    })
     return res.data
   }
 

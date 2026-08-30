@@ -364,6 +364,9 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 				middleware.RequireAnyPermission("dashboard:view", "lead:view"), analyticsHandler.GetDeviceAnalysis)
 			auth.GET("/analytics/social-clicks",
 				middleware.RequireAnyPermission("dashboard:view", "lead:view"), analyticsHandler.GetSocialClickAnalysis)
+			// 门户访问日志明细（IP/国家/来源/实体/时间范围筛选，跨季度分表组合查询）
+			auth.GET("/analytics/visit-logs",
+				middleware.RequireAnyPermission("dashboard:view", "lead:view"), analyticsHandler.ListVisitLogs)
 
 			// ---------- 门户展示配置（版本化发布 + 主题配置） ----------
 			// 页面版本：草稿与线上分离，编辑不影响线上，发布后立即生效

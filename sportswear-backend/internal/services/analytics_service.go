@@ -1,10 +1,13 @@
 ﻿package services
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
 
+	"sportswear-backend/internal/database"
 	"sportswear-backend/internal/models"
 )
 
@@ -18,19 +21,73 @@ func NewAnalyticsService(db *gorm.DB) *AnalyticsService {
 	return &AnalyticsService{db: db}
 }
 
-// GetTrafficOverview 流量总览
+// visitTables 返回查询涉及的 visit_logs 表：存量基础表（历史数据）+ 时间范围内的季度表（仅已存在）
+func (s *AnalyticsService) visitTables(start, end time.Time) ([]string, error) {
+	if start.IsZero() {
+		start = time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	}
+	if end.IsZero() {
+		end = time.Now()
+	}
+	if end.Before(start) {
+		start, end = end, start
+	}
+	existing, err := database.ExistingQuarterTables(s.db, "visit_logs")
+	if err != nil {
+		return nil, err
+	}
+	exMap := make(map[string]bool, len(existing))
+	for _, n := range existing {
+		exMap[n] = true
+	}
+	candidates := database.QuarterTablesBetween("visit_logs", start, end)
+	tables := []string{"visit_logs"} // 存量基础表
+	for _, n := range candidates {
+		if exMap[n] {
+			tables = append(tables, n)
+		}
+	}
+	return tables, nil
+}
+
+// GetTrafficOverview 流量总览（访问量、独立IP、转化率、每日趋势）——跨季度分表组合查询
 func (s *AnalyticsService) GetTrafficOverview(days int) (map[string]interface{}, error) {
 	if days <= 0 {
 		days = 7
 	}
 	since := time.Now().AddDate(0, 0, -days)
+	end := time.Now()
+
+	tables, err := s.visitTables(since, end)
+	if err != nil {
+		return nil, err
+	}
 
 	var totalVisits, uniqueIPs, botVisits, productViews, leadCount int64
 
-	s.db.Model(&models.VisitLog{}).Where("created_at >= ?", since).Count(&totalVisits)
-	s.db.Model(&models.VisitLog{}).Where("created_at >= ?", since).Distinct("ip").Count(&uniqueIPs)
-	s.db.Model(&models.VisitLog{}).Where("created_at >= ? AND device = ?", since, "bot").Count(&botVisits)
-	s.db.Model(&models.VisitLog{}).Where("created_at >= ? AND entity_type = ?", since, "product").Count(&productViews)
+	// 全量访问
+	visitsSelect := `SELECT created_at, ip, device, entity_type FROM __T__ WHERE created_at >= ?`
+	visitsSQL, visitsArgs := database.UnionAll(tables, visitsSelect, []interface{}{since})
+	if err := s.db.Raw(fmt.Sprintf(`SELECT COUNT(*) FROM (%s) t`, visitsSQL), visitsArgs...).Scan(&totalVisits).Error; err != nil {
+		return nil, err
+	}
+	// 独立 IP
+	if err := s.db.Raw(fmt.Sprintf(`SELECT COUNT(DISTINCT ip) FROM (%s) t`, visitsSQL), visitsArgs...).Scan(&uniqueIPs).Error; err != nil {
+		return nil, err
+	}
+	// 机器人流量
+	botSelect := `SELECT created_at FROM __T__ WHERE created_at >= ? AND device = 'bot'`
+	botSQL, botArgs := database.UnionAll(tables, botSelect, []interface{}{since})
+	if err := s.db.Raw(fmt.Sprintf(`SELECT COUNT(*) FROM (%s) t`, botSQL), botArgs...).Scan(&botVisits).Error; err != nil {
+		return nil, err
+	}
+	// 产品浏览
+	prodSelect := `SELECT created_at FROM __T__ WHERE created_at >= ? AND entity_type = 'product'`
+	prodSQL, prodArgs := database.UnionAll(tables, prodSelect, []interface{}{since})
+	if err := s.db.Raw(fmt.Sprintf(`SELECT COUNT(*) FROM (%s) t`, prodSQL), prodArgs...).Scan(&productViews).Error; err != nil {
+		return nil, err
+	}
+	// 询盘
 	s.db.Model(&models.Lead{}).Where("created_at >= ?", since).Count(&leadCount)
 
 	// 询盘转化率（访问 IP → 询盘）
@@ -41,12 +98,10 @@ func (s *AnalyticsService) GetTrafficOverview(days int) (map[string]interface{},
 
 	// 每日访问趋势
 	var dailyTrend []map[string]interface{}
-	s.db.Model(&models.VisitLog{}).
-		Select("DATE(created_at) as date, COUNT(*) as visits, COUNT(DISTINCT ip) as unique_ips").
-		Where("created_at >= ?", since).
-		Group("DATE(created_at)").
-		Order("date ASC").
-		Scan(&dailyTrend)
+	trendSQL := fmt.Sprintf(`SELECT DATE(created_at) AS date, COUNT(*) AS visits, COUNT(DISTINCT ip) AS unique_ips FROM (%s) t GROUP BY DATE(created_at) ORDER BY date ASC`, visitsSQL)
+	if err := s.db.Raw(trendSQL, visitsArgs...).Scan(&dailyTrend).Error; err != nil {
+		return nil, err
+	}
 
 	return map[string]interface{}{
 		"days":            days,
@@ -61,7 +116,7 @@ func (s *AnalyticsService) GetTrafficOverview(days int) (map[string]interface{},
 	}, nil
 }
 
-// GetTopPages 热门页面
+// GetTopPages 热门页面（跨季度分表组合查询）
 func (s *AnalyticsService) GetTopPages(days, limit int) ([]map[string]interface{}, error) {
 	if days <= 0 {
 		days = 7
@@ -70,15 +125,17 @@ func (s *AnalyticsService) GetTopPages(days, limit int) ([]map[string]interface{
 		limit = 10
 	}
 	since := time.Now().AddDate(0, 0, -days)
+	tables, err := s.visitTables(since, time.Now())
+	if err != nil {
+		return nil, err
+	}
+
+	selectFmt := `SELECT path, entity_type, entity_slug, COUNT(*) AS views, COUNT(DISTINCT ip) AS unique_visitors FROM __T__ WHERE created_at >= ? AND device != 'bot'`
+	unionSQL, unionArgs := database.UnionAll(tables, selectFmt, []interface{}{since})
 
 	var topPages []map[string]interface{}
-	err := s.db.Model(&models.VisitLog{}).
-		Select("path, entity_type, entity_slug, COUNT(*) as views, COUNT(DISTINCT ip) as unique_visitors").
-		Where("created_at >= ? AND device != ?", since, "bot").
-		Group("path, entity_type, entity_slug").
-		Order("views DESC").
-		Limit(limit).
-		Scan(&topPages).Error
+	sql := fmt.Sprintf(`SELECT path, entity_type, entity_slug, SUM(views) AS views, SUM(unique_visitors) AS unique_visitors FROM (%s) t GROUP BY path, entity_type, entity_slug ORDER BY views DESC LIMIT ?`, unionSQL)
+	err = s.db.Raw(sql, append(unionArgs, limit)...).Scan(&topPages).Error
 	return topPages, err
 }
 
@@ -91,15 +148,17 @@ func (s *AnalyticsService) GetTopProducts(days, limit int) ([]map[string]interfa
 		limit = 10
 	}
 	since := time.Now().AddDate(0, 0, -days)
+	tables, err := s.visitTables(since, time.Now())
+	if err != nil {
+		return nil, err
+	}
+
+	selectFmt := `SELECT entity_slug AS slug, MAX(entity_name) AS name, COUNT(*) AS views, COUNT(DISTINCT ip) AS unique_visitors FROM __T__ WHERE created_at >= ? AND entity_type = 'product' AND device != 'bot'`
+	unionSQL, unionArgs := database.UnionAll(tables, selectFmt, []interface{}{since})
 
 	var topProducts []map[string]interface{}
-	err := s.db.Model(&models.VisitLog{}).
-		Select("entity_slug as slug, COUNT(*) as views, COUNT(DISTINCT ip) as unique_visitors").
-		Where("created_at >= ? AND entity_type = ? AND device != ?", since, "product", "bot").
-		Group("entity_slug").
-		Order("views DESC").
-		Limit(limit).
-		Scan(&topProducts).Error
+	sql := fmt.Sprintf(`SELECT slug, MAX(name) AS name, SUM(views) AS views, SUM(unique_visitors) AS unique_visitors FROM (%s) t GROUP BY slug ORDER BY views DESC LIMIT ?`, unionSQL)
+	err = s.db.Raw(sql, append(unionArgs, limit)...).Scan(&topProducts).Error
 	return topProducts, err
 }
 
@@ -109,18 +168,21 @@ func (s *AnalyticsService) GetSourceAnalysis(days int) ([]map[string]interface{}
 		days = 30
 	}
 	since := time.Now().AddDate(0, 0, -days)
+	tables, err := s.visitTables(since, time.Now())
+	if err != nil {
+		return nil, err
+	}
+
+	selectFmt := `SELECT source, medium, COUNT(*) AS visits, COUNT(DISTINCT ip) AS unique_visitors FROM __T__ WHERE created_at >= ? AND device != 'bot' AND source != ''`
+	unionSQL, unionArgs := database.UnionAll(tables, selectFmt, []interface{}{since})
 
 	var sources []map[string]interface{}
-	err := s.db.Model(&models.VisitLog{}).
-		Select("source, medium, COUNT(*) as visits, COUNT(DISTINCT ip) as unique_visitors").
-		Where("created_at >= ? AND device != ?", since, "bot").
-		Group("source, medium").
-		Order("visits DESC").
-		Scan(&sources).Error
+	sql := fmt.Sprintf(`SELECT source, medium, SUM(visits) AS visits, SUM(unique_visitors) AS unique_visitors FROM (%s) t GROUP BY source, medium ORDER BY visits DESC`, unionSQL)
+	err = s.db.Raw(sql, unionArgs...).Scan(&sources).Error
 	return sources, err
 }
 
-// GetCountryAnalysis 国家/地区分布
+// GetCountryAnalysis 国家/地区分布（直接使用 visit_logs 记录的国家字段）
 func (s *AnalyticsService) GetCountryAnalysis(days, limit int) ([]map[string]interface{}, error) {
 	if days <= 0 {
 		days = 30
@@ -129,17 +191,17 @@ func (s *AnalyticsService) GetCountryAnalysis(days, limit int) ([]map[string]int
 		limit = 15
 	}
 	since := time.Now().AddDate(0, 0, -days)
+	tables, err := s.visitTables(since, time.Now())
+	if err != nil {
+		return nil, err
+	}
+
+	selectFmt := `SELECT COALESCE(NULLIF(country, ''), 'unknown') AS country, COUNT(*) AS visits, COUNT(DISTINCT ip) AS unique_visitors FROM __T__ WHERE created_at >= ? AND device != 'bot'`
+	unionSQL, unionArgs := database.UnionAll(tables, selectFmt, []interface{}{since})
 
 	var countries []map[string]interface{}
-	err := s.db.Raw(`
-		SELECT COALESCE(l.country, v.ip) as region, COUNT(*) as visits, COUNT(DISTINCT v.ip) as unique_visitors
-		FROM visit_logs v
-		LEFT JOIN leads l ON l.ip = v.ip
-		WHERE v.created_at >= ? AND v.device != ?
-		GROUP BY COALESCE(l.country, v.ip)
-		ORDER BY visits DESC
-		LIMIT ?
-	`, since, "bot", limit).Scan(&countries).Error
+	sql := fmt.Sprintf(`SELECT country, SUM(visits) AS visits, SUM(unique_visitors) AS unique_visitors FROM (%s) t GROUP BY country ORDER BY visits DESC LIMIT ?`, unionSQL)
+	err = s.db.Raw(sql, append(unionArgs, limit)...).Scan(&countries).Error
 	return countries, err
 }
 
@@ -149,14 +211,17 @@ func (s *AnalyticsService) GetSocialClickAnalysis(days int) ([]map[string]interf
 		days = 30
 	}
 	since := time.Now().AddDate(0, 0, -days)
+	tables, err := s.visitTables(since, time.Now())
+	if err != nil {
+		return nil, err
+	}
+
+	selectFmt := `SELECT entity_slug AS platform, COUNT(*) AS clicks, COUNT(DISTINCT ip) AS unique_visitors FROM __T__ WHERE created_at >= ? AND entity_type = 'social_click' AND device != 'bot'`
+	unionSQL, unionArgs := database.UnionAll(tables, selectFmt, []interface{}{since})
 
 	var socialClicks []map[string]interface{}
-	err := s.db.Model(&models.VisitLog{}).
-		Select("entity_slug as platform, COUNT(*) as clicks, COUNT(DISTINCT ip) as unique_visitors").
-		Where("created_at >= ? AND entity_type = ? AND device != ?", since, "social_click", "bot").
-		Group("entity_slug").
-		Order("clicks DESC").
-		Scan(&socialClicks).Error
+	sql := fmt.Sprintf(`SELECT platform, SUM(clicks) AS clicks, SUM(unique_visitors) AS unique_visitors FROM (%s) t GROUP BY platform ORDER BY clicks DESC`, unionSQL)
+	err = s.db.Raw(sql, unionArgs...).Scan(&socialClicks).Error
 	return socialClicks, err
 }
 
@@ -166,20 +231,24 @@ func (s *AnalyticsService) GetDeviceAnalysis(days int) (map[string]interface{}, 
 		days = 30
 	}
 	since := time.Now().AddDate(0, 0, -days)
+	tables, err := s.visitTables(since, time.Now())
+	if err != nil {
+		return nil, err
+	}
 
 	var devices, browsers []map[string]interface{}
 
-	s.db.Model(&models.VisitLog{}).
-		Select("device, COUNT(*) as visits").
-		Where("created_at >= ? AND device != ?", since, "bot").
-		Group("device").Order("visits DESC").
-		Scan(&devices)
+	deviceSelect := `SELECT device, COUNT(*) AS visits FROM __T__ WHERE created_at >= ? AND device != 'bot' AND device != ''`
+	deviceSQL, deviceArgs := database.UnionAll(tables, deviceSelect, []interface{}{since})
+	if err := s.db.Raw(fmt.Sprintf(`SELECT device, SUM(visits) AS visits FROM (%s) t GROUP BY device ORDER BY visits DESC`, deviceSQL), deviceArgs...).Scan(&devices).Error; err != nil {
+		return nil, err
+	}
 
-	s.db.Model(&models.VisitLog{}).
-		Select("browser, COUNT(*) as visits").
-		Where("created_at >= ? AND device != ?", since, "bot").
-		Group("browser").Order("visits DESC").
-		Scan(&browsers)
+	browserSelect := `SELECT browser, COUNT(*) AS visits FROM __T__ WHERE created_at >= ? AND device != 'bot' AND browser != ''`
+	browserSQL, browserArgs := database.UnionAll(tables, browserSelect, []interface{}{since})
+	if err := s.db.Raw(fmt.Sprintf(`SELECT browser, SUM(visits) AS visits FROM (%s) t GROUP BY browser ORDER BY visits DESC`, browserSQL), browserArgs...).Scan(&browsers).Error; err != nil {
+		return nil, err
+	}
 
 	// 计算移动端占比（供前端统计卡直接使用）
 	totalVisits := 0.0
@@ -202,4 +271,100 @@ func (s *AnalyticsService) GetDeviceAnalysis(days int) (map[string]interface{}, 
 		"total_visits": int64(totalVisits),
 		"mobile_ratio": mobileRatio,
 	}, nil
+}
+
+// VisitLogFilter 访问日志明细筛选条件
+type VisitLogFilter struct {
+	IP         string
+	Country    string
+	Source     string
+	EntityType string
+	EntitySlug string
+	Language   string
+	Device     string
+	Keyword    string
+	Start      time.Time
+	End        time.Time
+}
+
+// ListVisitLogs 门户访问日志明细（按时间范围跨季度分表组合查询）
+func (s *AnalyticsService) ListVisitLogs(page, pageSize int, f VisitLogFilter) ([]map[string]interface{}, int64, error) {
+	tables, err := s.visitTables(f.Start, f.End)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var conds []string
+	var args []interface{}
+	if f.IP != "" {
+		conds = append(conds, "ip = ?")
+		args = append(args, f.IP)
+	}
+	if f.Country != "" {
+		conds = append(conds, "country = ?")
+		args = append(args, f.Country)
+	}
+	if f.Source != "" {
+		conds = append(conds, "source = ?")
+		args = append(args, f.Source)
+	}
+	if f.EntityType != "" {
+		conds = append(conds, "entity_type = ?")
+		args = append(args, f.EntityType)
+	}
+	if f.EntitySlug != "" {
+		conds = append(conds, "entity_slug = ?")
+		args = append(args, f.EntitySlug)
+	}
+	if f.Language != "" {
+		conds = append(conds, "language = ?")
+		args = append(args, f.Language)
+	}
+	if f.Device != "" {
+		conds = append(conds, "device = ?")
+		args = append(args, f.Device)
+	}
+	if f.Keyword != "" {
+		k := "%" + f.Keyword + "%"
+		conds = append(conds, "(entity_name ILIKE ? OR entity_slug ILIKE ? OR path ILIKE ?)")
+		args = append(args, k, k, k)
+	}
+	if !f.Start.IsZero() {
+		conds = append(conds, "created_at >= ?")
+		args = append(args, f.Start)
+	}
+	if !f.End.IsZero() {
+		conds = append(conds, "created_at <= ?")
+		args = append(args, f.End)
+	}
+	where := ""
+	if len(conds) > 0 {
+		where = " WHERE " + strings.Join(conds, " AND ")
+	}
+
+	selectFmt := `SELECT "id","created_at","ip","country","language","device","device_model","browser","os","user_agent","method","path","entity_type","entity_slug","entity_id","entity_name","status","latency_ms","referer","source","medium","keyword","utm_source","utm_medium","utm_campaign","utm_content","utm_term","session_id",'__T__' AS src FROM __T__` + where
+	unionSQL, unionArgs := database.UnionAll(tables, selectFmt, args)
+
+	var total int64
+	countSQL := fmt.Sprintf(`SELECT COUNT(*) FROM (%s) t`, unionSQL)
+	if err := s.db.Raw(countSQL, unionArgs...).Scan(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	listArgs := make([]interface{}, 0, len(unionArgs)+2)
+	listArgs = append(listArgs, unionArgs...)
+	listArgs = append(listArgs, pageSize, (page-1)*pageSize)
+	listSQL := fmt.Sprintf(`SELECT * FROM (%s) t ORDER BY created_at DESC LIMIT ? OFFSET ?`, unionSQL)
+
+	var rows []map[string]interface{}
+	if err := s.db.Raw(listSQL, listArgs...).Scan(&rows).Error; err != nil {
+		return nil, 0, err
+	}
+	return rows, total, nil
 }

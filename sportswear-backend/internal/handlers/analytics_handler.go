@@ -105,3 +105,30 @@ func (h *AnalyticsHandler) GetSocialClickAnalysis(c *gin.Context) {
 	}
 	utils.Success(c, data)
 }
+
+// ListVisitLogs 门户访问日志明细（分页 + IP/国家/来源/实体/语言/设备/时间范围筛选）
+func (h *AnalyticsHandler) ListVisitLogs(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	start, end := ParseDateRange(c.Query("start_date"), c.Query("end_date"))
+
+	f := services.VisitLogFilter{
+		IP:         c.Query("ip"),
+		Country:    c.Query("country"),
+		Source:     c.Query("source"),
+		EntityType: c.Query("entity_type"),
+		EntitySlug: c.Query("entity_slug"),
+		Language:   c.Query("language"),
+		Device:     c.Query("device"),
+		Keyword:    c.Query("keyword"),
+		Start:      start,
+		End:        end,
+	}
+
+	rows, total, err := h.analyticsService.ListVisitLogs(page, pageSize, f)
+	if err != nil {
+		utils.InternalError(c, "获取访问日志明细失败")
+		return
+	}
+	utils.SuccessPage(c, rows, page, pageSize, total)
+}

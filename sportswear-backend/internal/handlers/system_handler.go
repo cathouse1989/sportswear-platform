@@ -3,6 +3,7 @@
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -87,20 +88,37 @@ func (h *SystemHandler) MarkAllRead(c *gin.Context) {
 
 // ==================== 操作日志 ====================
 
-// ListOperationLogs 操作日志列表
+// ListOperationLogs 操作日志列表（支持时间范围，跨季度分表组合查询）
 func (h *SystemHandler) ListOperationLogs(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
 	userID := c.Query("user_id")
 	module := c.Query("module")
 	operation := c.Query("operation")
+	start, end := ParseDateRange(c.Query("start_date"), c.Query("end_date"))
 
-	logs, total, err := h.operationLogService.List(page, pageSize, userID, module, operation)
+	logs, total, err := h.operationLogService.List(page, pageSize, userID, module, operation, start, end)
 	if err != nil {
 		utils.InternalError(c, "获取操作日志失败")
 		return
 	}
 	utils.SuccessPage(c, logs, page, pageSize, total)
+}
+
+// ParseDateRange 解析 YYYY-MM-DD 起止日期；end 默认取当天 23:59:59（含当天）
+func ParseDateRange(startStr, endStr string) (time.Time, time.Time) {
+	var start, end time.Time
+	if startStr != "" {
+		if t, err := time.Parse("2006-01-02", startStr); err == nil {
+			start = t
+		}
+	}
+	if endStr != "" {
+		if t, err := time.Parse("2006-01-02", endStr); err == nil {
+			end = t.Add(24*time.Hour - time.Second)
+		}
+	}
+	return start, end
 }
 
 // ==================== 报价 ====================

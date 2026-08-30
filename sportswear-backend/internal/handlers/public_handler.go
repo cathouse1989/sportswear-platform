@@ -248,6 +248,9 @@ func (h *PublicHandler) GetPage(c *gin.Context) {
 		utils.NotFound(c, "页面不存在")
 		return
 	}
+	// 供流量中间件记录实体信息
+	c.Set("visit_entity_id", page.ID.String())
+	c.Set("visit_entity_name", page.Title)
 	utils.Success(c, page)
 }
 
@@ -325,6 +328,9 @@ func (h *PublicHandler) GetProduct(c *gin.Context) {
 		utils.NotFound(c, "产品不存在")
 		return
 	}
+	// 供流量中间件记录实体信息（产品维度）
+	c.Set("visit_entity_id", product.ID.String())
+	c.Set("visit_entity_name", product.Name)
 	utils.Success(c, product)
 }
 
@@ -384,6 +390,9 @@ func (h *PublicHandler) GetBlog(c *gin.Context) {
 		utils.NotFound(c, "博客不存在")
 		return
 	}
+	// 供流量中间件记录实体信息
+	c.Set("visit_entity_id", blog.ID.String())
+	c.Set("visit_entity_name", blog.Title)
 	utils.Success(c, blog)
 }
 
@@ -509,12 +518,40 @@ func (h *PublicHandler) ListNavigations(c *gin.Context) {
 	utils.Success(c, navigations)
 }
 
-// CreateLead 提交询盘
+// CreateLead 提交询盘（附 UTM/国家/语言/落地页等归因信息，供广告转化分析）
 func (h *PublicHandler) CreateLead(c *gin.Context) {
 	var req services.LeadRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.BadRequest(c, "参数错误: "+err.Error())
 		return
+	}
+
+	// 客户端未显式提供时，从 URL/请求头补齐归因字段（门户 SSR 透传 X-UTM-*）
+	if req.Source == "" {
+		req.Source = middleware.FirstNonEmptyHeader(c, c.Query("utm_source"), "X-UTM-Source", "UTM-Source")
+	}
+	if req.Medium == "" {
+		req.Medium = middleware.FirstNonEmptyHeader(c, c.Query("utm_medium"), "X-UTM-Medium", "UTM-Medium")
+	}
+	if req.Campaign == "" {
+		req.Campaign = middleware.FirstNonEmptyHeader(c, c.Query("utm_campaign"), "X-UTM-Campaign", "UTM-Campaign")
+	}
+	if req.Keyword == "" {
+		req.Keyword = middleware.FirstNonEmptyHeader(c, c.Query("utm_term"), "X-UTM-Term", "UTM-Term")
+	}
+	if req.Country == "" {
+		req.Country = middleware.ResolveCountry(c)
+	}
+	if req.Language == "" {
+		req.Language = middleware.GetLang(c)
+	}
+	if req.Device == "" {
+		ua := middleware.GetUserAgent(c)
+		device, _, _ := middleware.ParseUserAgent(ua)
+		req.Device = device
+	}
+	if req.LandingPage == "" {
+		req.LandingPage = c.Request.URL.Path
 	}
 
 	ip := middleware.GetClientIP(c)
@@ -553,21 +590,24 @@ func (h *PublicHandler) TrackClick(c *gin.Context) {
 	device, browser, osName := middleware.ParseUserAgent(ua)
 
 	log := models.VisitLog{
-		CreatedAt:  time.Now(),
-		IP:         ip,
-		Device:     device,
-		Browser:    browser,
-		OS:         osName,
-		UserAgent:  ua,
-		Method:     "POST",
-		Path:       "/api/v1/public/click-track",
-		EntityType: "social_click",
-		EntitySlug: req.Target,
-		Status:     200,
-		Referer:    c.GetHeader("Referer"),
-		Source:     "social",
-		Medium:     "click",
-		SessionID:  c.GetString("request_id"),
+		CreatedAt:   time.Now(),
+		IP:          ip,
+		Country:     middleware.ResolveCountry(c),
+		Language:    middleware.GetLang(c),
+		Device:      device,
+		DeviceModel: middleware.ParseDeviceModel(ua),
+		Browser:     browser,
+		OS:          osName,
+		UserAgent:   ua,
+		Method:      "POST",
+		Path:        "/api/v1/public/click-track",
+		EntityType:  "social_click",
+		EntitySlug:  req.Target,
+		Status:      200,
+		Referer:     c.GetHeader("Referer"),
+		Source:      "social",
+		Medium:      "click",
+		SessionID:   c.GetString("request_id"),
 	}
 
 	// 异步写入 DB（不阻塞响应）

@@ -224,6 +224,8 @@ export const analyticsApi = {
   sources: (params?: any) => http.get<any>('/admin/analytics/sources', params),
   countries: (params?: any) => http.get<any>('/admin/analytics/countries', params),
   devices: (params?: any) => http.get<any>('/admin/analytics/devices', params),
+  // 门户访问日志明细（IP/国家/来源/实体/时间范围筛选，跨季度分表组合查询）
+  visitLogs: (params?: any) => http.get<PageResult<any>>('/admin/analytics/visit-logs', params),
 }
 
 // ============ 国际化 ============

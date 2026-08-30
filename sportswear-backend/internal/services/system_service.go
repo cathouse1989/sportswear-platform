@@ -3,11 +3,13 @@
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"sportswear-backend/internal/database"
 	"sportswear-backend/internal/models"
 )
 
@@ -113,32 +115,106 @@ func NewOperationLogService(db *gorm.DB) *OperationLogService {
 	return &OperationLogService{db: db}
 }
 
-// Record 记录操作日志
+// Record 记录操作日志（按季度分表写入 operation_logs_YYYYMMDD）
 func (s *OperationLogService) Record(log *models.OperationLog) error {
-	return s.db.Create(log).Error
+	if log.CreatedAt.IsZero() {
+		log.CreatedAt = time.Now()
+	}
+	tableName := database.QuarterTableName("operation_logs", log.CreatedAt)
+	if err := database.EnsureTable(s.db, tableName, &models.OperationLog{}); err != nil {
+		return err
+	}
+	return s.db.Table(tableName).Create(log).Error
 }
 
-// List 操作日志列表
-func (s *OperationLogService) List(page, pageSize int, userID, module, operation string) ([]models.OperationLog, int64, error) {
-	var logs []models.OperationLog
-	var total int64
+// resolveTables 解析查询涉及的表：存量基础表（未分表前数据）+ 时间范围内的季度表（仅已存在）
+func (s *OperationLogService) resolveTables(start, end time.Time) ([]string, error) {
+	if start.IsZero() {
+		start = time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	}
+	if end.IsZero() {
+		end = time.Now()
+	}
+	if end.Before(start) {
+		start, end = end, start
+	}
+	candidates := database.QuarterTablesBetween("operation_logs", start, end)
+	existing, err := database.ExistingQuarterTables(s.db, "operation_logs")
+	if err != nil {
+		return nil, err
+	}
+	exMap := make(map[string]bool, len(existing))
+	for _, n := range existing {
+		exMap[n] = true
+	}
+	tables := []string{"operation_logs"} // 存量基础表（历史数据）
+	for _, n := range candidates {
+		if exMap[n] {
+			tables = append(tables, n)
+		}
+	}
+	return tables, nil
+}
 
-	query := s.db.Model(&models.OperationLog{})
+// List 操作日志列表（按时间范围组合查询对应季度分表）
+func (s *OperationLogService) List(page, pageSize int, userID, module, operation string, start, end time.Time) ([]map[string]interface{}, int64, error) {
+	tables, err := s.resolveTables(start, end)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var conds []string
+	var args []interface{}
 	if userID != "" {
-		query = query.Where("user_id = ?", userID)
+		conds = append(conds, "user_id = ?")
+		args = append(args, userID)
 	}
 	if module != "" {
-		query = query.Where("module = ?", module)
+		conds = append(conds, "module = ?")
+		args = append(args, module)
 	}
 	if operation != "" {
-		query = query.Where("operation = ?", operation)
+		conds = append(conds, "operation = ?")
+		args = append(args, operation)
+	}
+	if !start.IsZero() {
+		conds = append(conds, "created_at >= ?")
+		args = append(args, start)
+	}
+	if !end.IsZero() {
+		conds = append(conds, "created_at <= ?")
+		args = append(args, end)
+	}
+	where := ""
+	if len(conds) > 0 {
+		where = " WHERE " + strings.Join(conds, " AND ")
 	}
 
-	query.Count(&total)
-	err := query.Preload("User").
-		Order("created_at DESC").
-		Offset((page - 1) * pageSize).Limit(pageSize).Find(&logs).Error
-	return logs, total, err
+	selectFmt := `SELECT "id","user_id","operation","module","entity_type","entity_id","before","after","ip","user_agent","description","created_at","updated_at","deleted_at",'__T__' AS src FROM __T__` + where
+	unionSQL, unionArgs := database.UnionAll(tables, selectFmt, args)
+
+	var total int64
+	countSQL := fmt.Sprintf(`SELECT COUNT(*) FROM (%s) t`, unionSQL)
+	if err := s.db.Raw(countSQL, unionArgs...).Scan(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	listArgs := make([]interface{}, 0, len(unionArgs)+2)
+	listArgs = append(listArgs, unionArgs...)
+	listArgs = append(listArgs, pageSize, (page-1)*pageSize)
+	listSQL := fmt.Sprintf(`SELECT * FROM (%s) t ORDER BY created_at DESC LIMIT ? OFFSET ?`, unionSQL)
+
+	var rows []map[string]interface{}
+	if err := s.db.Raw(listSQL, listArgs...).Scan(&rows).Error; err != nil {
+		return nil, 0, err
+	}
+	return rows, total, nil
 }
 
 // ==================== 报价服务 ====================

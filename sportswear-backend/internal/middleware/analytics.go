@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
+	"sportswear-backend/internal/database"
 	"sportswear-backend/internal/models"
 	"sportswear-backend/internal/utils"
 )
@@ -26,7 +27,14 @@ func init() {
 					continue
 				}
 			}
-			db.Create(&log)
+			// 按季度分表写入：visit_logs_YYYYMMDD（YYYYMMDD=季度起始日）
+			if log.CreatedAt.IsZero() {
+				log.CreatedAt = time.Now()
+			}
+			tableName := database.QuarterTableName("visit_logs", log.CreatedAt)
+			if err := database.EnsureTable(db, tableName, &models.VisitLog{}); err == nil {
+				db.Table(tableName).Create(&log)
+			}
 		}
 	}()
 }
@@ -46,6 +54,8 @@ func getDB() *gorm.DB {
 var (
 	botRegex    = regexp.MustCompile(`(?i)(bot|crawler|spider|slurp|bingpreview|facebookexternalhit)`)
 	mobileRegex = regexp.MustCompile(`(?i)(mobile|android|iphone|ipad|phone)`)
+	tabletRegex = regexp.MustCompile(`(?i)(ipad|tablet)`)
+	modelRegex  = regexp.MustCompile(`(?i)\((iphone ipro|iphone|ipad|ipod touch|macintosh|windows nt [\d.]+|linux|sm-[a-z0-9]+|pixel [\d]+|redmi[ a-z0-9]*|mi [a-z0-9]+|huawei[ a-z0-9]*|oppo[ a-z0-9]*|vivo[ a-z0-9]*|galaxy[ a-z0-9]*|oneplus[ a-z0-9]*)`)
 )
 
 // ParseUserAgent 解析 User-Agent（导出，供其他包记录点击事件）
@@ -57,7 +67,9 @@ func ParseUserAgent(ua string) (device, browser, os string) {
 		return "bot", "bot", "bot"
 	}
 	device = "desktop"
-	if mobileRegex.MatchString(ua) {
+	if tabletRegex.MatchString(ua) {
+		device = "tablet"
+	} else if mobileRegex.MatchString(ua) {
 		device = "mobile"
 	}
 
@@ -91,6 +103,62 @@ func ParseUserAgent(ua string) (device, browser, os string) {
 	return
 }
 
+// ParseDeviceModel 解析设备型号（移动端 / PC / Pad 的可读名称）
+func ParseDeviceModel(ua string) string {
+	if ua == "" {
+		return ""
+	}
+	upper := strings.ToLower(ua)
+	switch {
+	case strings.Contains(upper, "iphone"):
+		return "iPhone"
+	case strings.Contains(upper, "ipad"):
+		return "iPad"
+	case strings.Contains(upper, "ipod"):
+		return "iPod"
+	case strings.Contains(upper, "windows nt 11"):
+		return "Windows 11 PC"
+	case strings.Contains(upper, "windows nt 10"):
+		return "Windows 10 PC"
+	case strings.Contains(upper, "windows"):
+		return "Windows PC"
+	case strings.Contains(upper, "macintosh") || strings.Contains(upper, "mac os"):
+		return "Mac"
+	case strings.Contains(upper, "linux"):
+		return "Linux Device"
+	case strings.Contains(upper, "android"):
+		// 尝试从 UA 提取型号：如 SM-S928B、Pixel 8、Redmi Note 13
+		if m := modelRegex.FindStringSubmatch(ua); len(m) > 1 {
+			return strings.TrimSpace(m[1])
+		}
+		return "Android Device"
+	}
+	return ""
+}
+
+// ResolveCountry 解析访客国家（优先网关/反代头，其次查询参数）
+func ResolveCountry(c *gin.Context) string {
+	for _, h := range []string{"CF-IPCountry", "X-Country", "X-Geo-Country"} {
+		if v := c.GetHeader(h); v != "" {
+			return v
+		}
+	}
+	return c.Query("country")
+}
+
+// FirstNonEmptyHeader 返回 query 值与请求头序列中第一个非空值
+func FirstNonEmptyHeader(c *gin.Context, queryVal string, headers ...string) string {
+	if queryVal != "" {
+		return queryVal
+	}
+	for _, hname := range headers {
+		if v := c.GetHeader(hname); v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
 // parseSource 解析流量来源（SEO/广告归因）
 func parseSource(referer string, utmSource, utmMedium, utmCampaign string) (source, medium, keyword string) {
 	source = "direct"
@@ -121,6 +189,9 @@ func parseSource(referer string, utmSource, utmMedium, utmCampaign string) (sour
 		case strings.Contains(referer, "youtube.com"):
 			source = "youtube"
 			medium = "social"
+		case strings.Contains(referer, "instagram.com"):
+			source = "instagram"
+			medium = "social"
 		default:
 			source = "referral"
 			medium = "referral"
@@ -133,12 +204,23 @@ func parseSource(referer string, utmSource, utmMedium, utmCampaign string) (sour
 	return source, medium, keyword
 }
 
+// firstNonEmpty 返回第一个非空值
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
 // Analytics 访问监测中间件：记录门户（公开）接口的访问数据到 DB + 访问日志
-// 仅统计门户流量用于商业价值分析：热门页面、热门产品、来源归因、国家分布、设备分布
+// 仅统计门户流量用于商业价值分析：热门页面、热门产品、来源归因、国家/设备/语言分布
 // 后台流量没有商业价值，不在此记录。请将此中间件注册到 /api/v1/public 路由组。
+// 数据按季度分表写入 visit_logs_YYYYMMDD。
 func Analytics() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 只记录 GET 请求的页面浏览行为
+		// 只记录 GET 请求的页面浏览行为（POST 由各 handler 自行记录，如 click-track）
 		if c.Request.Method != "GET" {
 			c.Next()
 			return
@@ -154,12 +236,15 @@ func Analytics() gin.HandlerFunc {
 		ua := GetUserAgent(c)
 		device, browser, osName := ParseUserAgent(ua)
 		referer := c.GetHeader("Referer")
-		source, medium, _ := parseSource(
-			referer,
-			c.Query("utm_source"),
-			c.Query("utm_medium"),
-			c.Query("utm_campaign"),
-		)
+
+		// UTM 参数：优先取 URL Query，其次取浏览器/Nuxt SSR 透传的自定义头
+		utmSource := firstNonEmpty(c.Query("utm_source"), c.GetHeader("X-UTM-Source"), c.GetHeader("UTM-Source"))
+		utmMedium := firstNonEmpty(c.Query("utm_medium"), c.GetHeader("X-UTM-Medium"), c.GetHeader("UTM-Medium"))
+		utmCampaign := firstNonEmpty(c.Query("utm_campaign"), c.GetHeader("X-UTM-Campaign"), c.GetHeader("UTM-Campaign"))
+		utmContent := firstNonEmpty(c.Query("utm_content"), c.GetHeader("X-UTM-Content"), c.GetHeader("UTM-Content"))
+		utmTerm := firstNonEmpty(c.Query("utm_term"), c.GetHeader("X-UTM-Term"), c.GetHeader("UTM-Term"))
+
+		source, medium, _ := parseSource(referer, utmSource, utmMedium, utmCampaign)
 
 		// 解析实体类型和 slug
 		entityType, entitySlug := parseEntity(path)
@@ -167,7 +252,10 @@ func Analytics() gin.HandlerFunc {
 		log := models.VisitLog{
 			CreatedAt:   time.Now(),
 			IP:          ip,
+			Country:     ResolveCountry(c),
+			Language:    GetLang(c),
 			Device:      device,
+			DeviceModel: ParseDeviceModel(ua),
 			Browser:     browser,
 			OS:          osName,
 			UserAgent:   ua,
@@ -175,12 +263,18 @@ func Analytics() gin.HandlerFunc {
 			Path:        path,
 			EntityType:  entityType,
 			EntitySlug:  entitySlug,
+			EntityID:    c.GetString("visit_entity_id"),
+			EntityName:  c.GetString("visit_entity_name"),
 			Status:      c.Writer.Status(),
 			LatencyMs:   latency,
 			Referer:     referer,
 			Source:      source,
 			Medium:      medium,
-			UtmCampaign: c.Query("utm_campaign"),
+			UtmSource:   utmSource,
+			UtmMedium:   utmMedium,
+			UtmCampaign: utmCampaign,
+			UtmContent:  utmContent,
+			UtmTerm:     utmTerm,
 			SessionID:   c.GetString("request_id"),
 		}
 
@@ -191,18 +285,24 @@ func Analytics() gin.HandlerFunc {
 		if utils.AccessLog != nil {
 			utils.AccessLog.Infow("access",
 				"ip", ip,
+				"country", log.Country,
+				"lang", log.Language,
 				"method", c.Request.Method,
 				"path", path,
 				"status", c.Writer.Status(),
 				"latency_ms", latency,
 				"device", device,
+				"device_model", log.DeviceModel,
 				"browser", browser,
 				"os", osName,
 				"source", source,
 				"medium", medium,
 				"referer", referer,
+				"utm_source", utmSource,
+				"utm_campaign", utmCampaign,
 				"entity_type", entityType,
 				"entity_slug", entitySlug,
+				"entity_name", log.EntityName,
 			)
 		}
 	}
