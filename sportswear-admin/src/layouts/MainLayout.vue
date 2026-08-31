@@ -16,62 +16,38 @@
         text-color="#ffffffa6"
         active-text-color="#ffffff"
       >
-        <el-menu-item v-if="can(['dashboard:view', 'lead:view'])" index="/dashboard">
-          <el-icon><DataAnalysis /></el-icon>
-          <span>仪表盘</span>
-        </el-menu-item>
-        <el-menu-item v-if="can('product:view')" index="/products">
-          <el-icon><Goods /></el-icon>
-          <span>产品管理</span>
-        </el-menu-item>
-        <el-sub-menu v-if="cmsVisible" index="cms">
-          <template #title><el-icon><Document /></el-icon><span>内容管理</span></template>
-          <el-menu-item v-if="can('page:view')" index="/hero">轮播图管理</el-menu-item>
-          <el-menu-item v-if="can(['navigation:manage', 'page:view'])" index="/navigations">导航管理</el-menu-item>
-          <el-menu-item v-if="can(['blog:manage', 'page:view'])" index="/blogs">博客管理</el-menu-item>
-          <el-menu-item v-if="can(['case:manage', 'page:view'])" index="/cases">案例管理</el-menu-item>
-          <el-menu-item v-if="can(['faq:manage', 'page:view'])" index="/faqs">FAQ 管理</el-menu-item>
-          <el-menu-item v-if="can(['factory:manage', 'page:view'])" index="/factories">工厂管理</el-menu-item>
-          <el-menu-item v-if="can(['certification:manage', 'page:view'])" index="/certifications">认证管理</el-menu-item>
-        </el-sub-menu>
-        <el-menu-item v-if="can(['media:manage', 'media:upload'])" index="/media">
-          <el-icon><Picture /></el-icon>
-          <span>媒体管理</span>
-        </el-menu-item>
-        <el-menu-item v-if="can('lead:view')" index="/leads">
-          <el-icon><Message /></el-icon>
-          <span>询盘管理</span>
-        </el-menu-item>
-        <el-menu-item v-if="can('user:view')" index="/users">
-          <el-icon><User /></el-icon>
-          <span>用户管理</span>
-        </el-menu-item>
-        <el-menu-item v-if="can('role:manage')" index="/roles">
-          <el-icon><Key /></el-icon>
-          <span>角色权限</span>
-        </el-menu-item>
-        <el-sub-menu v-if="systemVisible" index="system">
-          <template #title><el-icon><Setting /></el-icon><span>系统配置</span></template>
-          <el-menu-item v-if="can('setting:manage')" index="/theme">主题配置</el-menu-item>
-          <el-menu-item v-if="can('language:manage')" index="/i18n">词条管理</el-menu-item>
-          <el-menu-item v-if="can('setting:manage')" index="/storage-sources">存储源配置</el-menu-item>
-          <el-menu-item v-if="can('lead:view')" index="/quotes">报价管理</el-menu-item>
-          <el-menu-item v-if="can('lead:view')" index="/notifications">通知列表</el-menu-item>
-          <el-menu-item v-if="can('setting:manage')" index="/portal-cache">门户缓存</el-menu-item>
-          <el-menu-item v-if="can('setting:manage')" index="/trash">回收站</el-menu-item>
-        </el-sub-menu>
-        <el-menu-item v-if="can(['dashboard:view', 'lead:view'])" index="/portal-preview">
-          <el-icon><Monitor /></el-icon>
-          <span>门户预览</span>
-        </el-menu-item>
-        <el-menu-item v-if="can(['dashboard:view', 'lead:view'])" index="/analytics">
-          <el-icon><DataAnalysis /></el-icon>
-          <span>数据分析</span>
-        </el-menu-item>
-        <el-menu-item v-if="can('setting:manage')" index="/operation-logs">
-          <el-icon><Document /></el-icon>
-          <span>操作日志</span>
-        </el-menu-item>
+        <template
+          v-for="item in visibleMenu"
+          :key="item.key"
+        >
+          <el-menu-item
+            v-if="!item.children"
+            :index="item.index"
+          >
+            <el-icon v-if="item.icon">
+              <component :is="item.icon" />
+            </el-icon>
+            <span>{{ item.label }}</span>
+          </el-menu-item>
+          <el-sub-menu
+            v-else
+            :index="item.index"
+          >
+            <template #title>
+              <el-icon v-if="item.icon">
+                <component :is="item.icon" />
+              </el-icon>
+              <span>{{ item.label }}</span>
+            </template>
+            <el-menu-item
+              v-for="child in item.children!"
+              :key="child.key"
+              :index="child.index"
+            >
+              {{ child.label }}
+            </el-menu-item>
+          </el-sub-menu>
+        </template>
       </el-menu>
     </el-aside>
 
@@ -114,7 +90,8 @@ import { hasAnyPermission } from '@/utils/permissions'
 import { notificationApi } from '@/api'
 import { http } from '@/api/client'
 // 图标按需引入（替换 main.ts 的全局注册，减小首屏包体积）
-import { DataAnalysis, Goods, Document, Picture, Message, User, Key, Setting, Monitor, Bell } from '@element-plus/icons-vue'
+import { Bell } from '@element-plus/icons-vue'
+import { MENU_CONFIG, type MenuItem } from '@/config/menu'
 
 const route = useRoute()
 const router = useRouter()
@@ -132,22 +109,30 @@ const userInitial = computed(() => userName.value.charAt(0).toUpperCase())
 function can(required: string | string[]) {
   return hasAnyPermission(authStore, required)
 }
-// 内容管理子菜单：任一子项有权限即展示
-const cmsVisible = computed(() =>
-  hasAnyPermission(authStore, [
-    'page:view',
-    'navigation:manage',
-    'blog:manage',
-    'case:manage',
-    'faq:manage',
-    'factory:manage',
-    'certification:manage',
-  ])
-)
-// 系统配置子菜单：任一子项有权限即展示
-const systemVisible = computed(() =>
-  hasAnyPermission(authStore, ['setting:manage', 'language:manage', 'lead:view'])
-)
+// 可见菜单：过滤无权限项 + 按 sort_order 排序
+// - 独立菜单项：拥有指定权限时显示
+// - 分组菜单项：任一子菜单可见时显示（分组本身不单设权限）
+const visibleMenu = computed(() => {
+  return MENU_CONFIG
+    .filter((item: MenuItem) => {
+      if (item.children) {
+        return item.children.some(c => can(c.permission as string | string[]))
+      }
+      return can(item.permission as string | string[])
+    })
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((item: MenuItem) => {
+      if (item.children) {
+        return {
+          ...item,
+          children: item.children
+            .filter(c => can(c.permission as string | string[]))
+            .sort((a, b) => a.sort_order - b.sort_order),
+        }
+      }
+      return item
+    })
+})
 
 onMounted(async () => {
   try {
