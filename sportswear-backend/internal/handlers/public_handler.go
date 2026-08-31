@@ -23,6 +23,7 @@ type PublicHandler struct {
 	cmsService     *services.CMSService
 	leadService    *services.LeadService
 	cache          *services.CacheService
+	uploadService  *services.UploadService
 }
 
 // NewPublicHandler 创建公开 API 处理器
@@ -31,12 +32,14 @@ func NewPublicHandler(
 	cmsService *services.CMSService,
 	leadService *services.LeadService,
 	cacheService *services.CacheService,
+	uploadService *services.UploadService,
 ) *PublicHandler {
 	return &PublicHandler{
 		productService: productService,
 		cmsService:     cmsService,
 		leadService:    leadService,
 		cache:          cacheService,
+		uploadService:  uploadService,
 	}
 }
 
@@ -561,6 +564,47 @@ func (h *PublicHandler) CreateLead(c *gin.Context) {
 		return
 	}
 	utils.Created(c, lead)
+}
+
+// UploadLeadAttachment 门户询盘附件上传（multipart/form-data，字段 file）
+// 公开未登录接口：附件专用白名单（图片/PDF/Word/Excel/zip/rar，不含 SVG 防 XSS）
+// + 大小限制（MAX_UPLOAD_SIZE，默认 20MB）+ RateLimit 中间件保护
+// 仅保存文件返回访问 URL；媒体记录随询盘 attachments 字段落库（避免污染媒体库）
+func (h *PublicHandler) UploadLeadAttachment(c *gin.Context) {
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		utils.BadRequest(c, "请选择要上传的文件")
+		return
+	}
+
+	// 校验附件安全（询盘附件专用白名单 + 大小限制）
+	if err := h.uploadService.ValidateLeadAttachment(fileHeader); err != nil {
+		utils.BadRequest(c, err.Error())
+		return
+	}
+
+	// 生成存储路径（leads/2026-01/uuid.ext）
+	storagePath, _ := h.uploadService.GenerateStoragePath(fileHeader.Filename, "leads")
+
+	// 打开文件流并保存到本地
+	src, err := fileHeader.Open()
+	if err != nil {
+		utils.InternalError(c, "读取文件失败")
+		return
+	}
+	defer src.Close()
+
+	if err := h.uploadService.SaveToLocal(src, storagePath); err != nil {
+		utils.InternalError(c, "保存文件失败")
+		return
+	}
+
+	utils.Created(c, gin.H{
+		"url":       h.uploadService.LocalURL(storagePath),
+		"file_name": fileHeader.Filename,
+		"file_size": fileHeader.Size,
+		"file_type": services.DetectFileType(fileHeader.Filename),
+	})
 }
 
 // TrackClick 记录外部链接点击（社交媒体跳转跟踪）

@@ -400,6 +400,7 @@ export interface Lead {
   quantity: number
   budget: string
   message: string
+  attachments?: string
   source: string
   status: string
   score: number

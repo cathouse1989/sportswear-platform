@@ -136,6 +136,11 @@ export const useApi = () => {
     getLanguages: () => unwrap<any>('/public/languages', { params: withPreview() }),
     getGeo: (country?: string) => unwrap<any>('/public/geo', { params: withPreview({ country }) }),
     submitLead: (data: any) => unwrap<any>('/public/leads', { method: 'POST', body: data }),
+    uploadLeadAttachment: (file: File) => {
+      const fd = new FormData()
+      fd.append('file', file)
+      return unwrap<any>('/public/uploads/lead-attachment', { method: 'POST', body: fd })
+    },
     trackClick: (target: string, url: string) => unwrap<any>('/public/click-track', { method: 'POST', body: { target, url } }),
   }
 }

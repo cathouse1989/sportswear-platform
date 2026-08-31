@@ -72,7 +72,7 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 	cmsHandler := handlers.NewCMSHandler(cmsService, cacheService)
 	leadHandler := handlers.NewLeadHandler(leadService)
 	mediaHandler := handlers.NewMediaHandler(mediaService, uploadService)
-	publicHandler := handlers.NewPublicHandler(productService, cmsService, leadService, cacheService)
+	publicHandler := handlers.NewPublicHandler(productService, cmsService, leadService, cacheService, uploadService)
 	trashHandler := handlers.NewTrashHandler(trashService)
 	analyticsHandler := handlers.NewAnalyticsHandler(analyticsService)
 	portalHandler := handlers.NewPortalHandler(portalService, cacheService, db)
@@ -105,6 +105,7 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 		public.GET("/certifications", publicHandler.ListCertifications)
 		public.GET("/navigations", publicHandler.ListNavigations)
 		public.POST("/leads", publicHandler.CreateLead)                        // 询盘提交（受频率限制保护）
+		public.POST("/uploads/lead-attachment", publicHandler.UploadLeadAttachment) // 询盘附件上传（图片/文档/压缩包，默认≤20MB，受频率限制保护）
 		public.POST("/click-track", publicHandler.TrackClick)                  // 外部链接点击跟踪（社交媒体跳转）
 		public.GET("/theme", portalHandler.GetThemeConfig)                     // 主题配置（前端渲染视觉风格）
 		public.GET("/i18n", i18nHandler.GetDictionary)                         // i18n 词条字典（前端一键切换语言）

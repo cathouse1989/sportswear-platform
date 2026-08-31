@@ -61,6 +61,28 @@ func (s *UploadService) ValidateFile(fileHeader *multipart.FileHeader) error {
 	return nil
 }
 
+// leadAttachmentExtensions 询盘附件允许的扩展名（对齐行业联系表单：图片 + 压缩包 + 文档）
+// 注意：不含 .svg（公开未登录上传有 XSS 风险），管理后台上传仍走 allowedExtensions
+var leadAttachmentExtensions = map[string]bool{
+	".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".webp": true,
+	".pdf": true, ".doc": true, ".docx": true,
+	".xls": true, ".xlsx": true,
+	".zip": true, ".rar": true,
+}
+
+// ValidateLeadAttachment 校验询盘附件安全：附件专用白名单（含 .rar）+ 大小限制（MAX_UPLOAD_SIZE，默认 20MB）
+func (s *UploadService) ValidateLeadAttachment(fileHeader *multipart.FileHeader) error {
+	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
+	if !leadAttachmentExtensions[ext] {
+		return fmt.Errorf("不支持的附件类型: %s（仅支持图片、PDF、Word、Excel、zip/rar 压缩包）", ext)
+	}
+	maxSize := s.cfg.Upload.MaxSize * 1024 * 1024 // MB -> bytes
+	if fileHeader.Size > maxSize {
+		return fmt.Errorf("附件超过大小限制 %dMB", s.cfg.Upload.MaxSize)
+	}
+	return nil
+}
+
 // GenerateStoragePath 生成存储路径与随机文件名（防路径遍历 + 防重名）
 func (s *UploadService) GenerateStoragePath(originalName string, category string) (storagePath, fileName string) {
 	ext := filepath.Ext(originalName)

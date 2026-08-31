@@ -63,6 +63,27 @@
           <el-descriptions-item label="来源">{{ current.source || '-' }}</el-descriptions-item>
           <el-descriptions-item label="评分">{{ current.score }}</el-descriptions-item>
           <el-descriptions-item label="留言" :span="2">{{ current.message || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="附件" :span="2">
+            <template v-if="attachmentList.length">
+              <div class="attachments">
+                <template v-for="(att, i) in attachmentList" :key="i">
+                  <el-image
+                    v-if="isImage(att.url)"
+                    :src="att.url"
+                    :preview-src-list="imageUrls"
+                    :initial-index="imageUrls.indexOf(att.url)"
+                    fit="cover"
+                    class="attachment-image"
+                    preview-teleported
+                  />
+                  <el-link v-else :href="att.url" target="_blank" type="primary">
+                    {{ att.name || att.url }}<span v-if="att.size" class="muted-size">（{{ formatAttSize(att.size) }}）</span>
+                  </el-link>
+                </template>
+              </div>
+            </template>
+            <span v-else>-</span>
+          </el-descriptions-item>
         </el-descriptions>
 
         <el-divider content-position="left">跟进记录</el-divider>
@@ -79,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { leadApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
@@ -95,6 +116,41 @@ const status = ref('')
 
 const detailVisible = ref(false)
 const current = ref<Lead | null>(null)
+
+// ==================== 附件展示（门户询盘上传的图片/文件，JSON 数组字符串） ====================
+interface LeadAttachment {
+  url: string
+  name?: string
+  size?: number
+  type?: string
+}
+
+const attachmentList = computed<LeadAttachment[]>(() => {
+  const raw = current.value?.attachments
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.filter((i) => i && typeof i.url === 'string') : []
+  } catch {
+    return []
+  }
+})
+
+const imageUrls = computed(() =>
+  attachmentList.value.filter((a) => isImage(a.url)).map((a) => a.url),
+)
+
+const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+function isImage(url: string) {
+  const path = url.split('?')[0].toLowerCase()
+  return IMAGE_EXTS.some((ext) => path.endsWith(ext))
+}
+
+function formatAttSize(bytes: number) {
+  if (bytes >= 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + 'MB'
+  if (bytes >= 1024) return (bytes / 1024).toFixed(0) + 'KB'
+  return bytes + 'B'
+}
 
 const statusMap: Record<string, string> = {
   new: '新询盘',
@@ -172,5 +228,22 @@ onMounted(loadData)
   font-size: 12px;
   color: #9ca3af;
   margin-top: 4px;
+}
+.attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.attachment-image {
+  width: 72px;
+  height: 72px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+}
+.muted-size {
+  color: #9ca3af;
+  font-size: 12px;
 }
 </style>
