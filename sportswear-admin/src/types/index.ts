@@ -352,6 +352,7 @@ export interface Navigation {
   parent_id?: string
   page_id?: string
   page?: Page
+  page_status?: string  // 关联页面的状态（用于显示页面发布状态）
   children?: Navigation[]
 }
 

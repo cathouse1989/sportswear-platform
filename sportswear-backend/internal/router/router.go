@@ -146,7 +146,7 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 			auth.DELETE("/users/:id",
 				middleware.RequirePermission("user:delete"), authHandler.DeleteUser)
 			auth.GET("/roles",
-				middleware.RequirePermission("role:manage"), authHandler.ListRoles)
+				middleware.RequireAnyPermission("role:manage", "user:create", "user:update"), authHandler.ListRoles)
 			auth.POST("/roles",
 				middleware.RequirePermission("role:manage"), authHandler.CreateRole)
 			auth.PUT("/roles/:id",
@@ -244,8 +244,10 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 			auth.DELETE("/navigations/:id",
 				middleware.RequirePermission("navigation:manage"), cmsHandler.DeleteNavigation)
 
-auth.PUT("/navigations/sort",
-			middleware.RequirePermission("navigation:manage"), cmsHandler.BatchSortNavigations)
+			auth.PUT("/navigations/sort",
+				middleware.RequirePermission("navigation:manage"), cmsHandler.BatchSortNavigations)
+			auth.POST("/navigations/sync-with-pages",
+				middleware.RequirePermission("navigation:manage"), cmsHandler.SyncNavVisibilityWithPages)
 			// 博客管理
 			auth.GET("/blogs",
 				middleware.RequireAnyPermission("blog:manage", "page:view"), cmsHandler.ListBlogs)

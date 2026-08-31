@@ -87,9 +87,14 @@ func (s *AuthService) Login(req *LoginRequest, ip string) (*LoginResponse, error
 }
 
 // GetUserByID 获取用户
+// 关键闭环：profile 必须返回「启用角色 + 角色权限」，前端 authStore 才能收集到权限码，
+// 与后端 Auth 中间件（实时从数据库加载权限）保持一致。
 func (s *AuthService) GetUserByID(id interface{}) (*models.User, error) {
 	var user models.User
-	if err := s.db.Preload("Roles").First(&user, "id = ?", id).Error; err != nil {
+	if err := s.db.
+		Preload("Roles", "is_active = ?", true).
+		Preload("Roles.Permissions").
+		First(&user, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	user.Password = ""
@@ -109,6 +114,13 @@ func (s *AuthService) CreateUser(req *CreateUserRequest) (*models.User, error) {
 		Name:     req.Name,
 		Phone:    req.Phone,
 		Status:   "active",
+	}
+
+	// 创建时支持直接指定账号状态（仅接受 active/disabled，默认 active）
+	if req.Status != "" {
+		if req.Status == "active" || req.Status == "disabled" {
+			user.Status = req.Status
+		}
 	}
 
 	if err := s.db.Create(&user).Error; err != nil {
@@ -134,14 +146,31 @@ type CreateUserRequest struct {
 	Password string   `json:"password" binding:"required,min=6"`
 	Name     string   `json:"name" binding:"required"`
 	Phone    string   `json:"phone"`
-	RoleIDs  []string `json:"role_ids"`
+	Status   string   `json:"status"`   // active / disabled，可选，默认 active
+	RoleIDs  []string `json:"role_ids"` // 分配的角色 ID 列表（账号-角色闭环）
 }
 
 // UpdateUser 更新用户
-func (s *AuthService) UpdateUser(id string, req *UpdateUserRequest) (*models.User, error) {
+// operatorID：当前登录用户 ID，用于账号自保护（不能被自己禁掉导致系统锁死）。
+func (s *AuthService) UpdateUser(id string, req *UpdateUserRequest, operatorID uuid.UUID) (*models.User, error) {
 	var user models.User
 	if err := s.db.First(&user, "id = ?", id).Error; err != nil {
 		return nil, errors.New("用户不存在")
+	}
+
+	// ---------- 账号自保护（防止系统锁死） ----------
+	// 1. 不能禁用当前登录账号
+	if req.Status == "disabled" && operatorID != uuid.Nil && user.ID == operatorID {
+		return nil, errors.New("不能禁用当前登录账号")
+	}
+	// 2. 最后一个超级管理员：不能禁用、不能移除其 super_admin 角色
+	if s.isSuperAdminAccount(user.ID) && s.superAdminAccountCount() <= 1 {
+		if req.Status == "disabled" {
+			return nil, errors.New("不能禁用最后一个超级管理员账号")
+		}
+		if req.RoleIDs != nil && !containsRoleCode(req.RoleIDs, s.superAdminRoleID()) {
+			return nil, errors.New("不能移除最后一个超级管理员的管理员角色")
+		}
 	}
 
 	updates := map[string]interface{}{}
@@ -189,8 +218,66 @@ type UpdateUserRequest struct {
 }
 
 // DeleteUser 删除用户
-func (s *AuthService) DeleteUser(id string) error {
+// operatorID：当前登录用户 ID，防止删除自己 / 最后一个超级管理员导致系统锁死。
+func (s *AuthService) DeleteUser(id string, operatorID uuid.UUID) error {
+	if operatorID != uuid.Nil && operatorID.String() == id {
+		return errors.New("不能删除当前登录账号")
+	}
+
+	var user models.User
+	if err := s.db.First(&user, "id = ?", id).Error; err != nil {
+		return errors.New("用户不存在")
+	}
+	if s.isSuperAdminAccount(user.ID) && s.superAdminAccountCount() <= 1 {
+		return errors.New("不能删除最后一个超级管理员账号")
+	}
+
 	return s.db.Delete(&models.User{}, "id = ?", id).Error
+}
+
+// ==================== 账号自保护辅助 ====================
+
+// isSuperAdminAccount 判断用户是否拥有 super_admin 角色
+func (s *AuthService) isSuperAdminAccount(userID uuid.UUID) bool {
+	var count int64
+	s.db.Table("user_roles").
+		Joins("JOIN roles ON roles.id = user_roles.role_id").
+		Where("user_roles.user_id = ? AND roles.code = ? AND roles.deleted_at IS NULL", userID, "super_admin").
+		Count(&count)
+	return count > 0
+}
+
+// superAdminAccountCount 拥有 super_admin 角色的有效用户数
+func (s *AuthService) superAdminAccountCount() int64 {
+	var count int64
+	s.db.Table("user_roles").
+		Joins("JOIN roles ON roles.id = user_roles.role_id").
+		Joins("JOIN users ON users.id = user_roles.user_id").
+		Where("roles.code = ? AND users.status = ? AND roles.deleted_at IS NULL AND users.deleted_at IS NULL", "super_admin", "active").
+		Count(&count)
+	return count
+}
+
+// superAdminRoleID 获取 super_admin 角色的 ID（不存在返回零值）
+func (s *AuthService) superAdminRoleID() uuid.UUID {
+	var role models.Role
+	if err := s.db.Where("code = ?", "super_admin").First(&role).Error; err != nil {
+		return uuid.Nil
+	}
+	return role.ID
+}
+
+// containsRoleCode 判断 ID 列表中是否包含目标角色 ID（字符串比对）
+func containsRoleCode(roleIDs []string, target uuid.UUID) bool {
+	if target == uuid.Nil {
+		return false
+	}
+	for _, id := range roleIDs {
+		if id == target.String() {
+			return true
+		}
+	}
+	return false
 }
 
 // ListUsers 用户列表
@@ -222,6 +309,13 @@ func (s *AuthService) ListRoles() ([]models.Role, error) {
 
 // CreateRole 创建角色
 func (s *AuthService) CreateRole(req *CreateRoleRequest) (*models.Role, error) {
+	// 角色标识唯一性检查（友好报错）
+	var count int64
+	s.db.Model(&models.Role{}).Where("code = ?", req.Code).Count(&count)
+	if count > 0 {
+		return nil, errors.New("角色标识已存在: " + req.Code)
+	}
+
 	role := models.Role{
 		Name:        req.Name,
 		Code:        req.Code,
@@ -270,12 +364,28 @@ func (s *AuthService) UpdateRole(id string, req *UpdateRoleRequest) (*models.Rol
 		return nil, errors.New("角色不存在")
 	}
 
+	// 内置超级管理员保护：不能改名/改标识/禁用（否则系统会锁死）
+	if role.Code == "super_admin" {
+		if req.Code != "" && req.Code != "super_admin" {
+			return nil, errors.New("不能修改超级管理员角色的标识")
+		}
+		if req.IsActive != nil && !*req.IsActive {
+			return nil, errors.New("不能禁用超级管理员角色")
+		}
+	}
+
 	// 更新基础字段（仅非空字段）
 	updates := map[string]interface{}{}
 	if req.Name != "" {
 		updates["name"] = req.Name
 	}
 	if req.Code != "" {
+		// 角色标识唯一性检查（排除自身）
+		var count int64
+		s.db.Model(&models.Role{}).Where("code = ? AND id <> ?", req.Code, role.ID).Count(&count)
+		if count > 0 {
+			return nil, errors.New("角色标识已存在: " + req.Code)
+		}
 		updates["code"] = req.Code
 	}
 	if req.Description != "" {
@@ -290,19 +400,19 @@ func (s *AuthService) UpdateRole(id string, req *UpdateRoleRequest) (*models.Rol
 		}
 	}
 
-	// 更新权限
-	if len(req.PermissionIDs) > 0 {
-		if err := s.replaceRolePermissions(&role, req.PermissionIDs); err != nil {
-			return nil, err
-		}
-	} else if len(req.Permissions) > 0 {
-		var permissions []models.Permission
-		if err := s.db.Where("code IN ?", req.Permissions).Find(&permissions).Error; err != nil {
-			return nil, err
-		}
-		ids := make([]string, 0, len(permissions))
-		for _, p := range permissions {
-			ids = append(ids, p.ID.String())
+	// 更新权限：permissions（权限码）与 permission_ids（权限 ID）互斥，两者显式声明才生效（支持清空）
+	if req.PermissionIDs != nil || req.Permissions != nil {
+		var ids []string
+		if req.PermissionIDs != nil {
+			ids = req.PermissionIDs
+		} else {
+			var permissions []models.Permission
+			if err := s.db.Where("code IN ?", req.Permissions).Find(&permissions).Error; err != nil {
+				return nil, err
+			}
+			for _, p := range permissions {
+				ids = append(ids, p.ID.String())
+			}
 		}
 		if err := s.replaceRolePermissions(&role, ids); err != nil {
 			return nil, err
@@ -319,16 +429,26 @@ func (s *AuthService) UpdateRole(id string, req *UpdateRoleRequest) (*models.Rol
 // replaceRolePermissions 替换角色权限关联（先清空再按 ID 重建）
 func (s *AuthService) replaceRolePermissions(role *models.Role, permissionIDs []string) error {
 	var permissions []models.Permission
-	if err := s.db.Where("id IN ?", permissionIDs).Find(&permissions).Error; err != nil {
-		return err
+	if len(permissionIDs) > 0 {
+		if err := s.db.Where("id IN ?", permissionIDs).Find(&permissions).Error; err != nil {
+			return err
+		}
 	}
+	// 空列表 = 清空该角色的所有权限
 	return s.db.Model(role).Association("Permissions").Replace(permissions)
 }
 
 // UpdateRoleStatus 更新角色启用/禁用状态
 // 禁用后：该角色用户登录时不再获得该角色，权限立即失效
 func (s *AuthService) UpdateRoleStatus(id string, isActive bool) error {
-	return s.db.Model(&models.Role{}).Where("id = ?", id).Update("is_active", isActive).Error
+	var role models.Role
+	if err := s.db.First(&role, "id = ?", id).Error; err != nil {
+		return errors.New("角色不存在")
+	}
+	if role.Code == "super_admin" && !isActive {
+		return errors.New("不能禁用超级管理员角色")
+	}
+	return s.db.Model(&role).Update("is_active", isActive).Error
 }
 
 // ListPermissions 权限列表
@@ -468,6 +588,87 @@ func (s *AuthService) RemoveUserFromApp(appID, userID string) error {
 	return s.db.Where("app_id = ? AND user_id = ?", aID, uID).Delete(&models.AppUser{}).Error
 }
 
+// defaultPermissions 默认权限清单（与 docs/权限矩阵.md 保持一致；新增权限码在此补充即可幂等入库）
+func (s *AuthService) defaultPermissions() []models.Permission {
+	return []models.Permission{
+		{Name: "用户查看", Code: "user:view", Module: "user"},
+		{Name: "用户新增", Code: "user:create", Module: "user"},
+		{Name: "用户修改", Code: "user:update", Module: "user"},
+		{Name: "用户删除", Code: "user:delete", Module: "user"},
+		{Name: "角色管理", Code: "role:manage", Module: "user"},
+		{Name: "产品查看", Code: "product:view", Module: "product"},
+		{Name: "产品新增", Code: "product:create", Module: "product"},
+		{Name: "产品修改", Code: "product:update", Module: "product"},
+		{Name: "产品删除", Code: "product:delete", Module: "product"},
+		{Name: "产品发布", Code: "product:publish", Module: "product"},
+		{Name: "分类管理", Code: "category:manage", Module: "product"},
+		{Name: "系列管理", Code: "series:manage", Module: "product"},
+		{Name: "面料管理", Code: "fabric:manage", Module: "product"},
+		{Name: "页面查看", Code: "page:view", Module: "cms"},
+		{Name: "页面修改", Code: "page:update", Module: "cms"},
+		{Name: "页面发布", Code: "page:publish", Module: "cms"},
+		{Name: "导航管理", Code: "navigation:manage", Module: "cms"},
+		{Name: "博客管理", Code: "blog:manage", Module: "cms"},
+		{Name: "案例管理", Code: "case:manage", Module: "cms"},
+		{Name: "FAQ管理", Code: "faq:manage", Module: "cms"},
+		{Name: "工厂管理", Code: "factory:manage", Module: "cms"},
+		{Name: "认证管理", Code: "certification:manage", Module: "cms"},
+		{Name: "生产流程", Code: "production:manage", Module: "cms"},
+		{Name: "媒体上传", Code: "media:upload", Module: "media"},
+		{Name: "媒体管理", Code: "media:manage", Module: "media"},
+		{Name: "询盘查看", Code: "lead:view", Module: "lead"},
+		{Name: "询盘修改", Code: "lead:update", Module: "lead"},
+		{Name: "询盘跟进", Code: "lead:followup", Module: "lead"},
+		{Name: "SEO管理", Code: "seo:manage", Module: "seo"},
+		{Name: "语言管理", Code: "language:manage", Module: "system"},
+		{Name: "系统配置", Code: "setting:manage", Module: "system"},
+		{Name: "操作日志", Code: "log:view", Module: "system"},
+		{Name: "数据统计", Code: "dashboard:view", Module: "system"},
+	}
+}
+
+// ensureDefaultPermissions 幂等补齐默认权限：按 code 逐条检查，缺失即创建（已有数据库升级时也会补齐）
+func (s *AuthService) ensureDefaultPermissions() {
+	for _, p := range s.defaultPermissions() {
+		var count int64
+		s.db.Model(&models.Permission{}).Where("code = ?", p.Code).Count(&count)
+		if count == 0 {
+			s.db.Create(&p)
+		}
+	}
+}
+
+// ensureDefaultRolePermissions 幂等补齐默认角色的扩展权限（仅追加缺失项，不覆盖已有自定义权限）
+func (s *AuthService) ensureDefaultRolePermissions() {
+	extra := map[string][]string{
+		"admin":         {"production:manage"},
+		"content_admin": {"production:manage"},
+	}
+	for roleCode, codes := range extra {
+		var role models.Role
+		if err := s.db.Preload("Permissions").Where("code = ?", roleCode).First(&role).Error; err != nil {
+			continue
+		}
+		var perms []models.Permission
+		if err := s.db.Where("code IN ?", codes).Find(&perms).Error; err != nil || len(perms) == 0 {
+			continue
+		}
+		existing := make(map[string]bool, len(role.Permissions))
+		for _, p := range role.Permissions {
+			existing[p.Code] = true
+		}
+		var toAppend []models.Permission
+		for _, p := range perms {
+			if !existing[p.Code] {
+				toAppend = append(toAppend, p)
+			}
+		}
+		if len(toAppend) > 0 {
+			s.db.Model(&role).Association("Permissions").Append(toAppend)
+		}
+	}
+}
+
 // InitDefaultData 初始化默认数据
 func (s *AuthService) InitDefaultData() error {
 	// 创建默认语言
@@ -484,46 +685,8 @@ func (s *AuthService) InitDefaultData() error {
 		s.db.Create(&languages)
 	}
 
-	// 创建默认权限
-	var permCount int64
-	s.db.Model(&models.Permission{}).Count(&permCount)
-	if permCount == 0 {
-		permissions := []models.Permission{
-			{Name: "用户查看", Code: "user:view", Module: "user"},
-			{Name: "用户新增", Code: "user:create", Module: "user"},
-			{Name: "用户修改", Code: "user:update", Module: "user"},
-			{Name: "用户删除", Code: "user:delete", Module: "user"},
-			{Name: "角色管理", Code: "role:manage", Module: "user"},
-			{Name: "产品查看", Code: "product:view", Module: "product"},
-			{Name: "产品新增", Code: "product:create", Module: "product"},
-			{Name: "产品修改", Code: "product:update", Module: "product"},
-			{Name: "产品删除", Code: "product:delete", Module: "product"},
-			{Name: "产品发布", Code: "product:publish", Module: "product"},
-			{Name: "分类管理", Code: "category:manage", Module: "product"},
-			{Name: "系列管理", Code: "series:manage", Module: "product"},
-			{Name: "面料管理", Code: "fabric:manage", Module: "product"},
-			{Name: "页面查看", Code: "page:view", Module: "cms"},
-			{Name: "页面修改", Code: "page:update", Module: "cms"},
-			{Name: "页面发布", Code: "page:publish", Module: "cms"},
-			{Name: "导航管理", Code: "navigation:manage", Module: "cms"},
-			{Name: "博客管理", Code: "blog:manage", Module: "cms"},
-			{Name: "案例管理", Code: "case:manage", Module: "cms"},
-			{Name: "FAQ管理", Code: "faq:manage", Module: "cms"},
-			{Name: "工厂管理", Code: "factory:manage", Module: "cms"},
-			{Name: "认证管理", Code: "certification:manage", Module: "cms"},
-			{Name: "媒体上传", Code: "media:upload", Module: "media"},
-			{Name: "媒体管理", Code: "media:manage", Module: "media"},
-			{Name: "询盘查看", Code: "lead:view", Module: "lead"},
-			{Name: "询盘修改", Code: "lead:update", Module: "lead"},
-			{Name: "询盘跟进", Code: "lead:followup", Module: "lead"},
-			{Name: "SEO管理", Code: "seo:manage", Module: "seo"},
-			{Name: "语言管理", Code: "language:manage", Module: "system"},
-			{Name: "系统配置", Code: "setting:manage", Module: "system"},
-			{Name: "操作日志", Code: "log:view", Module: "system"},
-			{Name: "数据统计", Code: "dashboard:view", Module: "system"},
-		}
-		s.db.Create(&permissions)
-	}
+	// 创建默认权限（幂等：按权限码逐条 FirstOrCreate，已有数据库也能补齐新增权限码）
+	s.ensureDefaultPermissions()
 
 	// 创建默认角色并分配权限
 	var roleCount int64
@@ -549,6 +712,9 @@ func (s *AuthService) InitDefaultData() error {
 	if rolePermCount == 0 {
 		s.assignRolePermissions()
 	}
+
+	// 幂等补齐默认角色的扩展权限（如 production:manage），仅追加、不覆盖已有自定义权限
+	s.ensureDefaultRolePermissions()
 
 	// 创建默认导航
 	var navCount int64
@@ -658,7 +824,7 @@ func (s *AuthService) assignRolePermissions() {
 			"category:manage", "series:manage", "fabric:manage",
 			"page:view", "page:update", "page:publish", "navigation:manage",
 			"blog:manage", "case:manage", "faq:manage",
-			"factory:manage", "certification:manage",
+			"factory:manage", "certification:manage", "production:manage",
 			"media:upload", "media:manage",
 			"lead:view", "lead:update", "lead:followup",
 			"seo:manage", "dashboard:view",
@@ -666,7 +832,7 @@ func (s *AuthService) assignRolePermissions() {
 		"content_admin": { // 内容管理员：CMS 相关（页面管理只读，通过导航管理+轮播图管理操作）
 			"page:view", "navigation:manage",
 			"blog:manage", "case:manage", "faq:manage",
-			"factory:manage", "certification:manage",
+			"factory:manage", "certification:manage", "production:manage",
 			"media:upload", "media:manage",
 		},
 		"product_admin": { // 产品管理员：产品相关

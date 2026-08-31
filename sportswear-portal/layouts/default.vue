@@ -23,13 +23,15 @@
         <nav class="hidden lg:flex items-center gap-1">
           <template v-for="item in navTree" :key="item.id || item.path">
             <!-- 无子级：普通链接 -->
-            <NuxtLink
+            <a
               v-if="!item.children?.length"
-              :to="localePath(item.path)"
+              :href="navHref(item.path, item.isExternal)"
+              :target="item.target === '_blank' ? '_blank' : undefined"
+              :rel="item.target === '_blank' ? 'noopener noreferrer' : undefined"
               class="text-sm text-[#4A4A4A] hover:text-[#0D1B2A] transition-colors relative px-3 py-1 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-[2px] after:w-0 after:bg-[#D4A853] after:transition-all after:duration-300 hover:after:w-[calc(100%-24px)]"
             >
               {{ $t(item.label) }}
-            </NuxtLink>
+            </a>
             <!-- 有子级：下拉菜单 -->
             <div v-else class="relative group">
               <button class="flex items-center gap-1 text-sm text-[#4A4A4A] hover:text-[#0D1B2A] transition-colors px-3 py-1 rounded-lg hover:bg-[#F5F0E8]">
@@ -37,14 +39,16 @@
                 <svg class="w-2.5 h-2.5 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
               </button>
               <div class="absolute left-0 top-full mt-1 bg-white border border-[#EAE5DD] rounded-xl shadow-2xl py-2 min-w-[200px] z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                <NuxtLink
+                <a
                   v-for="child in item.children"
                   :key="child.id"
-                  :to="localePath(child.path || '/')"
+                  :href="navHref(child.path || '/', child.isExternal)"
+                  :target="child.target === '_blank' ? '_blank' : undefined"
+                  :rel="child.target === '_blank' ? 'noopener noreferrer' : undefined"
                   class="block px-5 py-3 text-sm text-[#4A4A4A] hover:bg-[#FBF9F6] hover:text-[#0D1B2A] transition-colors"
                 >
                   {{ $t(child.label) }}
-                </NuxtLink>
+                </a>
               </div>
             </div>
           </template>
@@ -105,13 +109,16 @@
           <div class="flex-1 overflow-y-auto px-4 py-6 space-y-1">
             <template v-for="item in navTree" :key="item.id || item.path">
               <template v-if="!item.children?.length">
-                <NuxtLink :to="localePath(item.path)" @click="mobileMenuOpen = false"
+                <a :href="navHref(item.path, item.isExternal)"
+                  :target="item.target === '_blank' ? '_blank' : undefined"
+                  :rel="item.target === '_blank' ? 'noopener noreferrer' : undefined"
+                  @click="mobileMenuOpen = false"
                   class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm text-[#4A4A4A] hover:bg-[#FBF9F6] active:bg-[#F0EBE3] transition min-h-[48px]">
                   <span>{{ $t(item.label) }}</span>
                   <svg class="ml-auto w-4 h-4 text-[#C4B8A8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                   </svg>
-                </NuxtLink>
+                </a>
               </template>
               <template v-else>
                 <button @click="toggleExpand(item.id || item.path)"
@@ -122,11 +129,14 @@
                   </svg>
                 </button>
                 <div v-show="expandedItems[item.id || item.path]" class="pl-8 space-y-1 border-l-2 border-[#EAE5DD] ml-6">
-                  <NuxtLink v-for="child in item.children.filter((c: any) => c.is_visible !== false)" :key="child.id"
-                    :to="localePath(child.url || '/')" @click="mobileMenuOpen = false"
+                  <a v-for="child in item.children" :key="child.id"
+                    :href="navHref(child.path || '/', child.isExternal)"
+                    :target="child.target === '_blank' ? '_blank' : undefined"
+                    :rel="child.target === '_blank' ? 'noopener noreferrer' : undefined"
+                    @click="mobileMenuOpen = false"
                     class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-[#4A4A4A] hover:bg-[#FBF9F6] active:bg-[#F0EBE3] transition min-h-[48px]">
-                    <span>{{ $t(child.name) }}</span>
-                  </NuxtLink>
+                    <span>{{ $t(child.label) }}</span>
+                  </a>
                 </div>
               </template>
             </template>
@@ -194,7 +204,9 @@
             <h4 class="text-xs font-semibold uppercase tracking-[0.15em] text-[#D4A853] mb-5">{{ $t('common.quick_links') }}</h4>
             <ul class="space-y-3">
               <li v-for="link in footerLinks" :key="link.path">
-                <NuxtLink :to="localePath(link.path)" class="text-sm text-[#9A8C7A] hover:text-white transition">{{ $t(link.label) }}</NuxtLink>
+                <a :href="navHref(link.path, link.isExternal)" :target="link.target === '_blank' ? '_blank' : undefined"
+                  :rel="link.target === '_blank' ? 'noopener noreferrer' : undefined"
+                  class="text-sm text-[#9A8C7A] hover:text-white transition">{{ $t(link.label) }}</a>
               </li>
             </ul>
           </div>
@@ -253,22 +265,22 @@ const theme = ref<Record<string, any>>({})
 
 // 默认导航（API 失败时的回退值）
 const DEFAULT_NAV = [
-  { path: '/', label: 'nav.home' },
-  { path: '/products', label: 'nav.products' },
-  { path: '/about', label: 'nav.about' },
-  { path: '/cases', label: 'nav.cases' },
-  { path: '/blog', label: 'nav.blog' },
-  { path: '/faq', label: 'nav.faq' },
-  { path: '/contact', label: 'nav.contact' },
+  { path: '/', label: 'nav.home', target: '_self', isExternal: false },
+  { path: '/products', label: 'nav.products', target: '_self', isExternal: false },
+  { path: '/about', label: 'nav.about', target: '_self', isExternal: false },
+  { path: '/cases', label: 'nav.cases', target: '_self', isExternal: false },
+  { path: '/blog', label: 'nav.blog', target: '_self', isExternal: false },
+  { path: '/faq', label: 'nav.faq', target: '_self', isExternal: false },
+  { path: '/contact', label: 'nav.contact', target: '_self', isExternal: false },
 ]
 
 const DEFAULT_FOOTER = [
-  { path: '/', label: 'nav.home' },
-  { path: '/products', label: 'nav.products' },
-  { path: '/about', label: 'nav.about' },
-  { path: '/cases', label: 'nav.cases' },
-  { path: '/blog', label: 'nav.blog' },
-  { path: '/faq', label: 'nav.faq' },
+  { path: '/', label: 'nav.home', target: '_self', isExternal: false },
+  { path: '/products', label: 'nav.products', target: '_self', isExternal: false },
+  { path: '/about', label: 'nav.about', target: '_self', isExternal: false },
+  { path: '/cases', label: 'nav.cases', target: '_self', isExternal: false },
+  { path: '/blog', label: 'nav.blog', target: '_self', isExternal: false },
+  { path: '/faq', label: 'nav.faq', target: '_self', isExternal: false },
 ]
 
 // 动态导航数据（SSR + 客户端）
@@ -293,7 +305,12 @@ const { data: footerNavData } = await useAsyncData<any[]>(
 )
 
 function navToItem(n: any) {
-  return { path: n.url || '/', label: n.name }
+  return { path: n.url || '/', label: n.name, target: n.target || '_self', isExternal: isExternalUrl(n.url) }
+}
+
+function isExternalUrl(url: string): boolean {
+  if (!url) return false
+  return /^(https?:|mailto:|tel:|#)/i.test(url)
 }
 
 function flattenNav(items: any[]): any[] {
@@ -314,8 +331,15 @@ function mapNavTree(items: any[]): any[] {
       id: n.id,
       label: n.name,
       path: n.url || '/',
+      target: n.target || '_self',
+      isExternal: isExternalUrl(n.url),
       children: n.children?.length ? mapNavTree(n.children) : [],
     }))
+}
+
+// 导航链接地址解析：外部 URL / 锚点直接返回，内部路径加语言前缀
+function navHref(path: string, isExternal: boolean): string {
+  return isExternal ? path : localePath(path)
 }
 
 // 桌面端：保留树结构以支持下拉菜单

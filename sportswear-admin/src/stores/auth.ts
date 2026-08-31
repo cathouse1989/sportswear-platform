@@ -21,11 +21,12 @@ export const useAuthStore = defineStore('auth', () => {
     const profile = await authApi.profile()
     user.value = profile
 
-    // 收集权限码
+    // 收集权限码（只收集启用状态的角色；禁用角色不产生任何权限，与后端 Auth 中间件一致）
     const perms: string[] = []
     let isSuperAdmin = false
     if (profile.roles) {
       for (const role of profile.roles) {
+        if (role.is_active === false) continue
         // 超级管理员拥有所有权限
         if (role.code === 'super_admin') {
           isSuperAdmin = true

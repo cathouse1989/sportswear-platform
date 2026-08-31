@@ -45,9 +45,12 @@ func WarmUpPublicCache(db *gorm.DB, cache *CacheService) {
 		}
 	}
 
-	// 导航（低频变更，长 TTL）
+	// 导航（低频变更，长 TTL）- 同时预热 header 和 footer
 	if list, err := cmsSvc.ListNavigations("header"); err == nil {
 		cache.Set("cache:navigations:header", list, CacheTTLLong)
+	}
+	if list, err := cmsSvc.ListNavigations("footer"); err == nil {
+		cache.Set("cache:navigations:footer", list, CacheTTLLong)
 	}
 }
 

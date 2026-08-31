@@ -625,6 +625,68 @@ func (s *CMSService) BatchSortNavigations(req *SortNavigationRequest) error {
 	return nil
 }
 
+// SyncNavVisibilityWithPages 同步导航可见性与页面状态
+// 规则：关联页面已发布的导航保持可见，未发布/已下线页面的导航自动隐藏
+// 返回：更新的导航数量
+func (s *CMSService) SyncNavVisibilityWithPages() (int, error) {
+	// 获取所有关联了页面的导航
+	var navs []models.Navigation
+	if err := s.db.Where("page_id IS NOT NULL").Find(&navs).Error; err != nil {
+		return 0, err
+	}
+
+	// 收集所有关联的页面ID
+	pageIDs := make([]uuid.UUID, 0, len(navs))
+	for _, n := range navs {
+		if n.PageID != nil {
+			pageIDs = append(pageIDs, *n.PageID)
+		}
+	}
+	if len(pageIDs) == 0 {
+		return 0, nil
+	}
+
+	// 查询这些页面的发布状态
+	var pages []models.Page
+	if err := s.db.Select("id, status").Where("id IN ?", pageIDs).Find(&pages).Error; err != nil {
+		return 0, err
+	}
+
+	// 构建页面状态映射
+	pageStatusMap := make(map[uuid.UUID]string)
+	for _, p := range pages {
+		pageStatusMap[p.ID] = string(p.Status)
+	}
+
+	// 同步导航可见性
+	updated := 0
+	for _, n := range navs {
+		if n.PageID == nil {
+			continue
+		}
+		status, exists := pageStatusMap[*n.PageID]
+		if !exists {
+			// 页面不存在，隐藏导航
+			if n.IsVisible {
+				if err := s.db.Model(&models.Navigation{}).Where("id = ?", n.ID).Update("is_visible", false).Error; err != nil {
+					return updated, err
+				}
+				updated++
+			}
+			continue
+		}
+		shouldVisible := status == "published"
+		if n.IsVisible != shouldVisible {
+			if err := s.db.Model(&models.Navigation{}).Where("id = ?", n.ID).Update("is_visible", shouldVisible).Error; err != nil {
+				return updated, err
+			}
+			updated++
+		}
+	}
+
+	return updated, nil
+}
+
 // ==================== 博客管理 ====================
 
 // ListBlogs 博客列表

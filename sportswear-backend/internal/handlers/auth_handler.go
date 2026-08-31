@@ -87,7 +87,7 @@ func (h *AuthHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	user, err := h.authService.UpdateUser(c.Param("id"), &req)
+	user, err := h.authService.UpdateUser(c.Param("id"), &req, middleware.GetUserID(c))
 	if err != nil {
 		utils.BadRequest(c, err.Error())
 		return
@@ -97,8 +97,8 @@ func (h *AuthHandler) UpdateUser(c *gin.Context) {
 
 // DeleteUser 删除用户
 func (h *AuthHandler) DeleteUser(c *gin.Context) {
-	if err := h.authService.DeleteUser(c.Param("id")); err != nil {
-		utils.BadRequest(c, "删除用户失败")
+	if err := h.authService.DeleteUser(c.Param("id"), middleware.GetUserID(c)); err != nil {
+		utils.BadRequest(c, err.Error())
 		return
 	}
 	utils.Success(c, gin.H{"deleted": true})
@@ -247,7 +247,7 @@ func (h *AuthHandler) UpdateRoleStatus(c *gin.Context) {
 	}
 
 	if err := h.authService.UpdateRoleStatus(c.Param("id"), req.IsActive); err != nil {
-		utils.BadRequest(c, "更新角色状态失败")
+		utils.BadRequest(c, err.Error())
 		return
 	}
 	utils.Success(c, gin.H{"is_active": req.IsActive})

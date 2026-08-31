@@ -6,9 +6,16 @@
         <el-radio-button value="footer">Footer 导航</el-radio-button>
       </el-radio-group>
       <el-input v-model="searchKeyword" placeholder="搜索导航名称" clearable style="width:200px" />
+      <el-select v-model="statusFilter" placeholder="页面状态" clearable style="width:120px" @change="loadData">
+        <el-option label="全部" value="" />
+        <el-option label="已发布" value="published" />
+        <el-option label="未发布" value="draft" />
+        <el-option label="无关联页面" value="no_page" />
+      </el-select>
       <div class="spacer" />
-      <el-button type="primary" @click="openCreateDialog(null)">新建导航</el-button>
+      <el-button type="warning" plain @click="handleSyncStatus">同步页面状态</el-button>
       <el-button type="success" plain @click="handleSync">一键同步已发布页面</el-button>
+      <el-button type="primary" @click="openCreateDialog(null)">新建导航</el-button>
     </div>
 
     <el-table
@@ -21,9 +28,14 @@
     >
       <el-table-column prop="name" label="名称" min-width="150" />
       <el-table-column prop="url" label="URL" min-width="150" />
-      <el-table-column label="关联页面" width="130">
+      <el-table-column label="关联页面" width="180">
         <template #default="{ row }: any">
-          <el-tag v-if="row.page_id" size="small" type="success">{{ row.page?.title || '已关联' }}</el-tag>
+          <div v-if="row.page_id" class="page-info">
+            <el-tag size="small" type="success">{{ row.page?.title || '已关联' }}</el-tag>
+            <el-tag v-if="row.page_status" size="small" :type="row.page_status === 'published' ? 'success' : 'danger'" class="page-status-tag">
+              {{ row.page_status === 'published' ? '已发布' : '未发布' }}
+            </el-tag>
+          </div>
           <span v-else class="muted">—</span>
         </template>
       </el-table-column>
@@ -101,11 +113,23 @@ const navigations = ref<Navigation[]>([])
 const loading = ref(false)
 const navType = ref('header')
 const searchKeyword = ref('')
+const statusFilter = ref('')
 
 // 用于搜索过滤的展平数据
 const filteredNavigations = computed(() => {
   const kw = searchKeyword.value.toLowerCase().trim()
-  if (!kw) return navigations.value
+  const status = statusFilter.value
+  
+  // 先按状态过滤
+  let items = navigations.value
+  if (status) {
+    items = items.filter(n => {
+      if (status === 'no_page') return !n.page_id
+      return n.page_status === status
+    })
+  }
+  
+  if (!kw) return items
   // 递归过滤：保留匹配的节点及其祖先
   const result: Navigation[] = []
   function collect(items: Navigation[], ancestors: Navigation[]): boolean {
@@ -123,7 +147,7 @@ const filteredNavigations = computed(() => {
     }
     return hasMatch
   }
-  for (const item of navigations.value) {
+  for (const item of items) {
     collect([item], [])
   }
   return result
@@ -133,7 +157,10 @@ async function loadData() {
   loading.value = true
   try {
     const result = await navigationApi.list({ type: navType.value })
-    navigations.value = result || []
+    navigations.value = (result || []).map(n => ({
+      ...n,
+      page_status: n.page?.status || (n.page_id ? 'unknown' : undefined)
+    })) as Navigation[]
   } catch { navigations.value = [] }
   finally { loading.value = false }
 }
@@ -319,6 +346,20 @@ async function handleSync() {
   } catch { }
 }
 
+// 同步导航可见性与页面状态
+async function handleSyncStatus() {
+  await ElMessageBox.confirm(
+    '将根据关联页面的发布状态自动更新导航可见性：\n• 已发布页面的导航 → 显示\n• 未发布/已下线页面的导航 → 隐藏',
+    '同步页面状态', { type: 'warning' }
+  )
+  try {
+    const result = await navigationApi.syncWithPages()
+    const updated = result?.updated || 0
+    ElMessage.success(`已同步更新 ${updated} 条导航的可见性`)
+    loadData()
+  } catch { }
+}
+
 onMounted(() => {
   loadData()
   loadPublishedPages()
@@ -330,4 +371,6 @@ onMounted(() => {
 .spacer { flex: 1; }
 .muted { color: #c0c4cc; }
 .form-tip { margin-top: 4px; font-size: 12px; color: #909399; }
+.page-info { display: flex; flex-direction: column; gap: 4px; }
+.page-status-tag { align-self: flex-start; }
 </style>

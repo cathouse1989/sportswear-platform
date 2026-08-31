@@ -119,6 +119,12 @@ func (h *CMSHandler) DeletePage(c *gin.Context) {
 		return
 	}
 	h.invalidateCache("page", "")
+	h.invalidateCache("navigation", "")
+	// 自动同步：被删页面的关联导航自动隐藏
+	if _, err := h.cmsService.SyncNavVisibilityWithPages(); err != nil {
+		// 同步失败不阻断主流程，但记录以便排查
+		h.invalidateCache("navigation", "")
+	}
 	utils.Success(c, gin.H{"deleted": true})
 }
 
@@ -129,6 +135,11 @@ func (h *CMSHandler) PublishPage(c *gin.Context) {
 		return
 	}
 	h.invalidateCache("page", "")
+	h.invalidateCache("navigation", "")
+	// 自动同步：重新发布后关联导航自动恢复可见
+	if _, err := h.cmsService.SyncNavVisibilityWithPages(); err != nil {
+		h.invalidateCache("navigation", "")
+	}
 	utils.Success(c, gin.H{"published": true})
 }
 
@@ -139,6 +150,11 @@ func (h *CMSHandler) UnpublishPage(c *gin.Context) {
 		return
 	}
 	h.invalidateCache("page", "")
+	h.invalidateCache("navigation", "")
+	// 自动同步：下线页面的关联导航自动隐藏
+	if _, err := h.cmsService.SyncNavVisibilityWithPages(); err != nil {
+		h.invalidateCache("navigation", "")
+	}
 	utils.Success(c, gin.H{"unpublished": true})
 }
 
@@ -216,6 +232,17 @@ func (h *CMSHandler) BatchSortNavigations(c *gin.Context) {
 	}
 	h.invalidateCache("navigation", "")
 	utils.Success(c, gin.H{"sorted": true})
+}
+
+// SyncNavVisibilityWithPages 同步导航可见性与页面状态
+func (h *CMSHandler) SyncNavVisibilityWithPages(c *gin.Context) {
+	updated, err := h.cmsService.SyncNavVisibilityWithPages()
+	if err != nil {
+		utils.InternalError(c, "同步导航状态失败")
+		return
+	}
+	h.invalidateCache("navigation", "")
+	utils.Success(c, gin.H{"updated": updated})
 }
 
 // ==================== 博客 ====================

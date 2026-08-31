@@ -10,11 +10,17 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '登录' },
   },
   {
+    path: '/403',
+    name: 'Forbidden',
+    component: () => import('@/views/auth/NoAccess.vue'),
+    meta: { title: '无权限' },
+  },
+  {
     path: '/',
     component: () => import('@/layouts/MainLayout.vue'),
     redirect: '/dashboard',
     children: [
-      { path: 'dashboard', name: 'Dashboard', component: () => import('@/views/dashboard/index.vue'), meta: { title: '仪表盘', permission: 'dashboard:view' } },
+      { path: 'dashboard', name: 'Dashboard', component: () => import('@/views/dashboard/index.vue'), meta: { title: '仪表盘', permission: ['dashboard:view', 'lead:view'] } },
       { path: 'products', name: 'Products', component: () => import('@/views/product/index.vue'), meta: { title: '产品管理', permission: 'product:view' } },
       { path: 'leads', name: 'Leads', component: () => import('@/views/lead/index.vue'), meta: { title: '询盘管理', permission: 'lead:view' } },
       { path: 'users', name: 'Users', component: () => import('@/views/system/users.vue'), meta: { title: '用户管理', permission: 'user:view' } },
@@ -52,7 +58,12 @@ router.beforeEach(async (to, _from, next) => {
   if (!authStore.user) { try { await authStore.fetchProfile() } catch { authStore.logout(); next('/login'); return } }
   const permission = to.meta.permission as string | string[] | undefined
   if (permission && !hasAnyPermission(authStore, permission)) {
-    next('/dashboard')
+    // 无权限访问：引导到 403 页面（避免跳回无权限首页造成死循环）
+    if (to.path !== '/403') {
+      next('/403')
+      return
+    }
+    next()
     return
   }
   next()

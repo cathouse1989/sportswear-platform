@@ -389,7 +389,7 @@ async function checkNavBeforeStatusChange(row: Page, action: string) {
   if (!navs || navs.length === 0) return
   const navNames = navs.map(n => `「${n.name}」(${n.type === 'header' ? 'Header' : 'Footer'})`).join('、')
   await ElMessageBox.confirm(
-    `该页面关联了 ${navs.length} 个导航项：${navNames}。\n${action}后导航仍显示但点击将跳转到不可用页面。\n建议先到「导航管理」中移除或隐藏对应导航项。\n\n确定继续${action}？`,
+    `该页面关联了 ${navs.length} 个导航项：${navNames}。\n${action}后，这些导航项将自动隐藏（可在「导航管理」中重新控制显隐）。\n\n确定继续${action}？`,
     `${action}已关联导航的页面`, { type: 'warning', confirmButtonText: `确认${action}`, cancelButtonText: '取消' }
   )
 }
