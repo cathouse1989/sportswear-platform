@@ -1,6 +1,7 @@
 ﻿package handlers
 
 import (
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -35,7 +36,29 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	// 会话闭环：同时下发 HttpOnly Cookie（浏览器可见，
+	// Authorization 丢失时中间件可回退读取，保障登录态不因 localStorage 清理而丢失）
+	setSessionCookie(c, resp.Token, h.authService.SessionMaxAge())
+
 	utils.Success(c, resp)
+}
+
+// setSessionCookie 下发会话 Cookie（HttpOnly，浏览器不可被 JS 读取）
+func setSessionCookie(c *gin.Context, token string, maxAgeSeconds int) {
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(middleware.SessionCookieName, token, maxAgeSeconds, "/", "", false, true)
+}
+
+// clearSessionCookie 清除会话 Cookie
+func clearSessionCookie(c *gin.Context) {
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(middleware.SessionCookieName, "", -1, "/", "", false, true)
+}
+
+// Logout 登出：清除会话 Cookie（无需认证；前端同时清理本地 token）
+func (h *AuthHandler) Logout(c *gin.Context) {
+	clearSessionCookie(c)
+	utils.Success(c, gin.H{"logged_out": true})
 }
 
 // GetProfile 获取当前用户信息

@@ -89,6 +89,11 @@ func (s *AuthService) Login(req *LoginRequest, ip string) (*LoginResponse, error
 // GetUserByID 获取用户
 // 关键闭环：profile 必须返回「启用角色 + 角色权限」，前端 authStore 才能收集到权限码，
 // 与后端 Auth 中间件（实时从数据库加载权限）保持一致。
+// SessionMaxAge 会话 Cookie 有效期（秒），与 JWT 过期时间对齐
+func (s *AuthService) SessionMaxAge() int {
+	return s.cfg.JWT.ExpireHours * 3600
+}
+
 func (s *AuthService) GetUserByID(id interface{}) (*models.User, error) {
 	var user models.User
 	if err := s.db.

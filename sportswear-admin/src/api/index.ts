@@ -41,6 +41,8 @@ export const authApi = {
   login: (email: string, password: string) =>
     http.post<LoginResult>('/admin/auth/login', { email, password }),
   profile: () => http.get<User>('/admin/auth/profile'),
+  // 登出：通知后端清除 HttpOnly 会话 Cookie（本地 token 由 store 清理）
+  logout: () => http.post<{ logged_out: boolean }>('/admin/auth/logout'),
 }
 
 // ============ 浠〃鐩?============

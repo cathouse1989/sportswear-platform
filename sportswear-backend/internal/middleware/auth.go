@@ -14,24 +14,33 @@ import (
 	"sportswear-backend/internal/utils"
 )
 
+// SessionCookieName 后台会话 Cookie 名称（HttpOnly，登录下发 / 登出清除）
+const SessionCookieName = "admin_token"
+
 // Auth 认证中间件：验证 JWT 并从数据库加载用户角色与权限
+// Token 来源优先级：Authorization: Bearer > 会话 Cookie（SessionCookieName）
 func Auth(cfg *config.Config, authService *services.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		var token string
 		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
+		if authHeader != "" {
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) != 2 || parts[0] != "Bearer" {
+				utils.Unauthorized(c, "认证令牌格式错误")
+				c.Abort()
+				return
+			}
+			token = parts[1]
+		} else if cookieToken, err := c.Cookie(SessionCookieName); err == nil && cookieToken != "" {
+			// Cookie 回退：浏览器场景下即使 localStorage 被清理，仍可凭 HttpOnly Cookie 恢复会话
+			token = cookieToken
+		} else {
 			utils.Unauthorized(c, "未提供认证令牌")
 			c.Abort()
 			return
 		}
 
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			utils.Unauthorized(c, "认证令牌格式错误")
-			c.Abort()
-			return
-		}
-
-		claims, err := utils.ParseToken(parts[1], cfg.JWT.Secret)
+		claims, err := utils.ParseToken(token, cfg.JWT.Secret)
 		if err != nil {
 			utils.Unauthorized(c, "认证令牌无效或已过期")
 			c.Abort()

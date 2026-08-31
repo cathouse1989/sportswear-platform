@@ -127,6 +127,8 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 	{
 		// 登录接口（无需认证，自带频率限制）
 		admin.POST("/auth/login", middleware.RateLimit(), authHandler.Login)
+		// 登出接口（无需认证：仅清除会话 Cookie，前端同时清理本地 token）
+		admin.POST("/auth/logout", middleware.RateLimit(), authHandler.Logout)
 
 		// 需要认证的路由：验证 JWT + 从数据库加载角色权限
 		auth := admin.Group("")

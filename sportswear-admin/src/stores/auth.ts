@@ -51,7 +51,13 @@ export const useAuthStore = defineStore('auth', () => {
     return permissions.value.includes(code)
   }
 
-  function logout() {
+  async function logout() {
+    // 先通知后端清除 HttpOnly 会话 Cookie（失败不阻塞本地清理）
+    try {
+      await authApi.logout()
+    } catch {
+      // 忽略登出接口异常（如 token 已过期、网络中断）
+    }
     token.value = ''
     user.value = null
     permissions.value = []
