@@ -30,12 +30,12 @@
               :rel="item.target === '_blank' ? 'noopener noreferrer' : undefined"
               class="text-sm text-[#4A4A4A] hover:text-[#0D1B2A] transition-colors relative px-3 py-1 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-[2px] after:w-0 after:bg-[#D4A853] after:transition-all after:duration-300 hover:after:w-[calc(100%-24px)]"
             >
-              {{ $t(item.label) }}
+              {{ item.label }}
             </a>
             <!-- 有子级：下拉菜单 -->
             <div v-else class="relative group">
               <button class="flex items-center gap-1 text-sm text-[#4A4A4A] hover:text-[#0D1B2A] transition-colors px-3 py-1 rounded-lg hover:bg-[#F5F0E8]">
-                {{ $t(item.label) }}
+                {{ item.label }}
                 <svg class="w-2.5 h-2.5 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
               </button>
               <div class="absolute left-0 top-full mt-1 bg-white border border-[#EAE5DD] rounded-xl shadow-2xl py-2 min-w-[200px] z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
@@ -47,7 +47,7 @@
                   :rel="child.target === '_blank' ? 'noopener noreferrer' : undefined"
                   class="block px-5 py-3 text-sm text-[#4A4A4A] hover:bg-[#FBF9F6] hover:text-[#0D1B2A] transition-colors"
                 >
-                  {{ $t(child.label) }}
+                  {{ child.label }}
                 </a>
               </div>
             </div>
@@ -114,7 +114,7 @@
                   :rel="item.target === '_blank' ? 'noopener noreferrer' : undefined"
                   @click="mobileMenuOpen = false"
                   class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm text-[#4A4A4A] hover:bg-[#FBF9F6] active:bg-[#F0EBE3] transition min-h-[48px]">
-                  <span>{{ $t(item.label) }}</span>
+                  <span>{{ item.label }}</span>
                   <svg class="ml-auto w-4 h-4 text-[#C4B8A8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                   </svg>
@@ -123,7 +123,7 @@
               <template v-else>
                 <button @click="toggleExpand(item.id || item.path)"
                   class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm text-[#4A4A4A] hover:bg-[#FBF9F6] active:bg-[#F0EBE3] transition min-h-[48px] w-full">
-                  <span>{{ $t(item.label) }}</span>
+                  <span>{{ item.label }}</span>
                   <svg class="ml-auto w-4 h-4 text-[#C4B8A8] transition-transform" :class="expandedItems[item.id || item.path] ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                   </svg>
@@ -135,7 +135,7 @@
                     :rel="child.target === '_blank' ? 'noopener noreferrer' : undefined"
                     @click="mobileMenuOpen = false"
                     class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-[#4A4A4A] hover:bg-[#FBF9F6] active:bg-[#F0EBE3] transition min-h-[48px]">
-                    <span>{{ $t(child.label) }}</span>
+                    <span>{{ child.label }}</span>
                   </a>
                 </div>
               </template>
@@ -181,7 +181,7 @@
               :brandName="theme.brand_name"
               :brandSubtitle="theme.brand_subtitle"
             />
-            <p class="text-[#9A8C7A] text-sm leading-relaxed mb-6">Professional sportswear OEM/ODM manufacturer with 15+ years of experience. ISO 9001, BSCI, OEKO-TEX certified.</p>
+            <p class="text-[#9A8C7A] text-sm leading-relaxed mb-6 whitespace-pre-line">{{ $t('footer.about_desc') }}</p>
             <div class="flex gap-2 flex-wrap">
               <a v-for="s in socialLinks" :key="s.key" :href="s.url" target="_blank" rel="noopener noreferrer" class="w-9 h-9 bg-[#1B2D44] rounded-full flex items-center justify-center hover:bg-[#D4A853] transition-colors group" :title="s.label" @click.prevent="handleSocialClick(s)">
                 <!-- YouTube -->
@@ -206,7 +206,7 @@
               <li v-for="link in footerLinks" :key="link.path">
                 <a :href="navHref(link.path, link.isExternal)" :target="link.target === '_blank' ? '_blank' : undefined"
                   :rel="link.target === '_blank' ? 'noopener noreferrer' : undefined"
-                  class="text-sm text-[#9A8C7A] hover:text-white transition">{{ $t(link.label) }}</a>
+                  class="text-sm text-[#9A8C7A] hover:text-white transition">{{ link.label }}</a>
               </li>
             </ul>
           </div>
@@ -214,8 +214,8 @@
           <div>
             <h4 class="text-xs font-semibold uppercase tracking-[0.15em] text-[#D4A853] mb-5">{{ $t('footer.products') }}</h4>
             <ul class="space-y-3">
-              <li v-for="cat in footerCategories" :key="cat">
-                <NuxtLink :to="localePath('/products')" class="text-sm text-[#9A8C7A] hover:text-white transition">{{ cat }}</NuxtLink>
+              <li v-for="cat in footerCategories" :key="cat.key">
+                <NuxtLink :to="localePath('/products')" class="text-sm text-[#9A8C7A] hover:text-white transition">{{ catLabel(cat) }}</NuxtLink>
               </li>
             </ul>
           </div>
@@ -256,7 +256,7 @@
 </template>
 
 <script setup lang="ts">
-const { locale, locales, setLocale } = useI18n()
+const { locale, locales, setLocale, t, te } = useI18n()
 const localePath = useLocalePath()
 const showLang = ref(false)
 const mobileMenuOpen = ref(false)
@@ -305,12 +305,37 @@ const { data: footerNavData } = await useAsyncData<any[]>(
 )
 
 function navToItem(n: any) {
-  return { path: n.url || '/', label: n.name, target: n.target || '_self', isExternal: isExternalUrl(n.url) }
+  return { path: n.url || '/', label: navLabel(n.name, n.url), target: n.target || '_self', isExternal: isExternalUrl(n.url) }
 }
 
 function isExternalUrl(url: string): boolean {
   if (!url) return false
   return /^(https?:|mailto:|tel:|#)/i.test(url)
+}
+
+// 导航多语言：后台「导航管理」的 name 是运营维护的展示文案（通常只有英文），
+// 这里优先按 URL 映射到 nav.* 词条 key 取多语言文案（静态语言包 + 后台词条管理均可覆盖）；
+// 无对应词条时回退 DB 原文，保证自定义导航项不丢文案。
+const NAV_KEY_BY_PATH: Record<string, string> = {
+  '/': 'nav.home',
+  '/products': 'nav.products',
+  '/about': 'nav.about',
+  '/cases': 'nav.cases',
+  '/blog': 'nav.blog',
+  '/faq': 'nav.faq',
+  '/contact': 'nav.contact',
+  '/oem': 'nav.oem',
+  '/odm': 'nav.odm',
+  '/factory': 'nav.factory',
+}
+
+function navLabel(name: string, url?: string): string {
+  const rawName = (name || '').trim()
+  // name 本身就是词条 key（如 nav.home）时直接翻译
+  if (/^nav\.[\w.]+$/.test(rawName)) return te(rawName) ? t(rawName) : rawName
+  const path = (url || '').replace(/\/+$/, '') || '/'
+  const key = NAV_KEY_BY_PATH[path] || ''
+  return key && te(key) ? t(key) : rawName
 }
 
 function flattenNav(items: any[]): any[] {
@@ -329,7 +354,7 @@ function mapNavTree(items: any[]): any[] {
     .filter((n: any) => n.is_visible !== false)
     .map((n: any) => ({
       id: n.id,
-      label: n.name,
+      label: navLabel(n.name, n.url),
       path: n.url || '/',
       target: n.target || '_self',
       isExternal: isExternalUrl(n.url),
@@ -345,7 +370,7 @@ function navHref(path: string, isExternal: boolean): string {
 // 桌面端：保留树结构以支持下拉菜单
 const navTree = computed(() => {
   if (headerNavData.value?.length) return mapNavTree(headerNavData.value)
-  return DEFAULT_NAV.map(n => ({ ...n, children: [] }))
+  return DEFAULT_NAV.map(n => ({ id: n.path, label: navLabel(n.label, n.path), path: n.path, target: n.target, isExternal: n.isExternal, children: [] }))
 })
 
 // 移动端：手风琴展开/折叠状态
@@ -357,15 +382,23 @@ function toggleExpand(key: string) {
 // 移动端 / Footer：展平为列表
 const navItems = computed(() => {
   if (headerNavData.value?.length) return flattenNav(headerNavData.value).map(navToItem)
-  return DEFAULT_NAV
+  return DEFAULT_NAV.map(n => ({ ...n, label: navLabel(n.label, n.path) }))
 })
 
 const footerLinks = computed(() => {
   if (footerNavData.value?.length) return flattenNav(footerNavData.value).map(navToItem)
-  return DEFAULT_FOOTER
+  return DEFAULT_FOOTER.map(n => ({ ...n, label: navLabel(n.label, n.path) }))
 })
 
-const footerCategories = ['Yoga Wear', 'Running Gear', 'Training Apparel', 'Team Uniforms', 'Custom Design']
+// Footer 产品分类：走词条（footer.cat_*），后台词条管理可覆盖；无词条时回退英文默认
+const footerCategories = [
+  { key: 'footer.cat_yoga_wear', fallback: 'Yoga Wear' },
+  { key: 'footer.cat_running_gear', fallback: 'Running Gear' },
+  { key: 'footer.cat_training_apparel', fallback: 'Training Apparel' },
+  { key: 'footer.cat_team_uniforms', fallback: 'Team Uniforms' },
+  { key: 'footer.cat_custom_design', fallback: 'Custom Design' },
+]
+const catLabel = (c: { key: string; fallback: string }) => (te(c.key) ? t(c.key) : c.fallback)
 
 const socialLinks = computed(() => [
   { key: 'social_youtube', label: 'YouTube', icon: 'youtube', url: theme.value.social_youtube || '#' },

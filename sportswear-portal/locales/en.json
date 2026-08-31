@@ -97,7 +97,13 @@
     "newsletter_desc": "Get the latest product updates and industry insights.",
     "newsletter_placeholder": "Enter your email",
     "subscribe": "Subscribe",
-    "products": "Products"
+    "products": "Products",
+    "about_desc": "Professional sportswear OEM/ODM manufacturer with 15+ years of experience. ISO 9001, BSCI, OEKO-TEX certified.",
+    "cat_yoga_wear": "Yoga Wear",
+    "cat_running_gear": "Running Gear",
+    "cat_training_apparel": "Training Apparel",
+    "cat_team_uniforms": "Team Uniforms",
+    "cat_custom_design": "Custom Design"
   },
   "contact": {
     "title": "Contact Us",

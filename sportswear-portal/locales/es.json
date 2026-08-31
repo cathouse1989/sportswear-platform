@@ -97,7 +97,13 @@
     "newsletter_desc": "Reciba las últimas novedades de productos y conocimientos del sector.",
     "newsletter_placeholder": "Ingrese su correo electrónico",
     "subscribe": "Suscribirse",
-    "products": "Productos"
+    "products": "Productos",
+    "about_desc": "Fabricante profesional de ropa deportiva OEM/ODM con más de 15 años de experiencia. Certificado ISO 9001, BSCI y OEKO-TEX.",
+    "cat_yoga_wear": "Ropa de Yoga",
+    "cat_running_gear": "Equipo de Correr",
+    "cat_training_apparel": "Ropa de Entrenamiento",
+    "cat_team_uniforms": "Uniformes de Equipo",
+    "cat_custom_design": "Diseño Personalizado"
   },
   "contact": {
     "title": "Contáctenos",
