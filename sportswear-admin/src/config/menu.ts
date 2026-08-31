@@ -122,20 +122,15 @@ export const MENU_CONFIG: MenuItem[] = [
 
   // ── 用户与权限 ──
   {
-    key: 'users',
-    label: '用户管理',
-    index: '/users',
+    key: 'user-management',
+    label: '用户与权限',
+    index: 'user-management',
     sort_order: 80,
     icon: User,
-    permission: 'user:view',
-  },
-  {
-    key: 'roles',
-    label: '角色权限',
-    index: '/roles',
-    sort_order: 90,
-    icon: Key,
-    permission: 'role:manage',
+    children: [
+      { key: 'users', label: '用户管理', index: '/users', sort_order: 10, permission: 'user:view' },
+      { key: 'roles', label: '角色权限', index: '/roles', sort_order: 20, permission: 'role:manage' },
+    ],
   },
 
   // ── 系统配置 ──

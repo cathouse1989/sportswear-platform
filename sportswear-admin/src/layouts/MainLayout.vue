@@ -57,7 +57,7 @@
           <span class="breadcrumb">{{ currentTitle }}</span>
         </div>
         <div class="header-right">
-          <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="notify-badge">
+          <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="notify-badge" @click="goToNotifications">
             <el-icon :size="20"><Bell /></el-icon>
           </el-badge>
           <el-dropdown @command="handleCommand">
@@ -175,6 +175,10 @@ async function handleCommand(command: string) {
     router.push('/login')
   }
 }
+
+function goToNotifications() {
+  router.push('/notifications')
+}
 </script>
 
 <style scoped>
@@ -224,6 +228,8 @@ async function handleCommand(command: string) {
 }
 .notify-badge {
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
 }
 .user-info {
   display: flex;
