@@ -15,7 +15,7 @@
     <el-table :data="items" v-loading="loading" stripe>
       <el-table-column prop="key" label="Key" min-width="200" />
       <el-table-column prop="language" label="语言" width="80" />
-      <el-table-column prop="value" label="文案" min-width="260" />
+      <el-table-column prop="value" label="文案" min-width="260" show-overflow-tooltip />
       <el-table-column prop="module" label="模块" width="100" />
       <el-table-column label="操作" width="120">
         <template #default="{ row }">
@@ -31,10 +31,10 @@
         <el-form-item label="文案">
           <el-tabs v-model="activeLang" class="lang-tabs" @tab-change="onLanguageChange">
             <el-tab-pane v-for="l in langTabs" :key="l" :name="l" :label="langLabels[l]">
-              <el-input v-model="langValues[l]" type="textarea" :rows="3" :placeholder="'「' + langLabels[l] + '」文案'" />
+              <el-input v-model="langValues[l]" type="textarea" :rows="5" :placeholder="'「' + langLabels[l] + '」文案（支持换行，Enter 分行）'" />
             </el-tab-pane>
           </el-tabs>
-          <div class="lang-tip">切换语言标签将自动保存当前语言文案，并载入该 Key 对应语言的已有文案，方便逐语言翻页配置。</div>
+          <div class="lang-tip">切换语言标签将自动保存当前语言文案，并载入该 Key 对应语言的已有文案，方便逐语言翻页配置。文案支持换行（Enter 分行），门户展示时保留换行。</div>
         </el-form-item>
       </el-form>
       <template #footer>

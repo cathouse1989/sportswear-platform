@@ -33,10 +33,10 @@
       <div class="mx-auto w-full max-w-7xl py-20">
         <div class="max-w-2xl">
           <div v-for="(s, i) in slides" :key="'c-' + i" :class="current === i ? '' : 'hidden'">
-            <h1 class="mb-4 text-4xl font-bold leading-tight text-white sm:text-5xl md:mb-6 md:text-7xl">
+            <h1 class="mb-4 whitespace-pre-line text-4xl font-bold leading-tight text-white sm:text-5xl md:mb-6 md:text-7xl">
               {{ s.title }}
             </h1>
-            <p v-if="s.subtitle" class="mb-8 text-base text-white/60 sm:text-lg md:mb-10 md:text-xl">
+            <p v-if="s.subtitle" class="mb-8 whitespace-pre-line text-base text-white/60 sm:text-lg md:mb-10 md:text-xl">
               {{ s.subtitle }}
             </p>
             <NuxtLink

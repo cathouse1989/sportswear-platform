@@ -97,9 +97,12 @@ const DEFAULT_IMAGES = [
 ]
 
 // 从词条字典取文案；未配置时回退 slides 存量文本 / 静态语言包
+// 换行符统一为 \n，模板配合 whitespace-pre-line 渲染多行
 const pickDict = (key: string, fallback: string) => {
   const v = heroDict.value?.[key]
-  return typeof v === 'string' && v.trim() ? v.trim() : fallback
+  return typeof v === 'string' && v.trim()
+    ? v.replace(/\r\n?/g, '\n').trim()
+    : fallback
 }
 
 // 优先后台 hero_slides 图片；文本按当前语言取自（词条字典 → slides 存量 → 语言包）
