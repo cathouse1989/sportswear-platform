@@ -44,6 +44,9 @@ var DefaultThemeConfigs = []ThemeConfig{
 	// 品牌 Logo（管理后台顶栏使用；logo_url 为空时前端回退显示 logo_alt 文字）
 	{Key: "logo_url", Value: ``, Group: "header", Name: "Logo 图片地址", IsActive: true},
 	{Key: "logo_alt", Value: `"Sportswear"`, Group: "header", Name: "Logo 文字（无图片时显示）", IsActive: true},
+	{Key: "favicon_url", Value: ``, Group: "header", Name: "Favicon 地址（浏览器标签页图标）", IsActive: true},
+	{Key: "brand_name", Value: `"SPORTSWEAR"`, Group: "header", Name: "品牌名称", IsActive: true},
+	{Key: "brand_subtitle", Value: `"Premium Mfg."`, Group: "header", Name: "品牌副标题", IsActive: true},
 	{Key: "button_radius", Value: `8`, Group: "button", Name: "按钮圆角(px)", IsActive: true},
 	{Key: "card_radius", Value: `12`, Group: "layout", Name: "卡片圆角(px)", IsActive: true},
 	{Key: "section_spacing", Value: `80`, Group: "layout", Name: "区块间距(px)", IsActive: true},

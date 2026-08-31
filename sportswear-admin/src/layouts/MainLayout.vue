@@ -141,14 +141,31 @@ onMounted(async () => {
   } catch {
     // 忽略未读计数加载失败
   }
-  // 加载 Logo 配置
+  // 加载 Logo 配置（含 Favicon）
   try {
     const themeItems = await http.get<any[]>('/admin/theme')
-    const item = themeItems.find((i: any) => i.key === 'logo_url')
-    if (item?.value) logoUrl.value = item.value
+    const logoItem = themeItems.find((i: any) => i.key === 'logo_url')
+    if (logoItem?.value) logoUrl.value = logoItem.value
     const altItem = themeItems.find((i: any) => i.key === 'logo_alt')
     if (altItem?.value) logoAlt.value = altItem.value
-  } catch {}
+    
+    // 动态更新浏览器 Tab 图标（Favicon）
+    const faviconItem = themeItems.find((i: any) => i.key === 'favicon_url')
+    if (faviconItem?.value) {
+      const faviconUrl = faviconItem.value
+      const existingLink = document.querySelector('link[rel="icon"]')
+      if (existingLink) {
+        existingLink.setAttribute('href', faviconUrl)
+      } else {
+        const link = document.createElement('link')
+        link.rel = 'icon'
+        link.href = faviconUrl
+        document.head.appendChild(link)
+      }
+    }
+  } catch {
+    // 忽略配置加载失败
+  }
 })
 
 async function handleCommand(command: string) {
