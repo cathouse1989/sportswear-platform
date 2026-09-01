@@ -31,7 +31,23 @@
           <el-tag v-else size="small">{{ row.type }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="original_name" label="文件名" min-width="200" />
+      <el-table-column prop="original_name" label="文件名" min-width="160" show-overflow-tooltip />
+      <el-table-column label="访问 URL" min-width="200">
+        <template #default="{ row }">
+          <div class="url-cell">
+            <span class="url-text" :title="row.url">{{ row.url }}</span>
+            <el-button link type="primary" size="small" @click="copyUrl(row.url)">复制</el-button>
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column label="存储路径" min-width="180">
+        <template #default="{ row }">
+          <div class="url-cell">
+            <span class="url-text" :title="row.path">{{ row.path }}</span>
+            <el-button link type="primary" size="small" @click="copyUrl(row.path)">复制</el-button>
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column prop="file_type" label="类型" width="120" />
       <el-table-column :formatter="fmtSize" label="大小" width="100" />
       <el-table-column label="分类" width="100">
@@ -63,6 +79,18 @@
         </el-form-item>
         <el-form-item label="文件名">
           <el-input v-model="editForm.original_name" maxlength="200" />
+        </el-form-item>
+        <el-form-item label="访问 URL">
+          <div class="readonly-path">
+            <span class="path-text">{{ editForm.url }}</span>
+            <el-button link type="primary" size="small" @click="copyUrl(editForm.url)">复制</el-button>
+          </div>
+        </el-form-item>
+        <el-form-item label="存储路径">
+          <div class="readonly-path">
+            <span class="path-text">{{ editForm.path }}</span>
+            <el-button link type="primary" size="small" @click="copyUrl(editForm.path)">复制</el-button>
+          </div>
         </el-form-item>
         <el-form-item label="标题">
           <el-input v-model="editForm.title" placeholder="图片标题（可选）" maxlength="200" />
@@ -127,7 +155,7 @@ const acceptTypes = '.jpg,.jpeg,.png,.gif,.webp,.avif,.svg,.mp4,.webm,.pdf,.doc,
 
 const editDialogVisible = ref(false)
 const editingId = ref('')
-const editForm = reactive({ url: '', type: '', original_name: '', title: '', alt: '', description: '', category: '', is_public: true })
+const editForm = reactive({ url: '', path: '', type: '', original_name: '', title: '', alt: '', description: '', category: '', is_public: true })
 
 async function loadData() {
   loading.value = true
@@ -154,6 +182,7 @@ function openEdit(row: Media) {
   editingId.value = row.id
   Object.assign(editForm, {
     url: row.url,
+    path: row.path || '',
     type: row.type,
     original_name: row.original_name || '',
     title: row.title || '',
@@ -189,4 +218,8 @@ onMounted(loadData)
 .toolbar { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; }
 .spacer { flex: 1; }
 .pagination { margin-top: 16px; justify-content: flex-end; }
+.url-cell { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.url-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #6b7280; direction: rtl; text-align: left; }
+.readonly-path { display: flex; align-items: center; gap: 8px; width: 100%; background: #f7f8fa; border-radius: 6px; padding: 5px 10px; }
+.path-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #6b7280; }
 </style>

@@ -5,3 +5,21 @@ bb.log
 build*.log
 server.exe
 __debug_bin
+
+# 运行时上传目录（本地存储的媒体文件不入库；注意不能写 "uploads/"，
+# 否则会误伤 sportswear-portal/server/routes/uploads/ 下的反代源码）
+/uploads/
+/sportswear-backend/uploads/
+
+# 调试/维护产生的临时文件（_ 前缀约定）
+_*.json
+_*.png
+_*.jpg
+_*.jpeg
+_*.webp
+_*.txt
+_*.ps1
+_*.bat
+_*.py
+_*.log
+_*.html

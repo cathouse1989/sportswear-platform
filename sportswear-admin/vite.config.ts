@@ -28,6 +28,12 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      // 上传文件的静态资源代理：媒体记录存的是相对路径（/uploads/...），
+      // 后台预览/媒体库选择器需要经此代理到后端 8080 的静态文件服务
+      '/uploads': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
     },
   },
   build: {
