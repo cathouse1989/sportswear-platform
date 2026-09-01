@@ -6,8 +6,21 @@
           <img :src="logoUrl" :alt="logoAlt || 'Logo'" class="logo-img" />
         </template>
         <template v-else>
-          <h2>OEM/ODM 后台</h2>
+          <!-- 默认 Logo 图形：与门户 SportswearLogo 深色变体同款（金色底 + 品牌色图形） -->
+          <div class="logo-mark">
+            <svg viewBox="0 0 36 36" class="logo-svg" fill="none">
+              <path
+                d="M8 24c0-2.5 1.5-4.5 4-5.5l-1-1C9.5 16 8 13.5 8 11c0-3 2.5-5.5 6-5.5 3 0 5 2 5.5 4.5l-3 1C16 9.5 15 8.5 14 8.5c-1.5 0-2.5 1-2.5 2.5 0 1.5 1 2.5 2.5 3.5l4 2c2.5 1 4 3 4 5.5 0 3-2.5 5.5-6 5.5-3.5 0-6-2-6.5-5l3-1c0.5 1.5 1.5 3 3.5 3 1.5 0 2.5-1 2.5-2.5z"
+                fill="#0D1B2A"
+              />
+              <path d="M22 9l4-1M24 12l5-2" stroke="#0D1B2A" stroke-width="1.5" stroke-linecap="round" opacity="0.4" />
+            </svg>
+          </div>
         </template>
+        <div class="logo-text">
+          <span class="logo-name">{{ brandName || 'OEM/ODM' }}</span>
+          <span v-if="brandSubtitle" class="logo-sub">{{ brandSubtitle }}</span>
+        </div>
       </div>
       <el-menu
         :default-active="activeMenu"
@@ -99,6 +112,8 @@ const authStore = useAuthStore()
 const unreadCount = ref(0)
 const logoUrl = ref('')
 const logoAlt = ref('')
+const brandName = ref('')
+const brandSubtitle = ref('')
 
 const activeMenu = computed(() => route.path)
 const currentTitle = computed(() => (route.meta.title as string) || '')
@@ -148,6 +163,10 @@ onMounted(async () => {
     if (logoItem?.value) logoUrl.value = logoItem.value
     const altItem = themeItems.find((i: any) => i.key === 'logo_alt')
     if (altItem?.value) logoAlt.value = altItem.value
+    const nameItem = themeItems.find((i: any) => i.key === 'brand_name')
+    if (nameItem?.value) brandName.value = nameItem.value
+    const subItem = themeItems.find((i: any) => i.key === 'brand_subtitle')
+    if (subItem?.value) brandSubtitle.value = subItem.value
     
     // 动态更新浏览器 Tab 图标（Favicon）
     const faviconItem = themeItems.find((i: any) => i.key === 'favicon_url')
@@ -192,7 +211,7 @@ function goToNotifications() {
   height: 60px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 10px;
   color: #fff;
   border-bottom: 1px solid #ffffff14;
   padding: 0 16px;
@@ -202,10 +221,51 @@ function goToNotifications() {
   margin: 0;
   white-space: nowrap;
 }
+.logo-mark {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: #d4a853;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+.logo-svg {
+  width: 22px;
+  height: 22px;
+}
+.logo-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  min-width: 0;
+}
+.logo-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.logo-sub {
+  font-size: 9px;
+  color: #9a8c7a;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .logo-img {
   max-height: 36px;
-  max-width: 180px;
+  max-width: 120px;
   object-fit: contain;
+  border-radius: 12px;
+  flex-shrink: 0;
 }
 .sidebar :deep(.el-menu) {
   border-right: none;
