@@ -1,4 +1,4 @@
-﻿package handlers
+package handlers
 
 import (
 	"net/http"
@@ -127,7 +127,7 @@ func (h *AuthHandler) DeleteUser(c *gin.Context) {
 	utils.Success(c, gin.H{"deleted": true})
 }
 
-// ListRoles 角色列表
+// ListRoles 角色列表（全量，供角色下拉/分配使用）
 func (h *AuthHandler) ListRoles(c *gin.Context) {
 	roles, err := h.authService.ListRoles()
 	if err != nil {
@@ -135,6 +135,20 @@ func (h *AuthHandler) ListRoles(c *gin.Context) {
 		return
 	}
 	utils.Success(c, roles)
+}
+
+// ListRolesPage 角色分页列表（支持名称/标识关键字模糊查询）
+func (h *AuthHandler) ListRolesPage(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	keyword := c.Query("keyword")
+
+	roles, total, err := h.authService.ListRolesPage(page, pageSize, keyword)
+	if err != nil {
+		utils.InternalError(c, "获取角色列表失败")
+		return
+	}
+	utils.SuccessPage(c, roles, page, pageSize, total)
 }
 
 // CreateRole 创建角色
@@ -167,6 +181,15 @@ func (h *AuthHandler) UpdateRole(c *gin.Context) {
 		return
 	}
 	utils.Success(c, role)
+}
+
+// DeleteRole 删除角色
+func (h *AuthHandler) DeleteRole(c *gin.Context) {
+	if err := h.authService.DeleteRole(c.Param("id")); err != nil {
+		utils.BadRequest(c, err.Error())
+		return
+	}
+	utils.Success(c, gin.H{"deleted": true})
 }
 
 // ListPermissions 权限列表

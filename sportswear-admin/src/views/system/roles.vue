@@ -1,8 +1,16 @@
 <template>
   <el-card shadow="never">
     <div class="toolbar">
+      <el-input
+        v-model="keyword"
+        placeholder="搜索名称 / 标识"
+        clearable
+        style="width: 240px"
+        @keyup.enter="handleSearch"
+      />
+      <el-button type="primary" @click="handleSearch">查询</el-button>
+      <div class="spacer" />
       <el-button v-permission="'role:manage'" type="primary" @click="openCreateDialog">新建角色</el-button>
-      <div class="form-tip">角色决定账号可见的菜单与可执行的操作，保存后对持有该角色的账号即时生效</div>
     </div>
     <el-table :data="items" v-loading="loading" stripe>
       <el-table-column prop="name" label="名称" width="200">
@@ -22,13 +30,32 @@
           />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="180" fixed="right">
-        <template #default="{ row }">
-          <el-button size="small" @click="openEditDialog(row)">编辑</el-button>
-          <el-button size="small" @click="openPermissionDialog(row)">权限</el-button>
+      <el-table-column label="操作" width="160" fixed="right">
+        <template #default="{ row }: any">
+          <el-button v-permission="'role:manage'" size="small" @click="openEditDialog(row)">编辑</el-button>
+          <el-button
+            v-permission="'role:manage'"
+            size="small"
+            type="danger"
+            :disabled="isBuiltin(row)"
+            @click="handleDelete(row)"
+          >
+            删除
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
+
+    <el-pagination
+      class="pagination"
+      v-model:current-page="page"
+      v-model:page-size="pageSize"
+      :total="total"
+      layout="total, sizes, prev, pager, next, jumper"
+      :page-sizes="[10,20,50,100]"
+      @current-change="loadData"
+      @size-change="loadData"
+    />
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑角色' : '新建角色'" width="700px">
       <el-form :model="form" label-width="80px">
@@ -64,32 +91,21 @@
         <el-button type="primary" @click="handleSave">保存</el-button>
       </template>
     </el-dialog>
-
-    <el-dialog v-model="permVisible" title="权限配置" width="620px">
-      <el-tree
-        ref="permTreeRef"
-        :data="permTree"
-        :props="{ label: 'name', children: 'children' }"
-        show-checkbox
-        node-key="code"
-        :default-checked-keys="currentPerms"
-        class="perm-tree"
-      />
-      <template #footer>
-        <el-button @click="permVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSavePerms">保存</el-button>
-      </template>
-    </el-dialog>
   </el-card>
 </template>
 <script setup lang="ts">
 import { nextTick, onMounted, reactive, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { roleApi } from '@/api'
+import { useAdminPageSize } from '@/composables/useAdminPageSize'
 import type { Permission, Role } from '@/types'
 
 const items = ref<Role[]>([])
 const loading = ref(false)
+const keyword = ref('')
+const page = ref(1)
+const pageSize = useAdminPageSize()
+const total = ref(0)
 
 // 新建/编辑角色对话框
 const dialogVisible = ref(false)
@@ -98,11 +114,6 @@ const editingCode = ref('')
 const form = reactive({ name: '', code: '', description: '', is_active: true })
 const treeRef = ref<any>(null)
 const currentPerms = ref<string[]>([])
-
-// 权限配置对话框
-const permVisible = ref(false)
-const permRoleId = ref('')
-const permTreeRef = ref<any>(null)
 
 const permTree = ref<any[]>([])
 // 内置角色集合（默认角色。super_admin 受后端 + 前端双重保护，不可禁用/改标识）
@@ -125,10 +136,17 @@ function isBuiltin(row: any) {
 async function loadData() {
   loading.value = true
   try {
-    items.value = await roleApi.list()
+    const result = await roleApi.listPage({ page: page.value, pageSize: pageSize.value, keyword: keyword.value })
+    items.value = result.items
+    total.value = result.total
   } finally {
     loading.value = false
   }
+}
+
+function handleSearch() {
+  page.value = 1
+  loadData()
 }
 
 async function loadPermTree() {
@@ -207,16 +225,6 @@ async function openEditDialog(row: any) {
   })
 }
 
-async function openPermissionDialog(row: any) {
-  permRoleId.value = row.id
-  currentPerms.value = (row.permissions || []).map((p: Permission) => p.code)
-  await loadPermTreeIfNeeded()
-  permVisible.value = true
-  nextTick(() => {
-    permTreeRef.value?.setCheckedKeys(currentPerms.value)
-  })
-}
-
 async function handleSave() {
   if (!form.name || !form.code) {
     ElMessage.warning('请填写名称与标识')
@@ -248,14 +256,6 @@ async function handleSave() {
   }
 }
 
-async function handleSavePerms() {
-  const permissionCodes = collectCheckedCodes(permTreeRef.value)
-  await roleApi.update(permRoleId.value, { permissions: permissionCodes })
-  ElMessage.success('权限已更新')
-  permVisible.value = false
-  loadData()
-}
-
 async function handleToggle(row: any, val: boolean) {
   if (row.code === 'super_admin' && !val) {
     ElMessage.warning('不能禁用超级管理员角色')
@@ -263,6 +263,23 @@ async function handleToggle(row: any, val: boolean) {
   }
   await roleApi.updateStatus(row.id, val)
   ElMessage.success(val ? '已启用' : '已禁用')
+  loadData()
+}
+
+async function handleDelete(row: any) {
+  if (isBuiltin(row)) {
+    ElMessage.warning('内置角色不可删除')
+    return
+  }
+  await ElMessageBox.confirm(
+    `确定删除角色「${row.name}」吗？删除后该角色将从所有账号解除，其权限配置一并清除。`,
+    '警告',
+    { type: 'warning' }
+  )
+  await roleApi.delete(row.id)
+  ElMessage.success('已删除')
+  const lastPage = Math.max(1, Math.ceil((total.value - 1) / pageSize.value))
+  if (page.value > lastPage) page.value = lastPage
   loadData()
 }
 
@@ -275,6 +292,13 @@ onMounted(loadData)
   gap: 12px;
   margin-bottom: 16px;
   align-items: center;
+}
+.spacer {
+  flex: 1;
+}
+.pagination {
+  margin-top: 16px;
+  justify-content: flex-end;
 }
 .builtin-tag {
   margin-left: 8px;

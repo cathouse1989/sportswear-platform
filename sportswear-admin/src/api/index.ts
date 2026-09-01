@@ -60,10 +60,12 @@ export const userApi = {
 
 export const roleApi = {
   list: () => http.get<Role[]>('/admin/roles'),
+  listPage: (params?: any) => http.get<PageResult<Role>>('/admin/roles/page', params),
   create: (data: any) => http.post<Role>('/admin/roles', data),
   update: (id: string, data: any) => http.put<Role>(`/admin/roles/${id}`, data),
   updateStatus: (id: string, isActive: boolean) =>
     http.put(`/admin/roles/${id}/status`, { is_active: isActive }),
+  delete: (id: string) => http.delete(`/admin/roles/${id}`),
   permissions: () => http.get<Permission[]>('/admin/permissions'),
 }
 

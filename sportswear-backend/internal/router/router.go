@@ -150,12 +150,16 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 				middleware.RequirePermission("user:delete"), authHandler.DeleteUser)
 			auth.GET("/roles",
 				middleware.RequireAnyPermission("role:manage", "user:create", "user:update"), authHandler.ListRoles)
+			auth.GET("/roles/page",
+				middleware.RequireAnyPermission("role:manage", "user:create", "user:update"), authHandler.ListRolesPage)
 			auth.POST("/roles",
 				middleware.RequirePermission("role:manage"), authHandler.CreateRole)
 			auth.PUT("/roles/:id",
 				middleware.RequirePermission("role:manage"), authHandler.UpdateRole)
 			auth.PUT("/roles/:id/status",
 				middleware.RequirePermission("role:manage"), authHandler.UpdateRoleStatus)
+			auth.DELETE("/roles/:id",
+				middleware.RequirePermission("role:manage"), authHandler.DeleteRole)
 			auth.GET("/permissions",
 				middleware.RequirePermission("role:manage"), authHandler.ListPermissions)
 
