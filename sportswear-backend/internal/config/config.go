@@ -45,7 +45,8 @@ type RedisConfig struct {
 // JWTConfig JWT 配置
 type JWTConfig struct {
 	Secret      string
-	ExpireHours int
+	ExpireHours int // JWT 绝对过期时间 (小时), token 最长存活时间
+	IdleTimeout int // 空闲超时 (小时), 超过此时间无活跃请求则会话过期, 实现滑动续期
 }
 
 // MinIOConfig MinIO 配置
@@ -92,6 +93,7 @@ func Load() *Config {
 		JWT: JWTConfig{
 			Secret:      getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
 			ExpireHours: getEnvInt("JWT_EXPIRE_HOURS", 24),
+			IdleTimeout: getEnvInt("JWT_IDLE_TIMEOUT", 8),
 		},
 		MinIO: MinIOConfig{
 			Endpoint:  getEnv("MINIO_ENDPOINT", "localhost:9000"),
@@ -131,6 +133,11 @@ func (c *Config) RedisAddr() string {
 // JWTExpireDuration 返回 JWT 过期时间
 func (c *Config) JWTExpireDuration() time.Duration {
 	return time.Duration(c.JWT.ExpireHours) * time.Hour
+}
+
+// IdleTimeoutDuration 返回空闲超时时间
+func (c *Config) IdleTimeoutDuration() time.Duration {
+	return time.Duration(c.JWT.IdleTimeout) * time.Hour
 }
 
 func getEnv(key, defaultValue string) string {

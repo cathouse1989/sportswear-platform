@@ -47,6 +47,28 @@ func Auth(cfg *config.Config, authService *services.AuthService) gin.HandlerFunc
 			return
 		}
 
+		// 空闲超时检查: 超过 IdleTimeout 无活跃请求则会话过期
+		idleTimeout := cfg.IdleTimeoutDuration()
+		if time.Since(claims.IssuedAt.Time) > idleTimeout {
+			utils.Unauthorized(c, "会话已过期（长时间未操作），请重新登录")
+			c.Abort()
+			return
+		}
+
+		// 滑动续期: 当 token 签发时间超过空闲超时的一半时, 签发新 token 重置计时器
+		// 这样只要用户持续活跃, 会话就不会过期; 超过 IdleTimeout 不活跃则需重新登录
+		refreshThreshold := idleTimeout / 2
+		if time.Since(claims.IssuedAt.Time) > refreshThreshold {
+			newToken, err := utils.GenerateToken(claims.UserID, claims.Email, claims.Name, claims.Roles, cfg.JWT.Secret, cfg.JWT.ExpireHours)
+			if err == nil {
+				// 下发新 Cookie
+				c.SetSameSite(http.SameSiteLaxMode)
+				c.SetCookie(SessionCookieName, newToken, cfg.JWT.ExpireHours*3600, "/", "", false, true)
+				// 响应头通知前端更新 localStorage token
+				c.Header("X-Refreshed-Token", newToken)
+			}
+		}
+
 		userID := claims.UserID.String()
 
 		// 从数据库实时加载用户角色与权限（确保权限变更立即生效）

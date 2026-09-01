@@ -19,9 +19,14 @@ instance.interceptors.request.use((config) => {
   return config
 })
 
-// 响应拦截器：统一处理错误
+// 响应拦截器：统一处理错误 + 捕获滑动续期 token
 instance.interceptors.response.use(
   (response) => {
+    // 滑动续期: 后端在 token 过半时签发新 token, 通过响应头通知前端更新
+    const refreshedToken = response.headers['x-refreshed-token']
+    if (refreshedToken) {
+      localStorage.setItem('admin_token', refreshedToken)
+    }
     return response
   },
   (error) => {

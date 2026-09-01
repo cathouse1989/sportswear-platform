@@ -76,6 +76,7 @@ services:
       MINIO_USE_SSL: "false"
       JWT_SECRET: docker-dev-secret-change-in-production
       JWT_EXPIRE_HOURS: "24"
+      JWT_IDLE_TIMEOUT: "8"
       ADMIN_EMAIL: admin@sportswear.com
       ADMIN_PASSWORD: Admin@123456
     ports:
