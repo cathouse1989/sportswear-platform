@@ -31,26 +31,27 @@
           <el-tag v-else size="small">{{ row.type }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="original_name" label="文件名" min-width="160" show-overflow-tooltip />
-      <el-table-column label="访问 URL" min-width="200">
+      <el-table-column label="文件信息" min-width="220">
+        <template #default="{ row }">
+          <div class="file-cell">
+            <div class="file-name" :title="row.original_name">{{ row.original_name }}</div>
+            <div class="file-meta">{{ row.file_type }} · {{ fmtSize(null, null, row.file_size) }}</div>
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column label="访问 URL / 存储路径" min-width="260">
         <template #default="{ row }">
           <div class="url-cell">
             <span class="url-text" :title="row.url">{{ row.url }}</span>
             <el-button link type="primary" size="small" @click="copyUrl(row.url)">复制</el-button>
           </div>
-        </template>
-      </el-table-column>
-      <el-table-column label="存储路径" min-width="180">
-        <template #default="{ row }">
           <div class="url-cell">
             <span class="url-text" :title="row.path">{{ row.path }}</span>
             <el-button link type="primary" size="small" @click="copyUrl(row.path)">复制</el-button>
           </div>
         </template>
       </el-table-column>
-      <el-table-column prop="file_type" label="类型" width="120" />
-      <el-table-column :formatter="fmtSize" label="大小" width="100" />
-      <el-table-column label="分类" width="100">
+      <el-table-column label="分类" width="90">
         <template #default="{ row }"><el-tag size="small">{{ categoryLabel(row.category) }}</el-tag></template>
       </el-table-column>
       <el-table-column label="公开" width="80" align="center">
@@ -59,11 +60,10 @@
           <el-tag v-else type="info" size="small">私有</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="created_at" label="上传时间" width="170" />
-      <el-table-column label="操作" width="220" fixed="right">
+      <el-table-column :formatter="fmtTime" label="上传时间" width="160" />
+      <el-table-column label="操作" width="150" fixed="right">
         <template #default="{ row }: any">
           <el-button size="small" @click="openEdit(row)">编辑</el-button>
-          <el-button size="small" @click="copyUrl(row.url)">复制链接</el-button>
           <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
@@ -173,6 +173,11 @@ function fmtSize(_: any, __: any, val: number) {
   return `${(val / (1024 * 1024)).toFixed(1)}MB`
 }
 
+function fmtTime(_: any, __: any, val: string) {
+  if (!val) return '-'
+  return val.replace('T', ' ').replace(/\.\d+Z$/, '').replace(/Z$/, '')
+}
+
 function onUploadSuccess() { ElMessage.success('上传成功'); loadData() }
 function onUploadError() { ElMessage.error('上传失败') }
 async function copyUrl(url: string) { try { await navigator.clipboard.writeText(url); ElMessage.success('已复制') } catch { ElMessage.warning('复制失败') } }
@@ -219,7 +224,9 @@ onMounted(loadData)
 .spacer { flex: 1; }
 .pagination { margin-top: 16px; justify-content: flex-end; }
 .url-cell { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.url-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #6b7280; direction: rtl; text-align: left; }
-.readonly-path { display: flex; align-items: center; gap: 8px; width: 100%; background: #f7f8fa; border-radius: 6px; padding: 5px 10px; }
-.path-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #6b7280; }
+.url-cell + .url-cell { margin-top: 2px; }
+.url-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #6b7280; direction: rtl; text-align: left; }
+.file-cell { min-width: 0; }
+.file-name { font-size: 13px; color: #303133; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-meta { font-size: 12px; color: #9ca3af; margin-top: 2px; }
 </style>

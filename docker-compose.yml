@@ -81,6 +81,9 @@ services:
       ADMIN_PASSWORD: Admin@123456
     ports:
       - "8080:8080"
+    volumes:
+      # 本地存储降级方案的 uploads 目录必须持久化，否则容器重建后文件丢失、媒体记录变死链
+      - backend_uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -117,3 +120,4 @@ volumes:
   postgres_data:
   redis_data:
   minio_data:
+  backend_uploads:
