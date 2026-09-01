@@ -18,7 +18,7 @@
           </div>
         </template>
         <div class="logo-text">
-          <span class="logo-name">{{ brandName || 'OEM/ODM' }}</span>
+                    <span class="logo-name">{{ adminSystemName || brandName || 'OEM/ODM' }}</span>
           <span v-if="brandSubtitle" class="logo-sub">{{ brandSubtitle }}</span>
         </div>
       </div>
@@ -114,6 +114,7 @@ const logoUrl = ref('')
 const logoAlt = ref('')
 const brandName = ref('')
 const brandSubtitle = ref('')
+const adminSystemName = ref('')
 
 const activeMenu = computed(() => route.path)
 const currentTitle = computed(() => (route.meta.title as string) || '')
@@ -166,7 +167,9 @@ onMounted(async () => {
     const nameItem = themeItems.find((i: any) => i.key === 'brand_name')
     if (nameItem?.value) brandName.value = nameItem.value
     const subItem = themeItems.find((i: any) => i.key === 'brand_subtitle')
-    if (subItem?.value) brandSubtitle.value = subItem.value
+        if (subItem?.value) brandSubtitle.value = subItem.value
+    const adminNameItem = themeItems.find((i: any) => i.key === 'admin_system_name')
+    if (adminNameItem?.value) adminSystemName.value = adminNameItem.value
     
     // 动态更新浏览器 Tab 图标（Favicon）
     const faviconItem = themeItems.find((i: any) => i.key === 'favicon_url')

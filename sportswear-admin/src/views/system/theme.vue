@@ -13,8 +13,11 @@
             <span v-else class="text-gray-400 text-sm">未配置，将使用默认 SVG Logo</span>
           </div>
         </el-form-item>
+        <el-form-item label="系统名称">
+          <el-input v-model="adminSystemName" placeholder="管理后台侧栏 Logo 旁显示的名称，例如：OEM/ODM 管理系统" size="large" />
+        </el-form-item>
         <el-form-item label="品牌名称">
-          <el-input v-model="brandName" placeholder="例如：SPORTSWEAR" size="large" />
+          <el-input v-model="brandName" placeholder="例如：SPORTSWEAR（门户头部/页脚显示）" size="large" />
         </el-form-item>
         <el-form-item label="品牌副标题">
           <el-input v-model="brandSubtitle" placeholder="例如：Premium Mfg." size="large" />
@@ -67,6 +70,7 @@ const logoUrl = ref('')
 const faviconUrl = ref('')
 const brandName = ref('')
 const brandSubtitle = ref('')
+const adminSystemName = ref('')
 const logoAlt = ref('')
 const savingLogo = ref(false)
 
@@ -79,6 +83,7 @@ async function loadData() {
     faviconUrl.value = allItems.find((i: any) => i.key === 'favicon_url')?.value || ''
     brandName.value = allItems.find((i: any) => i.key === 'brand_name')?.value || ''
     brandSubtitle.value = allItems.find((i: any) => i.key === 'brand_subtitle')?.value || ''
+    adminSystemName.value = allItems.find((i: any) => i.key === 'admin_system_name')?.value || ''
     logoAlt.value = allItems.find((i: any) => i.key === 'logo_alt')?.value || ''
   } finally { loading.value = false }
 }
@@ -91,6 +96,7 @@ async function handleSaveLogo() {
       favicon_url: faviconUrl.value,
       brand_name: brandName.value,
       brand_subtitle: brandSubtitle.value,
+      admin_system_name: adminSystemName.value,
       logo_alt: logoAlt.value,
     }
     await Promise.all(

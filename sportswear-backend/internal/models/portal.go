@@ -47,6 +47,7 @@ var DefaultThemeConfigs = []ThemeConfig{
 	{Key: "favicon_url", Value: ``, Group: "header", Name: "Favicon 地址（浏览器标签页图标）", IsActive: true},
 	{Key: "brand_name", Value: `"SPORTSWEAR"`, Group: "header", Name: "品牌名称", IsActive: true},
 	{Key: "brand_subtitle", Value: `"Premium Mfg."`, Group: "header", Name: "品牌副标题", IsActive: true},
+	{Key: "admin_system_name", Value: `"OEM/ODM 管理系统"`, Group: "header", Name: "管理后台系统名称（侧栏 Logo 旁显示）", IsActive: true},
 	{Key: "button_radius", Value: `8`, Group: "button", Name: "按钮圆角(px)", IsActive: true},
 	{Key: "card_radius", Value: `12`, Group: "layout", Name: "卡片圆角(px)", IsActive: true},
 	{Key: "section_spacing", Value: `80`, Group: "layout", Name: "区块间距(px)", IsActive: true},
