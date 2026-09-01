@@ -1,0 +1,71 @@
+﻿{
+    "id":  "b101b0aa-4b03-4cc2-b506-4dff704b5af9",
+    "created_at":  "2026-08-29T08:15:42.977519Z",
+    "updated_at":  "2026-09-01T00:30:22.509672Z",
+    "sku":  "SW-YG-010",
+    "slug":  "mens-yoga-pants",
+    "name":  "",
+    "category_id":  "0520ea66-7d00-4dc6-b098-8b498b1b774f",
+    "category":  {
+                     "id":  "0520ea66-7d00-4dc6-b098-8b498b1b774f",
+                     "created_at":  "2026-08-29T08:15:42.879564Z",
+                     "updated_at":  "2026-08-29T08:15:42.879564Z",
+                     "parent_id":  null,
+                     "name":  "Yoga Wear",
+                     "slug":  "yoga-wear",
+                     "sort_order":  1,
+                     "is_active":  true,
+                     "image":  "https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?w=400\u0026h=600\u0026fit=crop"
+                 },
+    "type":  "both",
+    "gender":  "male",
+    "status":  "published",
+    "is_featured":  false,
+    "is_new":  false,
+    "sort_order":  1,
+    "cover_image":  "https://images.unsplash.com/photo-1591942632499-1b8bd0b1e3b0?w=800\u0026h=1000\u0026fit=crop",
+    "brief":  "Comfortable men\u0027s yoga pants with straight leg and elastic waistband.",
+    "description":  "Breathable cotton-blend fabric with 4-way stretch for unrestricted movement.",
+    "features":  "",
+    "usage":  "",
+    "material":  "Cotton 60% + Polyester 35% + Spandex 5%",
+    "composition":  "",
+    "weight":  "",
+    "elasticity":  "",
+    "fit":  "",
+    "support_level":  "",
+    "season":  "",
+    "size_range":  "",
+    "sample_moq":  50,
+    "production_moq":  500,
+    "color_moq":  200,
+    "size_moq":  200,
+    "translations":  [
+                         {
+                             "id":  "360bc01f-05aa-453b-b39a-9b56ca0c91e1",
+                             "created_at":  "2026-08-29T08:15:42.983503Z",
+                             "updated_at":  "2026-09-01T00:30:22.514083Z",
+                             "product_id":  "b101b0aa-4b03-4cc2-b506-4dff704b5af9",
+                             "language":  "en",
+                             "name":  "SW-YG-010",
+                             "brief":  "Comfortable men\u0027s yoga pants with straight leg and elastic waistband.",
+                             "description":  "Breathable cotton-blend fabric with 4-way stretch for unrestricted movement.",
+                             "features":  "",
+                             "usage":  "",
+                             "status":  "published"
+                         }
+                     ],
+    "images":  [
+                   {
+                       "id":  "74ac79c2-04c2-4d10-a85b-54421f664c83",
+                       "created_at":  "2026-08-29T08:15:42.980443Z",
+                       "updated_at":  "2026-08-29T08:15:42.980443Z",
+                       "product_id":  "b101b0aa-4b03-4cc2-b506-4dff704b5af9",
+                       "type":  "main",
+                       "url":  "https://images.unsplash.com/photo-1591942632499-1b8bd0b1e3b0?w=800\u0026h=1000\u0026fit=crop",
+                       "thumbnail":  "",
+                       "alt":  "SW-YG-010",
+                       "sort_order":  1
+                   }
+               ]
+}

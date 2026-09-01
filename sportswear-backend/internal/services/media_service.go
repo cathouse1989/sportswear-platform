@@ -110,6 +110,9 @@ func (s *MediaService) UpdateMedia(id string, req *UpdateMediaRequest) (*models.
 	}
 
 	updates := map[string]interface{}{}
+	if req.OriginalName != "" {
+		updates["original_name"] = req.OriginalName
+	}
 	if req.Alt != "" {
 		updates["alt"] = req.Alt
 	}
@@ -125,6 +128,9 @@ func (s *MediaService) UpdateMedia(id string, req *UpdateMediaRequest) (*models.
 	if req.Thumbnail != "" {
 		updates["thumbnail"] = req.Thumbnail
 	}
+	if req.IsPublic != nil {
+		updates["is_public"] = *req.IsPublic
+	}
 
 	if len(updates) > 0 {
 		if err := s.db.Model(&media).Updates(updates).Error; err != nil {
@@ -136,11 +142,13 @@ func (s *MediaService) UpdateMedia(id string, req *UpdateMediaRequest) (*models.
 
 // UpdateMediaRequest 更新媒体请求
 type UpdateMediaRequest struct {
-	Alt         string               `json:"alt"`
-	Title       string               `json:"title"`
-	Description string               `json:"description"`
-	Category    models.MediaCategory `json:"category"`
-	Thumbnail   string               `json:"thumbnail"`
+	OriginalName string               `json:"original_name"`
+	Alt          string               `json:"alt"`
+	Title        string               `json:"title"`
+	Description  string               `json:"description"`
+	Category     models.MediaCategory `json:"category"`
+	Thumbnail    string               `json:"thumbnail"`
+	IsPublic     *bool                `json:"is_public"`
 }
 
 // DeleteMedia 删除媒体

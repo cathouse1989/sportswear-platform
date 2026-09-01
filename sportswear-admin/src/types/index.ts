@@ -371,6 +371,12 @@ export interface Media {
   embed_url?: string
   category: string
   is_public: boolean
+  title?: string
+  alt?: string
+  description?: string
+  thumbnail?: string
+  width?: number
+  height?: number
   created_at: string
 }
 

@@ -24,8 +24,11 @@ func Audit(opLogService *services.OperationLogService) gin.HandlerFunc {
 		}
 
 		// 记录请求体（限制大小，避免过大）
+		// multipart/form-data（文件上传）不能读取/截断 body：截断会破坏 multipart 边界，
+		// 导致 handler 中 FormFile 解析失败（表现为"请选择要上传的文件"）
 		var bodyStr string
-		if c.Request.Body != nil {
+		contentType := c.GetHeader("Content-Type")
+		if !strings.HasPrefix(contentType, "multipart/form-data") && c.Request.Body != nil {
 			bodyBytes, _ := io.ReadAll(io.LimitReader(c.Request.Body, 64*1024))
 			bodyStr = string(bodyBytes)
 			// 恢复 body 供后续 handler 使用

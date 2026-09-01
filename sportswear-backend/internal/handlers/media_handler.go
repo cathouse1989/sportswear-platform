@@ -105,7 +105,14 @@ func (h *MediaHandler) UploadFile(c *gin.Context) {
 		return
 	}
 
-	category := c.DefaultPostForm("category", string(models.MediaCategoryPublic))
+	// 分类：multipart 字段优先，其次 query 参数（便于 <el-upload :action> 带 category），默认 public
+	category := c.PostForm("category")
+	if category == "" {
+		category = c.Query("category")
+	}
+	if category == "" {
+		category = string(models.MediaCategoryPublic)
+	}
 
 	// 生成存储路径
 	storagePath, fileName := h.uploadService.GenerateStoragePath(fileHeader.Filename, category)

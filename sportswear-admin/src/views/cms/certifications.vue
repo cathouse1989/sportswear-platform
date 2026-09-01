@@ -7,6 +7,12 @@
       <el-button type="primary" @click="openCreateDialog">新建认证</el-button>
     </div>
     <el-table :data="items" v-loading="loading" stripe>
+      <el-table-column label="图片" width="76" align="center">
+        <template #default="{ row }">
+          <el-image v-if="row.image" :src="row.image" fit="cover" class="cover-thumb" :preview-src-list="[row.image]" preview-teleported />
+          <div v-else class="cover-placeholder">—</div>
+        </template>
+      </el-table-column>
       <el-table-column prop="name" label="名称" min-width="180" />
       <el-table-column prop="code" label="编号" width="140" />
       <el-table-column prop="status" label="状态" width="100">
@@ -25,6 +31,8 @@
     <ProFormDialog v-model="dialogVisible" :title="editingId ? '编辑认证' : '新建认证'" :form="form" :rules="rules" @submit="handleSave">
       <el-form-item label="名称" prop="name"><el-input v-model="form.name" /></el-form-item>
       <el-form-item label="编号"><el-input v-model="form.code" /></el-form-item>
+      <el-form-item label="证书图"><MediaPicker v-model="form.image" /></el-form-item>
+      <el-form-item label="PDF"><el-input v-model="form.pdf" placeholder="证书 PDF 文件 URL（可选）" /></el-form-item>
       <el-form-item label="描述"><el-input v-model="form.description" type="textarea" /></el-form-item>
     </ProFormDialog>
   </el-card>
@@ -35,6 +43,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormRules } from 'element-plus'
 import { certificationApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
+import MediaPicker from '@/components/media/MediaPicker.vue'
 import ProFormDialog from '@/components/pro/ProFormDialog.vue'
 
 const allItems = ref<any[]>([])
@@ -49,11 +58,11 @@ const total = computed(() => {
 })
 const loading = ref(false); const page = ref(1); const pageSize = useAdminPageSize(); const keyword = ref('')
 async function loadData() { loading.value = true; try { allItems.value = await certificationApi.list() } finally { loading.value = false } }
-const dialogVisible = ref(false); const editingId = ref(''); const form = reactive({ name: '', code: '', description: '' })
+const dialogVisible = ref(false); const editingId = ref(''); const form = reactive({ name: '', code: '', image: '', pdf: '', description: '' })
 const rules: FormRules = { name: [{ required: true, message: '请输入名称', trigger: 'blur' }] }
 function handleSearch() { page.value = 1; loadData() }
-function openCreateDialog() { editingId.value = ''; Object.assign(form, { name: '', code: '', description: '' }); dialogVisible.value = true }
-function openEditDialog(row: any) { editingId.value = row.id; Object.assign(form, { name: row.name, code: row.code, description: row.description }); dialogVisible.value = true }
+function openCreateDialog() { editingId.value = ''; Object.assign(form, { name: '', code: '', image: '', pdf: '', description: '' }); dialogVisible.value = true }
+function openEditDialog(row: any) { editingId.value = row.id; Object.assign(form, { name: row.name, code: row.code, image: row.image || '', pdf: row.pdf || '', description: row.description || '' }); dialogVisible.value = true }
 async function handleSave() { try { if (editingId.value) { await certificationApi.update(editingId.value, form) } else { await certificationApi.create(form) }; ElMessage.success('保存成功'); dialogVisible.value = false; loadData() } catch {} }
 async function handlePublish(row: any) { await certificationApi.publish(row.id); ElMessage.success('已发布'); loadData() }
 async function handleUnpublish(row: any) { await certificationApi.unpublish(row.id); ElMessage.success('已下线'); loadData() }
@@ -64,4 +73,6 @@ onMounted(loadData)
 .toolbar { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; }
 .spacer { flex: 1; }
 .pagination { margin-top: 16px; justify-content: flex-end; }
+.cover-thumb { width: 44px; height: 44px; border-radius: 4px; }
+.cover-placeholder { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #c0c4cc; background: #f5f7fa; border-radius: 4px; }
 </style>

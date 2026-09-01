@@ -7,6 +7,12 @@
       <el-button type="primary" @click="openCreateDialog">新建案例</el-button>
     </div>
     <el-table :data="cases" v-loading="loading" stripe>
+      <el-table-column label="封面" width="76" align="center">
+        <template #default="{ row }">
+          <el-image v-if="row.cover_image" :src="row.cover_image" fit="cover" class="cover-thumb" :preview-src-list="[row.cover_image]" preview-teleported />
+          <div v-else class="cover-placeholder">—</div>
+        </template>
+      </el-table-column>
       <el-table-column prop="title" label="标题" min-width="200" />
       <el-table-column prop="client_industry" label="客户行业" width="140" />
       <el-table-column prop="status" label="状态" width="100">
@@ -30,6 +36,9 @@
         <el-form-item label="Slug" prop="slug">
           <el-input v-model="form.slug" placeholder="URL 标识，如 yoga-brand-oem" />
         </el-form-item>
+        <el-form-item label="封面图">
+          <MediaPicker v-model="form.cover_image" />
+        </el-form-item>
         <el-form-item label="客户行业">
           <el-input v-model="form.client_industry" placeholder="如 Fitness Brand / Retail Chain" />
         </el-form-item>
@@ -51,6 +60,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { cmsApi } from '@/api/cms'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
+import MediaPicker from '@/components/media/MediaPicker.vue'
 import type { Case } from '@/types'
 
 const cases = ref<Case[]>([])
@@ -64,7 +74,7 @@ const keyword = ref('')
 const formRef = ref<FormInstance>()
 const dialogVisible = ref(false)
 const editingId = ref('')
-const form = reactive({ title: '', slug: '', client_industry: '', solution: '' })
+const form = reactive({ title: '', slug: '', client_industry: '', cover_image: '', solution: '' })
 const rules: FormRules = {
   title: [
     { required: true, message: '请输入标题', trigger: 'blur' },
@@ -85,11 +95,11 @@ async function loadData() {
   } finally { loading.value = false }
 }
 function handleSearch() { page.value = 1; loadData() }
-function resetForm() { Object.assign(form, { title: '', slug: '', client_industry: '', solution: '' }) }
+function resetForm() { Object.assign(form, { title: '', slug: '', client_industry: '', cover_image: '', solution: '' }) }
 function openCreateDialog() { editingId.value = ''; resetForm(); dialogVisible.value = true }
 function openEditDialog(row: Case) {
   editingId.value = row.id
-  Object.assign(form, { title: row.title, slug: row.slug, client_industry: row.client_industry || '', solution: row.solution || '' })
+  Object.assign(form, { title: row.title, slug: row.slug, client_industry: row.client_industry || '', cover_image: row.cover_image || '', solution: row.solution || '' })
   dialogVisible.value = true
 }
 async function handleSave() {
@@ -108,4 +118,6 @@ onMounted(loadData)
 .toolbar { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; }
 .spacer { flex: 1; }
 .pagination { margin-top: 16px; justify-content: flex-end; }
+.cover-thumb { width: 44px; height: 44px; border-radius: 4px; }
+.cover-placeholder { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #c0c4cc; background: #f5f7fa; border-radius: 4px; }
 </style>

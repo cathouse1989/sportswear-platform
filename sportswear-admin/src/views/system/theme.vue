@@ -5,19 +5,7 @@
       <template #header><span class="font-semibold">商标 Logo 配置</span></template>
       <el-form label-width="140px" label-position="left">
         <el-form-item label="Logo 图片 URL">
-          <div class="flex items-center gap-3 w-full">
-            <el-input v-model="logoUrl" placeholder="上传或粘贴 Logo 图片 URL" size="large" />
-            <el-upload
-              :action="uploadUrl"
-              :headers="uploadHeaders"
-              :on-success="onLogoUploadSuccess"
-              :on-error="onUploadError"
-              :show-file-list="false"
-              :accept="acceptTypes"
-            >
-              <el-button type="primary" size="large">上传</el-button>
-            </el-upload>
-          </div>
+          <MediaPicker v-model="logoUrl" class="w-full" />
         </el-form-item>
         <el-form-item label="Logo 预览">
           <div class="flex items-center gap-4">
@@ -35,19 +23,7 @@
           <el-input v-model="logoAlt" placeholder="例如：Sportswear Manufacturer" size="large" />
         </el-form-item>
         <el-form-item label="Favicon URL">
-          <div class="flex items-center gap-3 w-full">
-            <el-input v-model="faviconUrl" placeholder="浏览器标签页图标 URL（可选）" size="large" />
-            <el-upload
-              :action="uploadUrl"
-              :headers="uploadHeaders"
-              :on-success="onFaviconUploadSuccess"
-              :on-error="onUploadError"
-              :show-file-list="false"
-              :accept="acceptTypes"
-            >
-              <el-button size="large">上传</el-button>
-            </el-upload>
-          </div>
+          <MediaPicker v-model="faviconUrl" class="w-full" />
           <div class="mt-2 text-xs text-gray-400">未配置时使用默认 favicon，建议使用 32x32 的 SVG 或 PNG</div>
         </el-form-item>
         <el-form-item>
@@ -84,6 +60,7 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { themeApi } from '@/api'
+import MediaPicker from '@/components/media/MediaPicker.vue'
 
 const items = ref<any[]>([]); const loading = ref(false)
 const logoUrl = ref('')
@@ -92,11 +69,6 @@ const brandName = ref('')
 const brandSubtitle = ref('')
 const logoAlt = ref('')
 const savingLogo = ref(false)
-
-const token = localStorage.getItem('admin_token') || ''
-const uploadUrl = `/api/v1/admin/media/upload`
-const uploadHeaders = { Authorization: `Bearer ${token}` }
-const acceptTypes = '.jpg,.jpeg,.png,.gif,.webp,.avif,.svg'
 
 async function loadData() {
   loading.value = true
@@ -130,20 +102,6 @@ async function handleSaveLogo() {
   } catch {
     ElMessage.error('保存失败')
   } finally { savingLogo.value = false }
-}
-
-function onLogoUploadSuccess(res: any) {
-  logoUrl.value = res.url || res.data?.url || ''
-  ElMessage.success('上传成功')
-}
-
-function onFaviconUploadSuccess(res: any) {
-  faviconUrl.value = res.url || res.data?.url || ''
-  ElMessage.success('上传成功')
-}
-
-function onUploadError() {
-  ElMessage.error('上传失败')
 }
 
 async function handleSave(row: any) {

@@ -51,7 +51,7 @@
           <el-input v-model="form.tags" placeholder="逗号分隔，如 yoga,leggings" />
         </el-form-item>
         <el-form-item label="封面图">
-          <el-input v-model="form.cover_image" placeholder="图片 URL（媒体库直传将在媒体上传闭环任务中接入）" />
+          <MediaPicker v-model="form.cover_image" />
         </el-form-item>
         <el-form-item label="正文" prop="content">
           <el-input v-model="form.content" type="textarea" :rows="8" placeholder="正文内容（富文本编辑器见打磨方案 P2-#12）" />
@@ -71,6 +71,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { cmsApi } from '@/api/cms'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
+import MediaPicker from '@/components/media/MediaPicker.vue'
 import type { Blog } from '@/types'
 import { checkBlogGate, gateAlertMessage } from '@/utils/publish-gate'
 
