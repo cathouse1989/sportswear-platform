@@ -15,8 +15,17 @@ func LocalizeProduct(p *models.Product, lang string) {
 	if p == nil {
 		return
 	}
+	// 默认英文：主表字段即英文内容；Name 非 DB 列（gorm:"-"），须从 en 翻译表回填
 	if lang == "" || lang == "en" {
-		return // 默认英文，直接用主表字段
+		for _, t := range p.Translations {
+			if t.Language == "en" && t.Status == models.TranslationStatusPublished {
+				if t.Name != "" {
+					p.Name = t.Name
+				}
+				break
+			}
+		}
+		return
 	}
 	for _, t := range p.Translations {
 		if t.Language == lang && t.Status == models.TranslationStatusPublished {

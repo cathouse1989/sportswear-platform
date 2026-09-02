@@ -1,4 +1,4 @@
-ei<template>
+<template>
   <div class="product-page">
     <!-- 统计卡片 -->
     <el-row :gutter="16" class="stat-row">
@@ -133,6 +133,7 @@ ei<template>
               <el-button size="small" @click="openEditDialog(row)">编辑</el-button>
               <el-button size="small" @click="openImageDialog(row)">图片</el-button>
               <el-button size="small" @click="openSpecDialog(row)">规格</el-button>
+              <el-button size="small" @click="openVideoDialog(row)">视频</el-button>
               <el-dropdown trigger="click" @command="(cmd: string) => handleMoreAction(cmd, row)">
                 <el-button size="small">
                   更多
@@ -171,14 +172,19 @@ ei<template>
           <el-tab-pane label="基本信息" name="basic">
             <div class="tab-pane-content">
               <el-row :gutter="20">
-                <el-col :span="12">
+                <el-col :span="8">
                   <el-form-item label="SKU" required>
                     <el-input v-model="form.sku" placeholder="产品 SKU 编号" />
                   </el-form-item>
                 </el-col>
-                <el-col :span="12">
+                <el-col :span="8">
                   <el-form-item label="Slug" required>
                     <el-input v-model="form.slug" placeholder="URL 标识" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="英文名称" required>
+                    <el-input v-model="form.name" placeholder="产品英文名称（发布必填，前台展示用）" />
                   </el-form-item>
                 </el-col>
               </el-row>
@@ -519,6 +525,33 @@ ei<template>
       </template>
     </el-dialog>
 
+    <!-- 视频管理对话框 -->
+    <el-dialog v-model="videoDialogVisible" title="产品视频管理" width="680px" class="video-dialog" destroy-on-close>
+      <template v-if="videoProductId">
+        <div class="video-list">
+          <div v-for="(v, idx) in videos" :key="idx" class="video-row">
+            <el-select v-model="v.type" placeholder="类型" style="width: 120px">
+              <el-option v-for="opt in videoTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+            </el-select>
+            <el-input v-model="v.title" placeholder="标题" style="width: 140px" />
+            <el-input v-model="v.url" placeholder="视频 URL（支持 YouTube 链接）" style="width: 220px" />
+            <el-input v-model="v.cover" placeholder="封面 URL" style="width: 140px" />
+            <el-button type="danger" size="small" @click="removeVideo(idx)" circle>
+              <template #icon><el-icon><Delete /></el-icon></template>
+            </el-button>
+          </div>
+        </div>
+        <el-button size="small" @click="addVideo" class="mt-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px"><path d="M12 5v14m-7-7h14"/></svg>
+          添加视频
+        </el-button>
+      </template>
+      <template #footer>
+        <el-button @click="videoDialogVisible = false" size="large">取消</el-button>
+        <el-button type="primary" @click="saveVideos" size="large" :loading="savingVideos">保存视频</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 定制管理对话框 -->
     <el-dialog v-model="customDialogVisible" title="产品定制能力管理" width="680px" class="custom-dialog" destroy-on-close>
       <template v-if="customProductId">
@@ -622,6 +655,7 @@ const fabricList = ref<Fabric[]>([])
 const form = reactive({
   sku: '',
   slug: '',
+  name: '',
   category_id: '',
   type: 'both',
   gender: 'unisex',
@@ -668,6 +702,19 @@ const specProductId = ref('')
 const specs = ref<Array<{ name: string; value: string }>>([])
 const specDetail = ref<any>(null)
 const savingSpecs = ref(false)
+
+// 视频管理
+const videoDialogVisible = ref(false)
+const videoProductId = ref('')
+const videos = ref<Array<{ type: string; title: string; url: string; cover: string }>>([])
+const videoDetail = ref<any>(null)
+const savingVideos = ref(false)
+const videoTypeOptions = [
+  { label: '产品视频', value: 'product' },
+  { label: '生产视频', value: 'production' },
+  { label: '工艺视频', value: 'craft' },
+  { label: '用途视频', value: 'usage' },
+]
 
 // 定制管理
 const customDialogVisible = ref(false)
@@ -750,6 +797,7 @@ function resetForm() {
   Object.assign(form, {
     sku: '',
     slug: '',
+    name: '',
     category_id: '',
     type: 'both',
     gender: 'unisex',
@@ -797,6 +845,7 @@ async function openEditDialog(row: Product) {
     Object.assign(form, {
       sku: detail.sku,
       slug: detail.slug,
+      name: detail.translations?.find((t: any) => t.language === 'en')?.name || '',
       category_id: detail.category_id || '',
       type: detail.type,
       gender: detail.gender,
@@ -863,6 +912,23 @@ async function handleSave() {
   saving.value = true
   try {
     const data = { ...form }
+    // 产品主表无 name 列，英文名存储于 product_translations(language=en)。
+    // 提交时自动并入 en 翻译，保证名称可被门户解析、发布质检可通过。
+    const translations = [...form.translations]
+    if (String(form.name || '').trim()) {
+      const enEntry = {
+        language: 'en',
+        name: String(form.name).trim(),
+        brief: form.brief || '',
+        description: form.description || '',
+        features: form.features || '',
+        usage: form.usage || '',
+      }
+      const enIdx = translations.findIndex(t => t.language === 'en')
+      if (enIdx >= 0) translations[enIdx] = enEntry
+      else translations.unshift(enEntry)
+    }
+    data.translations = translations
     if (editingId.value) {
       await productApi.update(editingId.value, data)
     } else {
@@ -1103,6 +1169,56 @@ async function saveSpecs() {
   }
 }
 
+// 视频管理
+async function openVideoDialog(row: Product) {
+  videoProductId.value = row.id
+  videoDetail.value = row
+  videos.value = []
+  videoDialogVisible.value = true
+  try {
+    const detail = await productApi.get(row.id)
+    videoDetail.value = detail
+    if (detail.videos?.length) {
+      videos.value = detail.videos.map((v: any) => ({
+        type: v.type || 'product',
+        title: v.title || '',
+        url: v.url || '',
+        cover: v.cover || '',
+      }))
+    }
+  } catch {}
+}
+
+function addVideo() {
+  videos.value.push({ type: 'product', title: '', url: '', cover: '' })
+}
+
+function removeVideo(idx: number) {
+  videos.value.splice(idx, 1)
+}
+
+async function saveVideos() {
+  const valid = videos.value.every((v) => String(v.url || '').trim() !== '')
+  if (!valid) {
+    ElMessage.error('每个视频都必须填写 URL')
+    return
+  }
+  savingVideos.value = true
+  try {
+    await productApi.update(videoProductId.value, {
+      ...productPayload(videoDetail.value),
+      videos: videos.value.map((v, i) => ({ type: v.type, url: v.url, cover: v.cover, title: v.title, sort_order: i })),
+    })
+    ElMessage.success('视频保存成功')
+    videoDialogVisible.value = false
+    loadData()
+  } catch {
+    ElMessage.error('视频保存失败')
+  } finally {
+    savingVideos.value = false
+  }
+}
+
 // 定制管理
 async function openCustomizationDialog(row: Product) {
   customProductId.value = row.id
@@ -1189,8 +1305,10 @@ function confirmMediaSelect() {
 }
 
 async function handlePublish(row: Product) {
-  // 发布质检门（P0-#2）：必填项缺失时拦截并列出缺失项
-  const gate = checkProductGate({ ...row, seo_title: row.seo?.title })
+  // 发布质检门（P0-#2）：必填项缺失时拦截并列出缺失项。
+  // 注意：admin 列表接口不本地化，row.name 恒为空，英文名须从 en 翻译解析。
+  const enName = (row as any).translations?.find((t: any) => t.language === 'en')?.name || ''
+  const gate = checkProductGate({ ...row, name: row.name || enName, seo_title: row.seo?.title })
   if (!gate.ok) {
     await ElMessageBox.alert(gateAlertMessage(gate), '无法发布', { type: 'warning', confirmButtonText: '知道了' }).catch(() => {})
     return
@@ -1501,7 +1619,7 @@ onMounted(() => {
 }
 
 /* 规格/定制 */
-.spec-list, .custom-list {
+.spec-list, .custom-list, .video-list {
   margin-bottom: 8px;
 }
 .spec-row {
@@ -1509,6 +1627,13 @@ onMounted(() => {
   gap: 8px;
   align-items: center;
   margin-bottom: 10px;
+}
+.video-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
 }
 .custom-row {
   display: flex;

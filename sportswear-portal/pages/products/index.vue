@@ -117,7 +117,7 @@
         >
           {{ loadingMore ? $t('common.loading') : $t('product.load_more') }}
         </button>
-        <p v-else class="text-sm text-gray-400">{{ $t('product.no_products') }}</p>
+        <p v-else class="text-sm text-gray-400">{{ $t('product.all_loaded') }}</p>
       </div>
     </div>
   </div>

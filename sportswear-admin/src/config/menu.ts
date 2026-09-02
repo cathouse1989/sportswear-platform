@@ -62,10 +62,15 @@ export const MENU_CONFIG: MenuItem[] = [
   {
     key: 'products',
     label: '产品管理',
-    index: '/products',
+    index: 'products',
     sort_order: 20,
     icon: Goods,
-    permission: 'product:view',
+    children: [
+      { key: 'product-list', label: '产品列表', index: '/products', sort_order: 10, permission: 'product:view' },
+      { key: 'product-categories', label: '分类管理', index: '/product-categories', sort_order: 20, permission: 'category:manage' },
+      { key: 'product-series', label: '系列管理', index: '/product-series', sort_order: 30, permission: 'series:manage' },
+      { key: 'product-fabrics', label: '面料管理', index: '/product-fabrics', sort_order: 40, permission: 'fabric:manage' },
+    ],
   },
   {
     key: 'leads',
