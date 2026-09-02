@@ -410,3 +410,82 @@ func (s *LeadService) GetDashboardStats() (map[string]interface{}, error) {
 		"hot_countries":    hotCountries,
 	}, nil
 }
+
+// ExportByEmail 根据邮箱导出关联的所有个人数据（GDPR 数据可携权 / PIPL 查询权）
+func (s *LeadService) ExportByEmail(email string) (map[string]interface{}, error) {
+	var leads []models.Lead
+	if err := s.db.Where("email = ?", email).Order("created_at DESC").Find(&leads).Error; err != nil {
+		return nil, err
+	}
+	if len(leads) == 0 {
+		return nil, errors.New("未找到对应的个人数据")
+	}
+
+	// 构建导出数据结构（包含询盘及其跟进记录）
+	exportLeads := make([]map[string]interface{}, 0, len(leads))
+	for _, lead := range leads {
+		var followUps []models.LeadFollowUp
+		s.db.Where("lead_id = ?", lead.ID).Order("created_at ASC").Find(&followUps)
+
+		exportLeads = append(exportLeads, map[string]interface{}{
+			"id":          lead.ID,
+			"created_at":  lead.CreatedAt,
+			"name":        lead.Name,
+			"company":     lead.Company,
+			"email":       lead.Email,
+			"phone":       lead.Phone,
+			"whatsapp":    lead.WhatsApp,
+			"country":     lead.Country,
+			"project_type": lead.ProjectType,
+			"message":     lead.Message,
+			"source":      lead.Source,
+			"medium":      lead.Medium,
+			"status":      lead.Status,
+			"follow_ups":  followUps,
+		})
+	}
+
+	return map[string]interface{}{
+		"email": email,
+		"leads": exportLeads,
+	}, nil
+}
+
+// AnonymizeByEmail 根据邮箱匿名化或删除个人数据（GDPR 被遗忘权 / PIPL 删除权）
+func (s *LeadService) AnonymizeByEmail(email string, reason string) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		// 查找所有关联询盘
+		var leads []models.Lead
+		if err := tx.Where("email = ?", email).Find(&leads).Error; err != nil {
+			return err
+		}
+		if len(leads) == 0 {
+			return errors.New("未找到对应的个人数据")
+		}
+
+		for _, lead := range leads {
+			// 删除关联的跟进记录
+			tx.Where("lead_id = ?", lead.ID).Delete(&models.LeadFollowUp{})
+
+			// 匿名化个人数据（保留业务统计不影响的分析字段）
+			updates := map[string]interface{}{
+				"name":             "[已删除]",
+				"company":          "[已删除]",
+				"email":            "anonymized_" + lead.ID.String() + "@deleted.local",
+				"phone":            "[已删除]",
+				"whatsapp":         "[已删除]",
+				"company_website":  "[已删除]",
+				"message":          "[已删除]",
+				"ip":               "0.0.0.0",
+				"status":           models.LeadStatusLost,
+				"updated_at":       time.Now(),
+			}
+			if reason != "" {
+				updates["notes"] = "删除原因: " + reason
+			}
+			tx.Model(&lead).Updates(updates)
+		}
+
+		return nil
+	})
+}

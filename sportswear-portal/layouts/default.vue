@@ -252,6 +252,9 @@
     </footer>
 
     <FloatingContact />
+
+    <!-- Cookie Consent Banner（隐私合规） -->
+    <CookieConsent />
   </div>
 </template>
 

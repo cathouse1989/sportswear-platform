@@ -231,6 +231,10 @@ func Analytics() gin.HandlerFunc {
 
 		c.Next()
 
+		// 隐私合规检查：仅当用户同意 Analytics Cookie 时才记录包含个人数据的完整日志
+		consentAnalytics := c.GetHeader("X-Consent-Analytics")
+		hasConsent := consentAnalytics == "true"
+
 		latency := time.Since(start).Milliseconds()
 		ip := GetClientIP(c)
 		ua := GetUserAgent(c)
@@ -249,16 +253,26 @@ func Analytics() gin.HandlerFunc {
 		// 解析实体类型和 slug
 		entityType, entitySlug := parseEntity(path)
 
+		// 未同意时匿名化个人数据（GDPR 合规）
+		anonymizedIP := ip
+		anonymizedUA := ua
+		anonymizedReferer := referer
+		if !hasConsent {
+			anonymizedIP = AnonymizeIP(ip)
+			anonymizedUA = "anonymous"
+			anonymizedReferer = ""
+		}
+
 		log := models.VisitLog{
 			CreatedAt:   time.Now(),
-			IP:          ip,
+			IP:          anonymizedIP,
 			Country:     ResolveCountry(c),
 			Language:    GetLang(c),
 			Device:      device,
-			DeviceModel: ParseDeviceModel(ua),
+			DeviceModel: ParseDeviceModel(anonymizedUA),
 			Browser:     browser,
 			OS:          osName,
-			UserAgent:   ua,
+			UserAgent:   anonymizedUA,
 			Method:      c.Request.Method,
 			Path:        path,
 			EntityType:  entityType,
@@ -267,7 +281,7 @@ func Analytics() gin.HandlerFunc {
 			EntityName:  c.GetString("visit_entity_name"),
 			Status:      c.Writer.Status(),
 			LatencyMs:   latency,
-			Referer:     referer,
+			Referer:     anonymizedReferer,
 			Source:      source,
 			Medium:      medium,
 			UtmSource:   utmSource,
@@ -284,7 +298,7 @@ func Analytics() gin.HandlerFunc {
 		// 写入访问日志文件
 		if utils.AccessLog != nil {
 			utils.AccessLog.Infow("access",
-				"ip", ip,
+				"ip", anonymizedIP,
 				"country", log.Country,
 				"lang", log.Language,
 				"method", c.Request.Method,
@@ -297,12 +311,13 @@ func Analytics() gin.HandlerFunc {
 				"os", osName,
 				"source", source,
 				"medium", medium,
-				"referer", referer,
+				"referer", anonymizedReferer,
 				"utm_source", utmSource,
 				"utm_campaign", utmCampaign,
 				"entity_type", entityType,
 				"entity_slug", entitySlug,
 				"entity_name", log.EntityName,
+				"consent", hasConsent,
 			)
 		}
 	}
@@ -340,4 +355,30 @@ func parseEntity(path string) (entityType, entitySlug string) {
 		entityType = "home"
 	}
 	return entityType, entitySlug
+}
+
+// AnonymizeIP 匿名化 IP 地址（GDPR 合规）
+// IPv4: 将最后一组替换为 0（如 192.168.1.42 → 192.168.1.0）
+// IPv6: 将后缀 64 位清零
+func AnonymizeIP(ip string) string {
+	if ip == "" || ip == "unknown" {
+		return "anonymous"
+	}
+	// IPv4 处理
+	if strings.Contains(ip, ".") {
+		parts := strings.Split(ip, ".")
+		if len(parts) == 4 {
+			parts[3] = "0"
+			return strings.Join(parts, ".")
+		}
+	}
+	// IPv6 处理：保留前 48 位，后续清零
+	if strings.Contains(ip, ":") {
+		// 简化的 IPv6 匿名化：保留前 3 组
+		parts := strings.Split(ip, ":")
+		if len(parts) >= 3 {
+			return strings.Join(parts[:3], ":") + "::/0"
+		}
+	}
+	return "anonymous"
 }

@@ -1,5 +1,7 @@
 import { ofetch } from 'ofetch'
 
+const CONSENT_STORAGE_KEY = 'sw_cookie_consent'
+
 export const useApi = () => {
   const config = useRuntimeConfig()
   const { locale } = useI18n()
@@ -10,7 +12,23 @@ export const useApi = () => {
   // 1. 每次请求附带当前 URL 的 utm_* 参数（SSR 首屏天然携带）；
   // 2. 首次命中的归因信息写入 Cookie（sw_attribution），后续 SPA 内页面跳转持续透传；
   // 3. 后端中间件读取 X-UTM-* 头落库到 visit_logs / leads。
+  // 合规：仅在用户同意 ANALYTICS 类别后才写入归因 Cookie
   const ATTRIBUTION_COOKIE = 'sw_attribution'
+
+  /**
+   * 检查用户是否已同意分析 Cookie（直接读 localStorage，避免与 useConsent 循环依赖）
+   */
+  const hasAnalyticsConsent = (): boolean => {
+    if (import.meta.server) return true
+    try {
+      const raw = localStorage.getItem(CONSENT_STORAGE_KEY)
+      if (!raw) return false
+      const state = JSON.parse(raw)
+      return state.categories?.includes('analytics') ?? false
+    } catch {
+      return false
+    }
+  }
 
   const readStoredAttribution = () => {
     if (import.meta.server) return {}
@@ -26,8 +44,10 @@ export const useApi = () => {
 
   const writeStoredAttribution = (data: Record<string, string>) => {
     if (import.meta.server) return
+    // 合规检查：仅在用户同意分析 Cookie 后写入
+    if (!hasAnalyticsConsent()) return
     try {
-      document.cookie = `${ATTRIBUTION_COOKIE}=${encodeURIComponent(JSON.stringify(data))}; path=/; max-age=31536000`
+      document.cookie = `${ATTRIBUTION_COOKIE}=${encodeURIComponent(JSON.stringify(data))}; path=/; max-age=31536000; SameSite=Lax`
     } catch {
       /* ignore */
     }
@@ -78,6 +98,8 @@ export const useApi = () => {
     for (const [key, header] of mapping) {
       if (attr[key]) out[header] = attr[key]
     }
+    // 附带同意状态头，供后端判断是否记录个人数据
+    out['X-Consent-Analytics'] = hasAnalyticsConsent() ? 'true' : 'false'
     return out
   }
 

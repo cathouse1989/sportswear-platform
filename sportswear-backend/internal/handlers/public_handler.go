@@ -659,3 +659,59 @@ func (h *PublicHandler) TrackClick(c *gin.Context) {
 
 	utils.Success(c, gin.H{"tracked": true})
 }
+
+// RequestDataExport 数据主体请求导出个人数据（GDPR Art.15 / PIPL 第44-45条）
+// 用户通过提供邮箱确认身份，系统返回对应邮箱关联的所有询盘数据
+func (h *PublicHandler) RequestDataExport(c *gin.Context) {
+	var req struct {
+		Email string `json:"email" binding:"required,email"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, "请提供有效的邮箱地址")
+		return
+	}
+
+	data, err := h.leadService.ExportByEmail(req.Email)
+	if err != nil {
+		if err.Error() == "未找到对应的个人数据" {
+			utils.NotFound(c, err.Error())
+			return
+		}
+		utils.InternalError(c, err.Error())
+		return
+	}
+
+	utils.Success(c, gin.H{
+		"exported_at": time.Now(),
+		"data":        data,
+		"note":        "根据适用的数据保护法规，您有权获取我们持有的您的个人数据副本。",
+	})
+}
+
+// RequestDataDeletion 数据主体请求删除个人数据（GDPR Art.17 "被遗忘权" / PIPL 第47条）
+// 用户通过提供邮箱确认身份，系统将对应邮箱关联的所有询盘数据匿名化或删除
+func (h *PublicHandler) RequestDataDeletion(c *gin.Context) {
+	var req struct {
+		Email  string `json:"email" binding:"required,email"`
+		Reason string `json:"reason"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, "请提供有效的邮箱地址")
+		return
+	}
+
+	err := h.leadService.AnonymizeByEmail(req.Email, req.Reason)
+	if err != nil {
+		if err.Error() == "未找到对应的个人数据" {
+			utils.NotFound(c, "未找到与 "+req.Email+" 关联的数据，可能已被删除")
+			return
+		}
+		utils.InternalError(c, err.Error())
+		return
+	}
+
+	utils.Success(c, gin.H{
+		"message": "您的个人数据删除请求已处理。如有疑问，请联系我们。",
+		"email":   req.Email,
+	})
+}
