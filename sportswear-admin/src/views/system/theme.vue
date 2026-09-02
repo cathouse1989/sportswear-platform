@@ -13,8 +13,9 @@
             <span v-else class="text-gray-400 text-sm">未配置，将使用默认 SVG Logo</span>
           </div>
         </el-form-item>
-        <el-form-item label="系统名称">
+        <el-form-item label="系统名称" title="用于管理后台侧栏显示">
           <el-input v-model="adminSystemName" placeholder="管理后台侧栏 Logo 旁显示的名称，例如：OEM/ODM 管理系统" size="large" />
+          <div class="mt-1 text-xs text-gray-400">仅管理后台侧栏显示，与门户品牌名称独立</div>
         </el-form-item>
         <el-form-item label="品牌名称">
           <el-input v-model="brandName" placeholder="例如：SPORTSWEAR（门户头部/页脚显示）" size="large" />
