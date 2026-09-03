@@ -129,8 +129,8 @@ func EnsureCurrentQuarterTables(db *gorm.DB) error {
 func ExistingTables(db *gorm.DB, base string) ([]string, error) {
 	var names []string
 	if err := db.Raw(
-		"SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename LIKE ?",
-		base+"_%",
+		`SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename LIKE ? ESCAPE '|'`,
+		base+"|_%",
 	).Scan(&names).Error; err != nil {
 		return nil, err
 	}

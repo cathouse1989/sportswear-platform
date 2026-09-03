@@ -20,25 +20,26 @@
 
     <!-- 流量趋势 + 渠道来源 -->
     <el-row :gutter="20" class="mt-20">
-      <el-col :span="12"><el-card shadow="hover"><template #header>流量趋势（访次 / 独立 IP）</template><div ref="trendRef" style="height:280px"></div></el-card></el-col>
-      <el-col :span="12"><el-card shadow="hover"><template #header>渠道来源分布</template><div ref="sourceRef" style="height:280px"></div></el-card></el-col>
+      <el-col :span="12"><el-card shadow="hover"><template #header>流量趋势（访次 / 独立 IP）</template><el-alert v-if="sectionErrors['overview']" :title="'数据加载失败: ' + sectionErrors['overview']" type="warning" show-icon :closable="false" style="margin-bottom:12px" /><div ref="trendRef" style="height:280px"></div></el-card></el-col>
+      <el-col :span="12"><el-card shadow="hover"><template #header>渠道来源分布</template><el-alert v-if="sectionErrors['sources']" :title="'数据加载失败: ' + sectionErrors['sources']" type="warning" show-icon :closable="false" style="margin-bottom:12px" /><div ref="sourceRef" style="height:280px"></div></el-card></el-col>
     </el-row>
 
     <!-- 热门页面 + 热门产品 -->
     <el-row :gutter="20" class="mt-20">
-      <el-col :span="12"><el-card shadow="hover"><template #header>热门页面（浏览量 TOP 10）</template><div ref="pagesRef" style="height:320px"></div></el-card></el-col>
-      <el-col :span="12"><el-card shadow="hover"><template #header>热门产品（浏览量 TOP 10）</template><div ref="productsRef" style="height:320px"></div></el-card></el-col>
+      <el-col :span="12"><el-card shadow="hover"><template #header>热门页面（浏览量 TOP 10）</template><el-alert v-if="sectionErrors['topPages']" :title="'数据加载失败: ' + sectionErrors['topPages']" type="warning" show-icon :closable="false" style="margin-bottom:12px" /><div ref="pagesRef" style="height:320px"></div></el-card></el-col>
+      <el-col :span="12"><el-card shadow="hover"><template #header>热门产品（浏览量 TOP 10）</template><el-alert v-if="sectionErrors['topProducts']" :title="'数据加载失败: ' + sectionErrors['topProducts']" type="warning" show-icon :closable="false" style="margin-bottom:12px" /><div ref="productsRef" style="height:320px"></div></el-card></el-col>
     </el-row>
 
     <!-- 国家分布 + 设备分布 -->
     <el-row :gutter="20" class="mt-20">
-      <el-col :span="12"><el-card shadow="hover"><template #header>国家/地区分布</template><div ref="countryRef" style="height:320px"></div></el-card></el-col>
-      <el-col :span="12"><el-card shadow="hover"><template #header>设备类型分布</template><div ref="deviceRef" style="height:320px"></div></el-card></el-col>
+      <el-col :span="12"><el-card shadow="hover"><template #header>国家/地区分布</template><el-alert v-if="sectionErrors['countries']" :title="'数据加载失败: ' + sectionErrors['countries']" type="warning" show-icon :closable="false" style="margin-bottom:12px" /><div ref="countryRef" style="height:320px"></div></el-card></el-col>
+      <el-col :span="12"><el-card shadow="hover"><template #header>设备类型分布</template><el-alert v-if="sectionErrors['devices']" :title="'数据加载失败: ' + sectionErrors['devices']" type="warning" show-icon :closable="false" style="margin-bottom:12px" /><div ref="deviceRef" style="height:320px"></div></el-card></el-col>
     </el-row>
 
     <!-- UTM 广告归因 -->
     <el-row :gutter="20" class="mt-20">
       <el-col :span="24"><el-card shadow="hover"><template #header>广告归因（UTM Campaign 点击来源）</template>
+        <el-alert v-if="sectionErrors['utmCampaigns']" :title="'数据加载失败: ' + sectionErrors['utmCampaigns']" type="warning" show-icon :closable="false" style="margin-bottom:12px" />
         <el-table :data="utmCampaigns" v-loading="utmLoading" stripe style="width:100%">
           <el-table-column prop="campaign" label="Campaign" min-width="160" />
           <el-table-column prop="source" label="来源" width="120" />
@@ -51,6 +52,7 @@
     <!-- 社交媒体点击 -->
     <el-row :gutter="20" class="mt-20">
       <el-col :span="24"><el-card shadow="hover"><template #header>社交媒体点击（外部链接跳转）</template>
+        <el-alert v-if="sectionErrors['socialClicks']" :title="'数据加载失败: ' + sectionErrors['socialClicks']" type="warning" show-icon :closable="false" style="margin-bottom:12px" />
         <el-table :data="socialClicks" v-loading="socialLoading" stripe style="width:100%">
           <el-table-column prop="platform" label="平台" min-width="140" />
           <el-table-column prop="clicks" label="点击量" width="100" />
@@ -61,6 +63,7 @@
     <!-- 转化漏斗 -->
     <el-row :gutter="20" class="mt-20">
       <el-col :span="24"><el-card shadow="hover"><template #header>转化漏斗（页面浏览 → 产品浏览 → 询盘）</template>
+        <el-alert v-if="sectionErrors['funnel']" :title="'数据加载失败: ' + sectionErrors['funnel']" type="warning" show-icon :closable="false" style="margin-bottom:12px" />
         <div v-loading="funnelLoading" class="funnel-container">
           <div class="funnel-step">
             <div class="funnel-value">{{ funnelData.page_views || 0 }}</div>
@@ -129,6 +132,7 @@
     <!-- 隐私合规洞察 -->
     <el-row :gutter="20" class="mt-20">
       <el-col :span="24"><el-card shadow="hover"><template #header>隐私合规洞察（Cookie 同意与转化对比）</template>
+        <el-alert v-if="sectionErrors['consent']" :title="'数据加载失败: ' + sectionErrors['consent']" type="warning" show-icon :closable="false" style="margin-bottom:12px" />
         <div v-loading="consentLoading" class="consent-container">
           <div class="consent-stats">
             <div class="consent-stat-item">
@@ -181,6 +185,17 @@ echarts.use([BarChart, LineChart, PieChart, GridComponent, TooltipComponent, Leg
 const days = ref(7)
 const chartsLoading = ref(false)
 
+// 各模块错误状态（非阻断：某模块失败不影响其他模块渲染）
+const sectionErrors = ref<Record<string, string>>({})
+function setModuleError(module: string, err: unknown) {
+  const msg = err instanceof Error ? err.message : '加载失败'
+  sectionErrors.value[module] = msg
+  console.warn(`[analytics] ${module}:`, err)
+}
+function clearModuleError(module: string) {
+  delete sectionErrors.value[module]
+}
+
 const cards = ref([
   { label: '总访问量', value: 0 },
   { label: '独立 IP', value: 0 },
@@ -197,8 +212,11 @@ const getChart = (el: any): echarts.ECharts | null => (el ? (echarts.getInstance
 
 async function loadCharts() {
   chartsLoading.value = true
+  // 清除旧错误
+  ;['overview', 'sources', 'topPages', 'topProducts', 'countries', 'devices', 'utmCampaigns', 'socialClicks'].forEach(m => clearModuleError(m))
   try {
     const overview = await analyticsApi.overview({ days: days.value })
+    clearModuleError('overview')
     cards.value[0].value = fmt(overview?.total_visits)
     cards.value[1].value = fmt(overview?.unique_ips)
     cards.value[2].value = fmt(overview?.bot_visits)
@@ -217,38 +235,60 @@ async function loadCharts() {
         { name: '独立 IP', type: 'line', yAxisIndex: 1, smooth: true, data: trend.map((d: any) => d.unique_visitors || d.unique_ips) },
       ],
     })
+  } catch (e) { setModuleError('overview', e) }
 
+  try {
     const sources = await analyticsApi.sources({ days: days.value })
+    clearModuleError('sources')
     const sr = getChart(sourceRef.value) || initChart(sourceRef.value, {})
     sr.setOption({
       tooltip: { trigger: 'item' },
       legend: { left: 'center', top: 'bottom', data: (sources || []).map((i: any) => i.source) },
       series: [{ type: 'pie', radius: ['35%', '70%'], label: { formatter: '{b}: {c} ({d}%)' }, data: (sources || []).map((i: any) => ({ name: i.source, value: i.visits || i.count })) }],
     })
+  } catch (e) { setModuleError('sources', e) }
 
+  try {
     const topPages = await analyticsApi.topPages({ days: days.value })
+    clearModuleError('topPages')
     const pr = getChart(pagesRef.value) || initChart(pagesRef.value, {})
     pr.setOption({ tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } }, yAxis: { type: 'category', data: (topPages || []).map((i: any) => i.path) }, xAxis: { type: 'value' }, series: [{ type: 'bar', data: (topPages || []).map((i: any) => i.views) }] })
+  } catch (e) { setModuleError('topPages', e) }
 
+  try {
     const topProducts = await analyticsApi.topProducts({ days: days.value })
+    clearModuleError('topProducts')
     const pc = getChart(productsRef.value) || initChart(productsRef.value, {})
     pc.setOption({ tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } }, yAxis: { type: 'category', data: (topProducts || []).map((i: any) => i.name) }, xAxis: { type: 'value' }, series: [{ type: 'bar', data: (topProducts || []).map((i: any) => i.views) }] })
+  } catch (e) { setModuleError('topProducts', e) }
 
+  try {
     const countries = await analyticsApi.countries({ days: days.value })
+    clearModuleError('countries')
     const cr = getChart(countryRef.value) || initChart(countryRef.value, {})
     cr.setOption({ tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } }, yAxis: { type: 'category', inverse: true, data: (countries || []).slice(0, 10).map((i: any) => i.country || i.region) }, xAxis: { type: 'value' }, series: [{ type: 'bar', data: (countries || []).slice(0, 10).map((i: any) => i.visits || i.count) }] })
+  } catch (e) { setModuleError('countries', e) }
 
+  try {
     const devices = await analyticsApi.devices({ days: days.value })
+    clearModuleError('devices')
     cards.value[4].value = devices?.mobile_ratio ? ((Number(devices.mobile_ratio) * 100).toFixed(0) + '%') : '0%'
     const dr = getChart(deviceRef.value) || initChart(deviceRef.value, {})
     dr.setOption({ tooltip: { trigger: 'item' }, legend: { left: 'center', top: 'bottom', data: (devices?.devices || []).map((i: any) => i.device) }, series: [{ type: 'pie', radius: ['35%', '70%'], label: { formatter: '{b}: {c} ({d}%)' }, data: (devices?.devices || []).map((i: any) => ({ name: i.device, value: i.visits })) }] })
+  } catch (e) { setModuleError('devices', e) }
 
+  try {
     const utm = await analyticsApi.utmCampaigns({ days: days.value })
+    clearModuleError('utmCampaigns')
     utmCampaigns.value = utm || []
-
+  } catch (e) { setModuleError('utmCampaigns', e) }
+  try {
     const social = await analyticsApi.socialClicks({ days: days.value })
+    clearModuleError('socialClicks')
     socialClicks.value = social || []
-  } catch { /* ignore */ } finally { chartsLoading.value = false }
+  } catch (e) { setModuleError('socialClicks', e) }
+
+  chartsLoading.value = false
 }
 
 const utmCampaigns = ref<any[]>([])
@@ -264,7 +304,8 @@ async function loadFunnel() {
   funnelLoading.value = true
   try {
     funnelData.value = await analyticsApi.conversionFunnel({ days: days.value })
-  } catch { /* ignore */ } finally { funnelLoading.value = false }
+    clearModuleError('funnel')
+  } catch (e) { setModuleError('funnel', e) } finally { funnelLoading.value = false }
 }
 
 // ============ 访客旅程 ============
@@ -279,8 +320,9 @@ async function loadJourney() {
   journeyQueried.value = true
   try {
     const rows = await analyticsApi.visitorJourney({ visitor_id: journeyQuery.value.trim(), days: 90 })
+    clearModuleError('journey')
     journeyRows.value = rows || []
-  } catch { journeyRows.value = [] } finally { journeyLoading.value = false }
+  } catch (e) { setModuleError('journey', e); journeyRows.value = [] } finally { journeyLoading.value = false }
 }
 
 // ============ IP-询盘关联 ============
@@ -295,8 +337,9 @@ async function loadIPLeads() {
   ipQueried.value = true
   try {
     const rows = await analyticsApi.ipLeads({ ip: ipQuery.value.trim(), days: 90 })
+    clearModuleError('ipLeads')
     ipLeadsRows.value = rows || []
-  } catch { ipLeadsRows.value = [] } finally { ipLeadsLoading.value = false }
+  } catch (e) { setModuleError('ipLeads', e); ipLeadsRows.value = [] } finally { ipLeadsLoading.value = false }
 }
 
 // ============ 隐私合规洞察 ============
@@ -307,7 +350,8 @@ async function loadConsentInsights() {
   consentLoading.value = true
   try {
     consentData.value = await analyticsApi.consentInsights({ days: days.value })
-  } catch { /* ignore */ } finally { consentLoading.value = false }
+    clearModuleError('consent')
+  } catch (e) { setModuleError('consent', e) } finally { consentLoading.value = false }
 }
 
 onMounted(() => { loadCharts(); loadFunnel(); loadConsentInsights() })

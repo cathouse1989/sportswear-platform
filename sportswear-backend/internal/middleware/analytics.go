@@ -87,14 +87,14 @@ func ParseUserAgent(ua string) (device, browser, os string) {
 	}
 
 	switch {
+	case strings.Contains(ua, "Android"):
+		os = "Android"
+	case strings.Contains(ua, "iPhone") || strings.Contains(ua, "iPad") || strings.Contains(ua, "iPod"):
+		os = "iOS"
 	case strings.Contains(ua, "Windows"):
 		os = "Windows"
 	case strings.Contains(ua, "Mac OS"):
 		os = "macOS"
-	case strings.Contains(ua, "Android"):
-		os = "Android"
-	case strings.Contains(ua, "iPhone") || strings.Contains(ua, "iPad"):
-		os = "iOS"
 	case strings.Contains(ua, "Linux"):
 		os = "Linux"
 	default:

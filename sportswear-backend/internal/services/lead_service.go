@@ -393,7 +393,13 @@ func (s *LeadService) DeleteLead(id string) error {
 func (s *LeadService) GetDashboardStats() (map[string]interface{}, error) {
 	now := time.Now()
 	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	weekStart := todayStart.AddDate(0, 0, -7)
+	// 本周一（周一 00:00:00）：Weekday() 返回 0=Sunday, 1=Monday...6=Saturday
+	weekday := now.Weekday()
+	daysSinceMonday := int(weekday) - 1
+	if weekday == time.Sunday {
+		daysSinceMonday = 6
+	}
+	weekStart := todayStart.AddDate(0, 0, -daysSinceMonday)
 	monthStart := todayStart.AddDate(0, -1, 0)
 
 	var todayCount, weekCount, monthCount, highValueCount, wonCount int64
