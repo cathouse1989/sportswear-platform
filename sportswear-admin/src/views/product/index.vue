@@ -345,9 +345,23 @@
 
           <el-tab-pane label="翻译" name="translations">
             <div class="tab-pane-content">
+              <el-alert
+                type="info"
+                :closable="false"
+                show-icon
+                class="translation-alert"
+                title="英文为源语言：上方「基本信息 / 详细信息」中的内容即英文源，保存时自动写入英文翻译；其他语言可一键同步英文内容后微调。"
+              />
               <div v-for="(t, idx) in form.translations" :key="idx" class="translation-item">
                 <div class="translation-header">
                   <span class="translation-lang-badge">{{ t.language === 'zh' ? '中文' : t.language === 'es' ? 'Español' : t.language === 'fr' ? 'Français' : 'English' }}</span>
+                  <el-tag :type="t.name ? 'success' : 'info'" size="small" effect="plain">{{ t.name ? '已翻译' : '未翻译' }}</el-tag>
+                  <el-button size="small" text type="primary" @click="syncTranslationFromEn(idx)">同步英文内容</el-button>
+                  <span class="translation-sort-label">该语言排序</span>
+                  <el-input-number v-model="t.sort_order" :min="0" size="small" controls-position="right" style="width: 110px" />
+                  <el-tooltip content="该语言站点中的展示顺序（越小越靠前），0 = 跟随全局排序" placement="top">
+                    <span class="translation-sort-help">?</span>
+                  </el-tooltip>
                   <el-button v-if="t.language !== 'en'" size="small" type="danger" text @click="removeTranslation(idx)">移除</el-button>
                 </div>
                 <el-form-item :label="'名称'">
@@ -467,21 +481,34 @@
             <el-tag size="small" type="info" effect="plain">{{ productImages.length }} 张</el-tag>
           </div>
           <div class="image-grid">
-            <div v-for="(img, idx) in productImages" :key="img.id" class="image-item">
-              <el-image :src="img.url" fit="cover" class="image-thumb" />
-              <div class="image-item-overlay">
-                <el-tooltip content="设为封面" placement="top">
-                  <el-button size="small" circle @click="setAsCover(img)" class="overlay-btn">
-                    <template #icon><el-icon color="#fff"><Star /></el-icon></template>
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip content="删除" placement="top">
-                  <el-button size="small" circle type="danger" @click="deleteImage(img, idx)" class="overlay-btn">
-                    <template #icon><el-icon color="#fff"><Delete /></el-icon></template>
-                  </el-button>
-                </el-tooltip>
+            <div v-for="(img, idx) in productImages" :key="img.id" class="image-item-wrap">
+              <div class="image-item">
+                <el-image :src="img.url" fit="cover" class="image-thumb" />
+                <div class="image-item-overlay">
+                  <el-tooltip content="设为封面" placement="top">
+                    <el-button size="small" circle @click="setAsCover(img)" class="overlay-btn">
+                      <template #icon><el-icon color="#fff"><Star /></el-icon></template>
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip content="前移" placement="top">
+                    <el-button size="small" circle @click="moveImage(idx, -1)" :disabled="idx === 0" class="overlay-btn">
+                      <template #icon><el-icon color="#fff"><ArrowUp /></el-icon></template>
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip content="后移" placement="top">
+                    <el-button size="small" circle @click="moveImage(idx, 1)" :disabled="idx === productImages.length - 1" class="overlay-btn">
+                      <template #icon><el-icon color="#fff"><ArrowDown /></el-icon></template>
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip content="删除" placement="top">
+                    <el-button size="small" circle type="danger" @click="deleteImage(img, idx)" class="overlay-btn">
+                      <template #icon><el-icon color="#fff"><Delete /></el-icon></template>
+                    </el-button>
+                  </el-tooltip>
+                </div>
+                <div v-if="img.url === imageCoverUrl" class="image-cover-badge">封面</div>
               </div>
-              <div v-if="img.url === imageCoverUrl" class="image-cover-badge">封面</div>
+              <el-input v-model="img.alt" size="small" placeholder="alt 描述（SEO / 无障碍）" class="image-alt-input" />
             </div>
             <el-upload class="image-upload-box" :show-file-list="false" :before-upload="beforeImageUpload" accept="image/*" multiple>
               <div class="upload-trigger">
@@ -613,7 +640,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Star, Delete, ArrowDown, Search } from '@element-plus/icons-vue'
+import { Plus, Star, Delete, ArrowDown, ArrowUp, Search } from '@element-plus/icons-vue'
 import { productApi, mediaApi, categoryApi, seriesApi, fabricApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
 import type { Product, Media, Category, Series, Fabric } from '@/types'
@@ -680,7 +707,7 @@ const form = reactive({
   production_moq: 300,
   color_moq: 100,
   size_moq: 100,
-  translations: [] as Array<{ language: string; name: string; brief: string; description: string; features: string; usage: string }>,
+  translations: [] as Array<{ language: string; name: string; brief: string; description: string; features: string; usage: string; sort_order: number }>,
   seo: { title: '', description: '', keywords: '', og_title: '', og_description: '', og_image: '' },
   series_ids: [] as string[],
   fabric_ids: [] as string[],
@@ -690,7 +717,7 @@ const form = reactive({
 const imageDialogVisible = ref(false)
 const imageProductId = ref('')
 const imageCoverUrl = ref('')
-const productImages = ref<Array<{ id: string; url: string; sort_order: number }>>([])
+const productImages = ref<Array<{ id: string; url: string; alt: string; sort_order: number }>>([])
 // 打开对话框时拉取的完整产品详情快照（用于整体 PUT 时补齐标量字段）
 const imageDetail = ref<any>(null)
 const uploading = ref(false)
@@ -870,13 +897,14 @@ async function openEditDialog(row: Product) {
       production_moq: detail.production_moq || 300,
       color_moq: detail.color_moq || 100,
       size_moq: detail.size_moq || 100,
-      translations: (detail.translations || []).map((t: any) => ({
+      translations: (detail.translations || []).filter((t: any) => t.language !== 'en').map((t: any) => ({
         language: t.language,
         name: t.name,
         brief: t.brief || '',
         description: t.description || '',
         features: t.features || '',
         usage: t.usage || '',
+        sort_order: t.sort_order || 0,
       })),
       series_ids: (detail.series || []).map((s: any) => s.id),
       fabric_ids: (detail.fabrics || []).map((f: any) => f.id),
@@ -952,13 +980,36 @@ function handleMoreAction(cmd: string, row: Product) {
 }
 
 // 翻译管理
+// 英文为源语言：主表单「基本信息/详细信息」中的内容即英文源，
+// 保存时自动写入 en 翻译（见 handleSave）；其他语言从这里同步后微调。
 function addTranslation() {
   const langs = ['zh', 'es', 'fr'].filter(l => !form.translations.find(t => t.language === l))
   if (langs.length === 0) {
     ElMessage.warning('所有语言已添加')
     return
   }
-  form.translations.push({ language: langs[0], name: '', brief: '', description: '', features: '', usage: '' })
+  // 新增语言时自动同步英文源内容，避免从零录入
+  form.translations.push({
+    language: langs[0],
+    name: form.name,
+    brief: form.brief,
+    description: form.description,
+    features: form.features,
+    usage: form.usage,
+    sort_order: 0,
+  })
+}
+
+// 一键同步英文源到指定语言词条（同步后可人工微调）
+function syncTranslationFromEn(idx: number) {
+  const t = form.translations[idx]
+  if (!t) return
+  t.name = form.name
+  t.brief = form.brief
+  t.description = form.description
+  t.features = form.features
+  t.usage = form.usage
+  ElMessage.success('已同步英文内容，可在此基础上修改')
 }
 
 function removeTranslation(idx: number) {
@@ -1051,7 +1102,7 @@ async function openImageDialog(row: Product) {
     if (detail.images?.length) {
       productImages.value = detail.images
         .filter(i => i.type !== 'cover')
-        .map(i => ({ id: i.id, url: i.url, sort_order: i.sort_order }))
+        .map(i => ({ id: i.id, url: i.url, alt: (i as any).alt || '', sort_order: i.sort_order }))
       if (!imageCoverUrl.value) {
         const cover = detail.images.find(i => i.type === 'cover')
         if (cover) imageCoverUrl.value = cover.url
@@ -1091,7 +1142,7 @@ async function beforeImageUpload(file: File) {
     formData.append('file', file)
     const result = await mediaApi.upload(formData)
     if (imageProductId.value) {
-      productImages.value.push({ id: Date.now().toString(), url: result.url, sort_order: productImages.value.length })
+      productImages.value.push({ id: Date.now().toString(), url: result.url, alt: '', sort_order: productImages.value.length })
       await saveProductImages()
     }
     uploadProgress.value = 100
@@ -1130,6 +1181,22 @@ async function deleteImage(img: { id: string; url: string }, idx: number) {
     ElMessage.success('图片已删除')
     loadData()
   } catch {}
+}
+
+// 图片排序：dir -1 前移 / 1 后移，保存后按数组顺序持久化 sort_order，
+// 门户详情页的图集 / 浮动查看器即按此顺序展示
+async function moveImage(idx: number, dir: number) {
+  const target = idx + dir
+  if (target < 0 || target >= productImages.value.length) return
+  const list = productImages.value
+  const [item] = list.splice(idx, 1)
+  list.splice(target, 0, item)
+  try {
+    await saveProductImages()
+    ElMessage.success('顺序已更新')
+  } catch {
+    ElMessage.error('顺序保存失败')
+  }
 }
 
 // 规格管理
@@ -1593,6 +1660,9 @@ onMounted(() => {
 }
 
 /* 翻译 */
+.translation-alert {
+  margin-bottom: 12px;
+}
 .translation-item {
   background: #f9fafb;
   border: 1px solid #eef0f4;
@@ -1604,6 +1674,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 12px;
 }
 .translation-lang-badge {
@@ -1613,6 +1685,23 @@ onMounted(() => {
   color: #4f46e5;
   padding: 3px 10px;
   border-radius: 6px;
+}
+.translation-sort-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-left: auto;
+}
+.translation-sort-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: #6b7280;
+  font-size: 11px;
+  cursor: help;
 }
 .add-translation-btn {
   margin-top: 8px;
@@ -1706,6 +1795,19 @@ onMounted(() => {
 }
 .image-item:hover {
   border-color: #6366f1;
+}
+.image-item-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.image-alt-input {
+  width: 100%;
+}
+.image-item-wrap .image-item-overlay {
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 0 4px;
 }
 .image-thumb {
   width: 100%;

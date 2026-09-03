@@ -18,7 +18,7 @@
       <div class="grid lg:grid-cols-2 gap-8 lg:gap-12">
         <!-- Left: Image Gallery -->
         <div>
-          <div class="relative bg-white rounded-2xl overflow-hidden border border-[#EAE5DD] aspect-[4/5] mb-4">
+          <div class="relative bg-white rounded-2xl overflow-hidden border border-[#EAE5DD] aspect-[4/5] mb-4 cursor-zoom-in" @click="openLightbox(currentImageIndex)">
             <img
               v-if="currentImage"
               :src="currentImage"
@@ -31,10 +31,10 @@
               {{ currentImageIndex + 1 }} / {{ allImages.length }}
             </div>
             <!-- Prev/Next -->
-            <button v-if="allImages.length > 1" @click="prevImage" class="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 rounded-full flex items-center justify-center shadow hover:bg-white transition">
+            <button v-if="allImages.length > 1" @click.stop="prevImage" class="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 rounded-full flex items-center justify-center shadow hover:bg-white transition">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
             </button>
-            <button v-if="allImages.length > 1" @click="nextImage" class="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 rounded-full flex items-center justify-center shadow hover:bg-white transition">
+            <button v-if="allImages.length > 1" @click.stop="nextImage" class="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 rounded-full flex items-center justify-center shadow hover:bg-white transition">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
             </button>
           </div>
@@ -248,7 +248,7 @@
       <div v-if="product.images?.length" class="mt-8 lg:mt-12">
         <h2 class="text-xl font-bold text-[#0D1B2A] mb-6">{{ $t('product.detail.gallery') }}</h2>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          <div v-for="(img, i) in product.images" :key="img.id || i" class="bg-white rounded-2xl overflow-hidden border border-[#EAE5DD] aspect-square cursor-pointer group" @click="currentImageIndex = allImages.indexOf(img.url)">
+          <div v-for="(img, i) in product.images" :key="img.id || i" class="bg-white rounded-2xl overflow-hidden border border-[#EAE5DD] aspect-square cursor-zoom-in group" @click="openLightbox(allImages.indexOf(img.url))">
             <img :src="img.url" :alt="img.alt || product.sku" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
           </div>
         </div>
@@ -268,6 +268,53 @@
             </div>
           </div>
           <div v-if="activeVideo.title" class="p-4 text-sm font-medium text-gray-700">{{ activeVideo.title }}</div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- 浮动图片查看器（Lightbox）：封面 + 图集多图全屏浮动展示 -->
+    <transition name="fade">
+      <div
+        v-if="lightboxOpen && allImages.length"
+        class="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center select-none"
+        @click.self="closeLightbox"
+      >
+        <!-- Close -->
+        <button
+          class="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center transition"
+          :aria-label="$t('common.close')"
+          @click="closeLightbox"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+        <!-- Prev -->
+        <button
+          v-if="allImages.length > 1"
+          class="absolute left-3 md:left-6 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center transition"
+          aria-label="Previous image"
+          @click.stop="lightboxPrev"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+        </button>
+        <!-- 当前图片 -->
+        <img
+          :src="allImages[lightboxIndex]"
+          :alt="product?.sku"
+          class="max-h-[85vh] max-w-[92vw] object-contain rounded-lg shadow-2xl"
+          @click.stop
+        />
+        <!-- Next -->
+        <button
+          v-if="allImages.length > 1"
+          class="absolute right-3 md:right-6 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center transition"
+          aria-label="Next image"
+          @click.stop="lightboxNext"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+        </button>
+        <!-- Counter -->
+        <div v-if="allImages.length > 1" class="absolute bottom-5 left-1/2 -translate-x-1/2 bg-black/50 text-white text-xs px-3 py-1 rounded-full">
+          {{ lightboxIndex + 1 }} / {{ allImages.length }}
         </div>
       </div>
     </transition>
@@ -309,6 +356,43 @@ const { locale } = useI18n()
 const currentImageIndex = ref(0)
 const copied = ref(false)
 const activeVideo = ref<any>(null)
+
+// ==================== 浮动图片查看器（Lightbox） ====================
+// 点击主图 / 图集图片进入全屏浮动展示：支持前后切换、键盘 ←/→/Esc、点击遮罩关闭
+const lightboxOpen = ref(false)
+const lightboxIndex = ref(0)
+
+function openLightbox(index: number) {
+  if (!allImages.value.length) return
+  lightboxIndex.value = Math.max(0, Math.min(index, allImages.value.length - 1))
+  lightboxOpen.value = true
+}
+
+function closeLightbox() {
+  lightboxOpen.value = false
+}
+
+function lightboxPrev() {
+  lightboxIndex.value = (lightboxIndex.value - 1 + allImages.value.length) % allImages.value.length
+}
+
+function lightboxNext() {
+  lightboxIndex.value = (lightboxIndex.value + 1) % allImages.value.length
+}
+
+function onLightboxKeydown(e: KeyboardEvent) {
+  if (!lightboxOpen.value) return
+  if (e.key === 'Escape') closeLightbox()
+  else if (e.key === 'ArrowLeft') lightboxPrev()
+  else if (e.key === 'ArrowRight') lightboxNext()
+}
+
+// 打开时锁定页面滚动，避免背景跟随滚动
+watch(lightboxOpen, (open) => {
+  if (import.meta.client) {
+    document.body.style.overflow = open ? 'hidden' : ''
+  }
+})
 
 const slug = route.params.slug as string
 
@@ -427,6 +511,17 @@ async function copyProductInfo() {
 
 onMounted(() => {
   // 产品数据已在 SSR 阶段通过 useAsyncData 拉取并 hydration 复用，无需再次请求
+  // 浮动图片查看器：键盘导航（←/→ 切换，Esc 关闭）
+  if (import.meta.client) {
+    window.addEventListener('keydown', onLightboxKeydown)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (import.meta.client) {
+    window.removeEventListener('keydown', onLightboxKeydown)
+    document.body.style.overflow = ''
+  }
 })
 </script>
 

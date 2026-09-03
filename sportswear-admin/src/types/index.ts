@@ -94,6 +94,8 @@ export interface ProductTranslation {
   description: string
   features?: string
   usage?: string
+  /** 语言维度展示排序权重（0 = 跟随全局排序） */
+  sort_order?: number
   status: string
 }
 

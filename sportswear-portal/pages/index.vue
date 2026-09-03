@@ -35,7 +35,7 @@
               </div>
             </div>
             <div class="p-3 md:p-5">
-              <h3 class="text-xs md:text-sm font-semibold text-[#0D1B2A]">{{ p.sku }}</h3>
+              <h3 class="text-xs md:text-sm font-semibold text-[#0D1B2A]">{{ p.name || p.sku }}</h3>
               <p class="text-[10px] md:text-sm text-gray-500 mt-0.5 md:mt-1">{{ p.brief?.slice(0, 60) }}</p>
             </div>
           </NuxtLink>

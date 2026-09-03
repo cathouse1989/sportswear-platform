@@ -73,7 +73,7 @@ func buildHomeData(cmsSvc *CMSService, productSvc *ProductService, lang string) 
 	)
 
 	wg.Add(6)
-	go func() { defer wg.Done(); products, _ = productSvc.ListFeaturedProducts(8) }()
+	go func() { defer wg.Done(); products, _ = productSvc.ListFeaturedProducts(8, lang) }()
 	go func() { defer wg.Done(); categories, _ = productSvc.ListCategories() }()
 	go func() { defer wg.Done(); blogs, _, _ = cmsSvc.ListBlogs(1, 4, "", "published") }()
 	go func() { defer wg.Done(); cases, _, _ = cmsSvc.ListPublishedCases(1, 4, "") }()

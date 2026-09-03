@@ -96,7 +96,7 @@
           </div>
           <div class="p-3 md:p-4">
             <div class="flex items-start justify-between mb-2">
-              <h3 class="font-semibold text-gray-900 group-hover:text-black transition-colors text-xs md:text-sm">{{ p.sku }}</h3>
+              <h3 class="font-semibold text-gray-900 group-hover:text-black transition-colors text-xs md:text-sm">{{ p.name || p.sku }}</h3>
               <span class="text-[10px] md:text-xs bg-gray-100 px-2 py-0.5 rounded font-medium text-gray-600">{{ p.gender }}</span>
             </div>
             <p class="text-[10px] md:text-xs text-gray-500 line-clamp-2">{{ p.brief?.slice(0, 60) || p.description?.slice(0, 60) }}</p>

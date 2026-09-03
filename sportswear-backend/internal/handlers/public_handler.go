@@ -108,7 +108,7 @@ func (h *PublicHandler) GetHome(c *gin.Context) {
 		)
 
 		wg.Add(6)
-		go func() { defer wg.Done(); products, _ = h.productService.ListFeaturedProducts(8) }()
+		go func() { defer wg.Done(); products, _ = h.productService.ListFeaturedProducts(8, lang) }()
 		go func() { defer wg.Done(); categories, _ = h.productService.ListCategories() }()
 		go func() { defer wg.Done(); blogs, _, _ = h.cmsService.ListBlogs(1, 4, "", "published") }()
 		go func() { defer wg.Done(); cases, _, _ = h.cmsService.ListPublishedCases(1, 4, "") }()
@@ -298,6 +298,8 @@ func (h *PublicHandler) ListProducts(c *gin.Context) {
 			FabricID:   c.Query("fabric_id"),
 			SortBy:     c.Query("sort_by"),
 			SortOrder:  c.Query("sort_order"),
+			// 按访问语言动态排序：不同语种市场有各自的特色运动与运动服装
+			Language: lang,
 		}
 
 		products, total, err := h.productService.ListProductsV2(params)

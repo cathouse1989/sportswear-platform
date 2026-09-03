@@ -45,11 +45,21 @@ type ProductListParams struct {
 	IsNew      *bool  `json:"is_new"`
 	SortBy     string `json:"sort_by"`    // sort_order, created_at, sku
 	SortOrder  string `json:"sort_order"` // asc, desc
+	// Language 语言维度动态排序：不同地区/语种市场有各自的特色运动与运动服装，
+	// 门户按访问语言返回该语言下配置的展示顺序（翻译表 sort_order，0 回退全局）。
+	Language string `json:"language"`
 }
 
-// ListFeaturedProducts 推荐产品列表（仅 is_featured=true）
-func (s *ProductService) ListFeaturedProducts(limit int) ([]models.Product, error) {
-	products, _, err := s.listProducts(1, limit, "", "", "published", true, "")
+// ListFeaturedProducts 推荐产品列表（仅 is_featured=true，按语言动态排序）
+func (s *ProductService) ListFeaturedProducts(limit int, lang string) ([]models.Product, error) {
+	featured := true
+	products, _, err := s.listProductsV2(&ProductListParams{
+		Page:       1,
+		PageSize:   limit,
+		Status:     "published",
+		IsFeatured: &featured,
+		Language:   lang,
+	})
 	return products, err
 }
 
@@ -139,16 +149,41 @@ func (s *ProductService) listProductsV2(params *ProductListParams) ([]models.Pro
 	// 排序
 	orderClause := "sort_order ASC, created_at DESC"
 	if params.SortBy != "" {
-		dir := "ASC"
-		if params.SortOrder == "desc" {
-			dir = "DESC"
+		// 白名单校验，防止 ORDER BY 注入
+		allowedSortBy := map[string]bool{
+			"sort_order": true, "created_at": true, "sku": true,
+			"sample_moq": true, "production_moq": true,
 		}
-		orderClause = params.SortBy + " " + dir
+		if allowedSortBy[params.SortBy] {
+			dir := "ASC"
+			if params.SortOrder == "desc" {
+				dir = "DESC"
+			}
+			orderClause = params.SortBy + " " + dir
+		} else {
+			params.SortBy = ""
+		}
 	}
 
-	err := query.Preload("Category").Preload("Translations").Preload("Images").
+	db := query.Preload("Category").Preload("Translations").Preload("Images").
 		Preload("Series").Preload("Fabrics").
-		Offset((params.Page - 1) * params.PageSize).Limit(params.PageSize).Order(orderClause).Find(&products).Error
+		Offset((params.Page - 1) * params.PageSize).Limit(params.PageSize)
+
+	// 语言维度动态排序：不同地区/语种市场有各自的特色运动与运动服装，
+	// 优先取该语言翻译上配置的 sort_order（0/未配置回退全局 sort_order）。
+	// 使用参数化子查询，防止语言值注入 ORDER BY。
+	if params.Language != "" && params.SortBy == "" {
+		db = db.Order(gorm.Expr(
+			"COALESCE(NULLIF((SELECT pt.sort_order FROM product_translations pt "+
+				"WHERE pt.product_id = products.id AND pt.language = ? AND pt.deleted_at IS NULL LIMIT 1), 0), "+
+				"products.sort_order) ASC, products.sort_order ASC, products.created_at DESC",
+			params.Language,
+		))
+	} else {
+		db = db.Order(orderClause)
+	}
+
+	err := db.Find(&products).Error
 
 	return products, total, err
 }
@@ -225,6 +260,7 @@ func (s *ProductService) CreateProduct(req *ProductRequest) (*models.Product, er
 				Description: t.Description,
 				Features:    t.Features,
 				Usage:       t.Usage,
+				SortOrder:   t.SortOrder,
 				Status:      models.TranslationStatusPublished,
 			}
 			s.db.Create(&translation)
@@ -444,6 +480,8 @@ type ProductTranslationRequest struct {
 	Description string `json:"description"`
 	Features    string `json:"features"`
 	Usage       string `json:"usage"`
+	// SortOrder 语言维度的展示排序权重（0 = 跟随全局排序）
+	SortOrder int `json:"sort_order"`
 }
 
 // SEORequest SEO 请求
@@ -514,6 +552,7 @@ func (s *ProductService) UpdateProduct(id string, req *ProductRequest) (*models.
 					Description: t.Description,
 					Features:    t.Features,
 					Usage:       t.Usage,
+					SortOrder:   t.SortOrder,
 					Status:      models.TranslationStatusPublished,
 				})
 			} else {
@@ -523,6 +562,7 @@ func (s *ProductService) UpdateProduct(id string, req *ProductRequest) (*models.
 					"description": t.Description,
 					"features":    t.Features,
 					"usage":       t.Usage,
+					"sort_order":  t.SortOrder,
 					"status":      models.TranslationStatusPublished,
 				})
 			}
