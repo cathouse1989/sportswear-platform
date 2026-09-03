@@ -951,6 +951,8 @@ async function handleSave() {
         description: form.description || '',
         features: form.features || '',
         usage: form.usage || '',
+        // en 为源语言，语言维度排序 0 = 跟随全局 sort_order
+        sort_order: 0,
       }
       const enIdx = translations.findIndex(t => t.language === 'en')
       if (enIdx >= 0) translations[enIdx] = enEntry
