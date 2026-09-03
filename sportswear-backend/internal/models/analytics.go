@@ -2,20 +2,25 @@ package models
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // VisitLog 访问日志（流量监测，商业价值分析）
 // 客户维度信息：设备（PC/移动/Pad）、IP、国家、语言、时间、来源归因等。
-// 按季度分表存储：visit_logs_YYYYMMDD（YYYYMMDD=季度起始日），见 database/partition.go。
+// 按月分表存储：visit_logs_YYYYMM（YYYYMM=月份），见 database/partition.go。
 type VisitLog struct {
 	ID        uint      `gorm:"primaryKey;autoIncrement" json:"id"`
 	CreatedAt time.Time `gorm:"index" json:"created_at"`
+	// 访问类型（区分页面浏览和 API 请求，解决重复统计问题）
+	VisitType string `gorm:"type:varchar(20);index" json:"visit_type"` // page_view | api_call
 	// 访问者信息（客户维度）
+	VisitorID   string `gorm:"type:varchar(64);index" json:"visitor_id"`    // 访客唯一标识（前端生成 UUID，存 localStorage）
 	IP          string `gorm:"type:varchar(50);index" json:"ip"`
-	Country     string `gorm:"type:varchar(100);index" json:"country"` // 国家（ISO2 代码 / 国家名）
-	Language    string `gorm:"type:varchar(10);index" json:"language"` // 客户端语言（en/zh/es/...）
-	Device      string `gorm:"type:varchar(20)" json:"device"`         // desktop, mobile, tablet, bot
-	DeviceModel string `gorm:"type:varchar(100)" json:"device_model"`  // 设备型号（iPhone / iPad / SM-xxx / Windows PC ...）
+	Country     string `gorm:"type:varchar(100);index" json:"country"`      // 国家（ISO2 代码 / 国家名）
+	Language    string `gorm:"type:varchar(10);index" json:"language"`      // 客户端语言（en/zh/es/...）
+	Device      string `gorm:"type:varchar(20)" json:"device"`              // desktop, mobile, tablet, bot
+	DeviceModel string `gorm:"type:varchar(100)" json:"device_model"`       // 设备型号（iPhone / iPad / SM-xxx / Windows PC ...）
 	Browser     string `gorm:"type:varchar(50)" json:"browser"`
 	OS          string `gorm:"type:varchar(50)" json:"os"`
 	UserAgent   string `gorm:"type:varchar(500)" json:"user_agent"`
@@ -39,9 +44,13 @@ type VisitLog struct {
 	UtmContent string `gorm:"type:varchar(200)" json:"utm_content"`
 	UtmTerm    string `gorm:"type:varchar(200)" json:"utm_term"`
 	SessionID  string `gorm:"type:varchar(64);index" json:"session_id"`
+	// 隐私合规
+	ConsentStatus string `gorm:"type:varchar(20)" json:"consent_status"` // granted | denied | unknown
+	// 转化关联
+	LeadID *uuid.UUID `gorm:"type:uuid;index" json:"lead_id"` // 关联询盘 ID（访问转化为询盘后回写）
 }
 
-// TableName 表名（基础表；实际写入按季度分表，见 database.QuarterTableName）
+// TableName 表名（基础表；实际写入按月分表，见 database.MonthTableName）
 func (VisitLog) TableName() string {
 	return "visit_logs"
 }

@@ -27,11 +27,11 @@ func init() {
 					continue
 				}
 			}
-			// 按季度分表写入：visit_logs_YYYYMMDD（YYYYMMDD=季度起始日）
+			// 按月分表写入：visit_logs_YYYYMM（YYYYMM=月份）
 			if log.CreatedAt.IsZero() {
 				log.CreatedAt = time.Now()
 			}
-			tableName := database.QuarterTableName("visit_logs", log.CreatedAt)
+			tableName := database.MonthTableName("visit_logs", log.CreatedAt)
 			if err := database.EnsureTable(db, tableName, &models.VisitLog{}); err == nil {
 				db.Table(tableName).Create(&log)
 			}
@@ -217,7 +217,7 @@ func firstNonEmpty(vals ...string) string {
 // Analytics 访问监测中间件：记录门户（公开）接口的访问数据到 DB + 访问日志
 // 仅统计门户流量用于商业价值分析：热门页面、热门产品、来源归因、国家/设备/语言分布
 // 后台流量没有商业价值，不在此记录。请将此中间件注册到 /api/v1/public 路由组。
-// 数据按季度分表写入 visit_logs_YYYYMMDD。
+// 数据按月分表写入 visit_logs_YYYYMM。
 func Analytics() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 只记录 GET 请求的页面浏览行为（POST 由各 handler 自行记录，如 click-track）
@@ -234,6 +234,12 @@ func Analytics() gin.HandlerFunc {
 		// 隐私合规检查：仅当用户同意 Analytics Cookie 时才记录包含个人数据的完整日志
 		consentAnalytics := c.GetHeader("X-Consent-Analytics")
 		hasConsent := consentAnalytics == "true"
+
+		// 访客唯一标识（前端生成，存 localStorage）
+		visitorID := c.GetHeader("X-Visitor-ID")
+		if visitorID == "" {
+			visitorID = "unknown"
+		}
 
 		latency := time.Since(start).Milliseconds()
 		ip := GetClientIP(c)
@@ -253,43 +259,56 @@ func Analytics() gin.HandlerFunc {
 		// 解析实体类型和 slug
 		entityType, entitySlug := parseEntity(path)
 
+		// 判断访问类型：实体内容请求 → page_view，辅助 API → api_call
+		visitType := classifyVisit(path)
+
 		// 未同意时匿名化个人数据（GDPR 合规）
 		anonymizedIP := ip
 		anonymizedUA := ua
 		anonymizedReferer := referer
+		anonymizedVisitorID := visitorID
 		if !hasConsent {
 			anonymizedIP = AnonymizeIP(ip)
 			anonymizedUA = "anonymous"
 			anonymizedReferer = ""
+			anonymizedVisitorID = "anonymous"
+		}
+
+		consentStatus := "granted"
+		if !hasConsent {
+			consentStatus = "denied"
 		}
 
 		log := models.VisitLog{
-			CreatedAt:   time.Now(),
-			IP:          anonymizedIP,
-			Country:     ResolveCountry(c),
-			Language:    GetLang(c),
-			Device:      device,
-			DeviceModel: ParseDeviceModel(anonymizedUA),
-			Browser:     browser,
-			OS:          osName,
-			UserAgent:   anonymizedUA,
-			Method:      c.Request.Method,
-			Path:        path,
-			EntityType:  entityType,
-			EntitySlug:  entitySlug,
-			EntityID:    c.GetString("visit_entity_id"),
-			EntityName:  c.GetString("visit_entity_name"),
-			Status:      c.Writer.Status(),
-			LatencyMs:   latency,
-			Referer:     anonymizedReferer,
-			Source:      source,
-			Medium:      medium,
-			UtmSource:   utmSource,
-			UtmMedium:   utmMedium,
-			UtmCampaign: utmCampaign,
-			UtmContent:  utmContent,
-			UtmTerm:     utmTerm,
-			SessionID:   c.GetString("request_id"),
+			CreatedAt:     time.Now(),
+			VisitType:     visitType,
+			VisitorID:     anonymizedVisitorID,
+			IP:            anonymizedIP,
+			Country:       ResolveCountry(c),
+			Language:      GetLang(c),
+			Device:        device,
+			DeviceModel:   ParseDeviceModel(anonymizedUA),
+			Browser:       browser,
+			OS:            osName,
+			UserAgent:     anonymizedUA,
+			Method:        c.Request.Method,
+			Path:          path,
+			EntityType:    entityType,
+			EntitySlug:    entitySlug,
+			EntityID:      c.GetString("visit_entity_id"),
+			EntityName:    c.GetString("visit_entity_name"),
+			Status:        c.Writer.Status(),
+			LatencyMs:     latency,
+			Referer:       anonymizedReferer,
+			Source:        source,
+			Medium:        medium,
+			UtmSource:     utmSource,
+			UtmMedium:     utmMedium,
+			UtmCampaign:   utmCampaign,
+			UtmContent:    utmContent,
+			UtmTerm:       utmTerm,
+			SessionID:     c.GetString("request_id"),
+			ConsentStatus: consentStatus,
 		}
 
 		// 异步写入 DB（不阻塞响应）
@@ -355,6 +374,35 @@ func parseEntity(path string) (entityType, entitySlug string) {
 		entityType = "home"
 	}
 	return entityType, entitySlug
+}
+
+// classifyVisit 判断访问类型
+// page_view：实体内容请求（代表用户浏览了一个页面）
+// api_call：辅助 API 请求（导航、主题、语言等，不代表页面浏览）
+func classifyVisit(path string) string {
+	// 实体内容路由前缀 → page_view
+	pageViewPrefixes := []string{
+		"/api/v1/public/products",
+		"/api/v1/public/blogs",
+		"/api/v1/public/pages",
+		"/api/v1/public/cases",
+		"/api/v1/public/home",
+		"/api/v1/public/about",
+		"/api/v1/public/faq",
+		"/api/v1/public/contact",
+		"/api/v1/public/categories",
+		"/api/v1/public/series",
+		"/api/v1/public/fabrics",
+		"/api/v1/public/factories",
+		"/api/v1/public/certifications",
+	}
+	for _, prefix := range pageViewPrefixes {
+		if strings.HasPrefix(path, prefix) {
+			return "page_view"
+		}
+	}
+	// 其他 API（navigations, theme, currencies, languages, geo, i18n 等）→ api_call
+	return "api_call"
 }
 
 // AnonymizeIP 匿名化 IP 地址（GDPR 合规）

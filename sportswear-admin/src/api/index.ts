@@ -233,8 +233,20 @@ export const analyticsApi = {
   devices: (params?: any) => http.get<any>('/admin/analytics/devices', params),
   socialClicks: (params?: any) => http.get<any[]>('/admin/analytics/social-clicks', params),
   utmCampaigns: (params?: any) => http.get<any[]>('/admin/analytics/utm-campaigns', params),
-  // 闂ㄦ埛璁块棶鏃ュ織鏄庣粏锛圛P/鍥藉/鏉ユ簮/瀹炰綋/鏃堕棿鑼冨洿绛涢€夛紝璺ㄥ搴﹀垎琛ㄧ粍鍚堟煡璇級
+  // 门户访问日志明细（IP/国家/来源/实体/时间范围筛选，跨月度分表组合查询）
   visitLogs: (params?: any) => http.get<PageResult<any>>('/admin/analytics/visit-logs', params),
+  // 访客旅程（某个访客的完整访问路径）
+  visitorJourney: (params: { visitor_id: string; days?: number }) =>
+    http.get<any[]>('/admin/analytics/visitor-journey', params),
+  // IP-询盘关联（某个 IP 提交的询盘列表）
+  ipLeads: (params: { ip: string; days?: number }) =>
+    http.get<any[]>('/admin/analytics/ip-leads', params),
+  // 转化漏斗（访问 → 产品浏览 → 询盘）
+  conversionFunnel: (params?: { days?: number }) =>
+    http.get<any>('/admin/analytics/conversion-funnel', params),
+  // 隐私合规洞察（同意/未同意用户的转化对比）
+  consentInsights: (params?: { days?: number }) =>
+    http.get<any>('/admin/analytics/consent-insights', params),
 }
 
 // ============ 鍥介檯鍖?============

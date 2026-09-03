@@ -1,6 +1,6 @@
 <template>
   <div>
-    <!-- 工具栏：时间范围 + 刷新 -->
+    <!-- 工具栏：时间范围 + 刷新（最大 90 天，避免跨过多月度分表影响性能） -->
     <div class="toolbar">
       <el-radio-group v-model="days" size="small" style="margin-right: 12px">
         <el-radio-button :value="7">最近 7 天</el-radio-button>
@@ -8,6 +8,7 @@
         <el-radio-button :value="90">最近 90 天</el-radio-button>
       </el-radio-group>
       <el-button type="primary" @click="loadCharts" :loading="chartsLoading" plain>刷新</el-button>
+      <span class="hint">数据按月分表存储，最大可查 90 天</span>
     </div>
 
     <!-- 概览卡片 -->
@@ -55,6 +56,113 @@
           <el-table-column prop="clicks" label="点击量" width="100" />
           <el-table-column prop="unique_visitors" label="独立访客" width="110" />
         </el-table></el-card></el-col>
+    </el-row>
+
+    <!-- 转化漏斗 -->
+    <el-row :gutter="20" class="mt-20">
+      <el-col :span="24"><el-card shadow="hover"><template #header>转化漏斗（页面浏览 → 产品浏览 → 询盘）</template>
+        <div v-loading="funnelLoading" class="funnel-container">
+          <div class="funnel-step">
+            <div class="funnel-value">{{ funnelData.page_views || 0 }}</div>
+            <div class="funnel-label">页面浏览</div>
+          </div>
+          <div class="funnel-arrow">→</div>
+          <div class="funnel-step">
+            <div class="funnel-value">{{ funnelData.product_views || 0 }}</div>
+            <div class="funnel-label">产品浏览</div>
+            <div class="funnel-rate">{{ (funnelData.product_rate || 0).toFixed(1) }}%</div>
+          </div>
+          <div class="funnel-arrow">→</div>
+          <div class="funnel-step">
+            <div class="funnel-value">{{ funnelData.leads || 0 }}</div>
+            <div class="funnel-label">询盘提交</div>
+            <div class="funnel-rate">{{ (funnelData.lead_rate || 0).toFixed(1) }}%</div>
+          </div>
+        </div>
+      </el-card></el-col>
+    </el-row>
+
+    <!-- 访客旅程查询 -->
+    <el-row :gutter="20" class="mt-20">
+      <el-col :span="24"><el-card shadow="hover"><template #header>访客旅程查询</template>
+        <div class="journey-toolbar">
+          <el-input v-model="journeyQuery" placeholder="输入 visitor_id 或 IP 查询" style="width: 300px" @keyup.enter="loadJourney" />
+          <el-button type="primary" @click="loadJourney" :loading="journeyLoading">查询</el-button>
+        </div>
+        <el-table :data="journeyRows" v-loading="journeyLoading" stripe style="width:100%" size="small">
+          <el-table-column prop="created_at" label="时间" width="170" :formatter="(r: any) => formatTime(r.created_at)" />
+          <el-table-column prop="path" label="访问路径" min-width="200" show-overflow-tooltip />
+          <el-table-column prop="entity_name" label="实体名称" min-width="150" show-overflow-tooltip />
+          <el-table-column prop="source" label="来源" width="100" />
+          <el-table-column prop="country" label="国家" width="80" />
+          <el-table-column prop="device" label="设备" width="80" />
+        </el-table>
+        <el-empty v-if="!journeyLoading && journeyRows.length === 0 && journeyQueried" description="暂无访问记录" :image-size="60" />
+      </el-card></el-col>
+    </el-row>
+
+    <!-- IP-询盘关联 -->
+    <el-row :gutter="20" class="mt-20">
+      <el-col :span="24"><el-card shadow="hover"><template #header>IP-询盘关联</template>
+        <div class="journey-toolbar">
+          <el-input v-model="ipQuery" placeholder="输入 IP 地址查询关联询盘" style="width: 300px" @keyup.enter="loadIPLeads" />
+          <el-button type="primary" @click="loadIPLeads" :loading="ipLeadsLoading">查询</el-button>
+        </div>
+        <el-table :data="ipLeadsRows" v-loading="ipLeadsLoading" stripe style="width:100%" size="small">
+          <el-table-column prop="created_at" label="询盘时间" width="170" :formatter="(r: any) => formatTime(r.created_at)" />
+          <el-table-column prop="name" label="姓名" width="100" />
+          <el-table-column prop="company" label="公司" min-width="120" show-overflow-tooltip />
+          <el-table-column prop="email" label="邮箱" min-width="160" />
+          <el-table-column prop="country" label="国家" width="80" />
+          <el-table-column prop="status" label="状态" width="80">
+            <template #default="{ row }">
+              <el-tag size="small" :type="row.status === 'new' ? 'primary' : 'info'">{{ row.status }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="score" label="评分" width="60" />
+          <el-table-column prop="source" label="来源" width="100" />
+        </el-table>
+        <el-empty v-if="!ipLeadsLoading && ipLeadsRows.length === 0 && ipQueried" description="该 IP 暂无关联询盘" :image-size="60" />
+      </el-card></el-col>
+    </el-row>
+
+    <!-- 隐私合规洞察 -->
+    <el-row :gutter="20" class="mt-20">
+      <el-col :span="24"><el-card shadow="hover"><template #header>隐私合规洞察（Cookie 同意与转化对比）</template>
+        <div v-loading="consentLoading" class="consent-container">
+          <div class="consent-stats">
+            <div class="consent-stat-item">
+              <div class="consent-stat-value">{{ consentData.consent_rate?.toFixed(1) || 0 }}%</div>
+              <div class="consent-stat-label">同意率</div>
+            </div>
+            <div class="consent-stat-item">
+              <div class="consent-stat-value">{{ consentData.granted_count || 0 }}</div>
+              <div class="consent-stat-label">同意人数</div>
+            </div>
+            <div class="consent-stat-item">
+              <div class="consent-stat-value">{{ consentData.denied_count || 0 }}</div>
+              <div class="consent-stat-label">拒绝人数</div>
+            </div>
+            <div class="consent-stat-item">
+              <div class="consent-stat-value">{{ consentData.anonymized_ratio?.toFixed(1) || 0 }}%</div>
+              <div class="consent-stat-label">匿名化占比</div>
+            </div>
+          </div>
+          <el-divider />
+          <div class="consent-comparison">
+            <div class="consent-compare-item">
+              <div class="consent-compare-label">同意用户转化率</div>
+              <div class="consent-compare-value">{{ consentData.granted_conversion?.toFixed(2) || 0 }}%</div>
+              <div class="consent-compare-detail">{{ consentData.granted_leads || 0 }} 个询盘 / {{ consentData.granted_count || 0 }} 人</div>
+            </div>
+            <div class="consent-compare-item">
+              <div class="consent-compare-label">拒绝用户转化率</div>
+              <div class="consent-compare-value">{{ consentData.denied_conversion?.toFixed(2) || 0 }}%</div>
+              <div class="consent-compare-detail">{{ consentData.denied_leads || 0 }} 个询盘 / {{ consentData.denied_count || 0 }} 人</div>
+            </div>
+          </div>
+        </div>
+      </el-card></el-col>
     </el-row>
   </div>
 </template>
@@ -148,14 +256,86 @@ const utmLoading = ref(false)
 const socialClicks = ref<any[]>([])
 const socialLoading = ref(false)
 
-onMounted(() => { loadCharts() })
-watch(days, () => { loadCharts() })
+// ============ 转化漏斗 ============
+const funnelLoading = ref(false)
+const funnelData = ref<any>({})
+
+async function loadFunnel() {
+  funnelLoading.value = true
+  try {
+    funnelData.value = await analyticsApi.conversionFunnel({ days: days.value })
+  } catch { /* ignore */ } finally { funnelLoading.value = false }
+}
+
+// ============ 访客旅程 ============
+const journeyQuery = ref('')
+const journeyLoading = ref(false)
+const journeyRows = ref<any[]>([])
+const journeyQueried = ref(false)
+
+async function loadJourney() {
+  if (!journeyQuery.value.trim()) return
+  journeyLoading.value = true
+  journeyQueried.value = true
+  try {
+    const rows = await analyticsApi.visitorJourney({ visitor_id: journeyQuery.value.trim(), days: 90 })
+    journeyRows.value = rows || []
+  } catch { journeyRows.value = [] } finally { journeyLoading.value = false }
+}
+
+// ============ IP-询盘关联 ============
+const ipQuery = ref('')
+const ipLeadsLoading = ref(false)
+const ipLeadsRows = ref<any[]>([])
+const ipQueried = ref(false)
+
+async function loadIPLeads() {
+  if (!ipQuery.value.trim()) return
+  ipLeadsLoading.value = true
+  ipQueried.value = true
+  try {
+    const rows = await analyticsApi.ipLeads({ ip: ipQuery.value.trim(), days: 90 })
+    ipLeadsRows.value = rows || []
+  } catch { ipLeadsRows.value = [] } finally { ipLeadsLoading.value = false }
+}
+
+// ============ 隐私合规洞察 ============
+const consentLoading = ref(false)
+const consentData = ref<any>({})
+
+async function loadConsentInsights() {
+  consentLoading.value = true
+  try {
+    consentData.value = await analyticsApi.consentInsights({ days: days.value })
+  } catch { /* ignore */ } finally { consentLoading.value = false }
+}
+
+onMounted(() => { loadCharts(); loadFunnel(); loadConsentInsights() })
+watch(days, () => { loadCharts(); loadFunnel(); loadConsentInsights() })
 onUnmounted(() => charts.forEach((c) => c.dispose()))
 </script>
 
 <style scoped>
 .toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.toolbar .hint { font-size: 12px; color: #909399; }
 .mt-20 { margin-top: 20px; }
+.journey-toolbar { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; }
+.funnel-container { display: flex; align-items: center; justify-content: center; gap: 20px; padding: 20px; }
+.funnel-step { text-align: center; min-width: 120px; }
+.funnel-value { font-size: 28px; font-weight: 700; color: #1e3a8a; }
+.funnel-label { font-size: 14px; color: #6b7280; margin-top: 4px; }
+.funnel-rate { font-size: 12px; color: #67c23a; margin-top: 2px; }
+.funnel-arrow { font-size: 24px; color: #909399; }
+.consent-container { padding: 10px 0; }
+.consent-stats { display: flex; justify-content: space-around; padding: 10px 0; }
+.consent-stat-item { text-align: center; }
+.consent-stat-value { font-size: 24px; font-weight: 700; color: #1e3a8a; }
+.consent-stat-label { font-size: 13px; color: #6b7280; margin-top: 4px; }
+.consent-comparison { display: flex; justify-content: center; gap: 60px; padding: 20px 0; }
+.consent-compare-item { text-align: center; }
+.consent-compare-label { font-size: 14px; color: #6b7280; margin-bottom: 8px; }
+.consent-compare-value { font-size: 28px; font-weight: 700; color: #67c23a; }
+.consent-compare-detail { font-size: 12px; color: #909399; margin-top: 4px; }
 .stat-card { text-align: center; padding: 10px; }
 .stat-value { font-size: 28px; font-weight: 700; color: #1e3a8a; }
 .stat-label { font-size: 13px; color: #6b7280; margin-top: 6px; }

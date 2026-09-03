@@ -145,3 +145,61 @@ func (h *AnalyticsHandler) ListVisitLogs(c *gin.Context) {
 	}
 	utils.SuccessPage(c, rows, page, pageSize, total)
 }
+
+// GetVisitorJourney 获取访客旅程（某个访客的完整访问路径）
+func (h *AnalyticsHandler) GetVisitorJourney(c *gin.Context) {
+	visitorID := c.Query("visitor_id")
+	if visitorID == "" {
+		utils.BadRequest(c, "缺少 visitor_id 参数")
+		return
+	}
+	days, _ := strconv.Atoi(c.DefaultQuery("days", "30"))
+
+	data, err := h.analyticsService.GetVisitorJourney(visitorID, days)
+	if err != nil {
+		utils.InternalError(c, "获取访客旅程失败")
+		return
+	}
+	utils.Success(c, data)
+}
+
+// GetIPLeads 获取 IP 关联的询盘列表
+func (h *AnalyticsHandler) GetIPLeads(c *gin.Context) {
+	ip := c.Query("ip")
+	if ip == "" {
+		utils.BadRequest(c, "缺少 ip 参数")
+		return
+	}
+	days, _ := strconv.Atoi(c.DefaultQuery("days", "30"))
+
+	data, err := h.analyticsService.GetIPLeads(ip, days)
+	if err != nil {
+		utils.InternalError(c, "获取 IP 询盘关联失败")
+		return
+	}
+	utils.Success(c, data)
+}
+
+// GetConversionFunnel 获取转化漏斗（访问 → 产品浏览 → 询盘）
+func (h *AnalyticsHandler) GetConversionFunnel(c *gin.Context) {
+	days, _ := strconv.Atoi(c.DefaultQuery("days", "30"))
+
+	data, err := h.analyticsService.GetConversionFunnel(days)
+	if err != nil {
+		utils.InternalError(c, "获取转化漏斗失败")
+		return
+	}
+	utils.Success(c, data)
+}
+
+// GetConsentInsights 获取隐私合规洞察（同意/未同意用户的转化对比）
+func (h *AnalyticsHandler) GetConsentInsights(c *gin.Context) {
+	days, _ := strconv.Atoi(c.DefaultQuery("days", "30"))
+
+	data, err := h.analyticsService.GetConsentInsights(days)
+	if err != nil {
+		utils.InternalError(c, "获取隐私合规洞察失败")
+		return
+	}
+	utils.Success(c, data)
+}

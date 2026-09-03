@@ -28,6 +28,7 @@ type Lead struct {
 	// 附件
 	Attachments string `gorm:"type:text" json:"attachments"` // JSON 数组
 	// 来源追踪
+	VisitorID   string `gorm:"type:varchar(64);index" json:"visitor_id"` // 访客唯一标识（关联 visit_logs）
 	Source      string `gorm:"type:varchar(100)" json:"source"`
 	Medium      string `gorm:"type:varchar(100)" json:"medium"`
 	Campaign    string `gorm:"type:varchar(100)" json:"campaign"`
@@ -36,7 +37,7 @@ type Lead struct {
 	LandingPage string `gorm:"type:varchar(500)" json:"landing_page"`
 	Device      string `gorm:"type:varchar(50)" json:"device"`
 	Language    string `gorm:"type:varchar(10)" json:"language"`
-	IP          string `gorm:"type:varchar(50)" json:"ip"`
+	IP          string `gorm:"type:varchar(50);index" json:"ip"`
 	// 状态
 	Status         LeadStatus `gorm:"type:varchar(20);default:new" json:"status"`
 	Score          int        `gorm:"default:0" json:"score"`

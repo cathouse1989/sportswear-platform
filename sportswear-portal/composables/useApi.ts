@@ -1,6 +1,18 @@
 import { ofetch } from 'ofetch'
 
 const CONSENT_STORAGE_KEY = 'sw_cookie_consent'
+const VISITOR_ID_KEY = 'sw_visitor_id'
+
+// 生成或读取访客唯一标识（存 localStorage，跨会话持久化）
+const getVisitorId = (): string => {
+  if (import.meta.server) return ''
+  let id = localStorage.getItem(VISITOR_ID_KEY)
+  if (!id) {
+    id = crypto.randomUUID()
+    localStorage.setItem(VISITOR_ID_KEY, id)
+  }
+  return id
+}
 
 export const useApi = () => {
   const config = useRuntimeConfig()
@@ -100,6 +112,9 @@ export const useApi = () => {
     }
     // 附带同意状态头，供后端判断是否记录个人数据
     out['X-Consent-Analytics'] = hasAnalyticsConsent() ? 'true' : 'false'
+    // 附带访客唯一标识，用于关联访问记录与询盘
+    const visitorId = getVisitorId()
+    if (visitorId) out['X-Visitor-ID'] = visitorId
     return out
   }
 

@@ -115,19 +115,19 @@ func NewOperationLogService(db *gorm.DB) *OperationLogService {
 	return &OperationLogService{db: db}
 }
 
-// Record 记录操作日志（按季度分表写入 operation_logs_YYYYMMDD）
+// Record 记录操作日志（按月分表写入 operation_logs_YYYYMM）
 func (s *OperationLogService) Record(log *models.OperationLog) error {
 	if log.CreatedAt.IsZero() {
 		log.CreatedAt = time.Now()
 	}
-	tableName := database.QuarterTableName("operation_logs", log.CreatedAt)
+	tableName := database.MonthTableName("operation_logs", log.CreatedAt)
 	if err := database.EnsureTable(s.db, tableName, &models.OperationLog{}); err != nil {
 		return err
 	}
 	return s.db.Table(tableName).Create(log).Error
 }
 
-// resolveTables 解析查询涉及的表：存量基础表（未分表前数据）+ 时间范围内的季度表（仅已存在）
+// resolveTables 解析查询涉及的表：存量基础表（未分表前数据）+ 时间范围内的月度表（仅已存在）
 func (s *OperationLogService) resolveTables(start, end time.Time) ([]string, error) {
 	if start.IsZero() {
 		start = time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -138,8 +138,8 @@ func (s *OperationLogService) resolveTables(start, end time.Time) ([]string, err
 	if end.Before(start) {
 		start, end = end, start
 	}
-	candidates := database.QuarterTablesBetween("operation_logs", start, end)
-	existing, err := database.ExistingQuarterTables(s.db, "operation_logs")
+	candidates := database.MonthTablesBetween("operation_logs", start, end)
+	existing, err := database.ExistingTables(s.db, "operation_logs")
 	if err != nil {
 		return nil, err
 	}

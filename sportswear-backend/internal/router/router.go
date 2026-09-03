@@ -383,9 +383,21 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 			// 广告归因（utm_campaign 维度，衡量各广告 Campaign 转化来源）
 			auth.GET("/analytics/utm-campaigns",
 				middleware.RequireAnyPermission("dashboard:view", "lead:view"), analyticsHandler.GetUtmCampaignAnalysis)
-			// 门户访问日志明细（IP/国家/来源/实体/时间范围筛选，跨季度分表组合查询）
+			// 门户访问日志明细（IP/国家/来源/实体/时间范围筛选，跨月度分表组合查询）
 			auth.GET("/analytics/visit-logs",
 				middleware.RequireAnyPermission("dashboard:view", "lead:view"), analyticsHandler.ListVisitLogs)
+			// 访客旅程（某个访客的完整访问路径）
+			auth.GET("/analytics/visitor-journey",
+				middleware.RequireAnyPermission("dashboard:view", "lead:view"), analyticsHandler.GetVisitorJourney)
+			// IP-询盘关联（某个 IP 提交的询盘列表）
+			auth.GET("/analytics/ip-leads",
+				middleware.RequireAnyPermission("dashboard:view", "lead:view"), analyticsHandler.GetIPLeads)
+			// 转化漏斗（访问 → 产品浏览 → 询盘）
+			auth.GET("/analytics/conversion-funnel",
+				middleware.RequireAnyPermission("dashboard:view", "lead:view"), analyticsHandler.GetConversionFunnel)
+			// 隐私合规洞察（同意/未同意用户的转化对比）
+			auth.GET("/analytics/consent-insights",
+				middleware.RequireAnyPermission("dashboard:view", "lead:view"), analyticsHandler.GetConsentInsights)
 
 			// ---------- 门户展示配置（版本化发布 + 主题配置） ----------
 			// 页面版本：草稿与线上分离，编辑不影响线上，发布后立即生效

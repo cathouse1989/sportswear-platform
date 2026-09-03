@@ -21,8 +21,11 @@ func NewAnalyticsService(db *gorm.DB) *AnalyticsService {
 	return &AnalyticsService{db: db}
 }
 
-// visitTables 返回查询涉及的 visit_logs 表：存量基础表（历史数据）+ 时间范围内的季度表（仅已存在）
-func (s *AnalyticsService) visitTables(start, end time.Time) ([]string, error) {
+// MaxQueryDays 最大查询时间范围（90 天），避免跨过多月度表导致性能问题
+const MaxQueryDays = 90
+
+// normalizeRange 规范化时间范围：限制最大跨度不超过 MaxQueryDays
+func normalizeRange(start, end time.Time) (time.Time, time.Time) {
 	if start.IsZero() {
 		start = time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 	}
@@ -32,7 +35,18 @@ func (s *AnalyticsService) visitTables(start, end time.Time) ([]string, error) {
 	if end.Before(start) {
 		start, end = end, start
 	}
-	existing, err := database.ExistingQuarterTables(s.db, "visit_logs")
+	// 限制最大查询范围
+	maxStart := end.AddDate(0, 0, -MaxQueryDays)
+	if start.Before(maxStart) {
+		start = maxStart
+	}
+	return start, end
+}
+
+// visitTables 返回查询涉及的 visit_logs 表：存量基础表（历史数据）+ 时间范围内的月度表（仅已存在）
+func (s *AnalyticsService) visitTables(start, end time.Time) ([]string, error) {
+	start, end = normalizeRange(start, end)
+	existing, err := database.ExistingTables(s.db, "visit_logs")
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +54,7 @@ func (s *AnalyticsService) visitTables(start, end time.Time) ([]string, error) {
 	for _, n := range existing {
 		exMap[n] = true
 	}
-	candidates := database.QuarterTablesBetween("visit_logs", start, end)
+	candidates := database.MonthTablesBetween("visit_logs", start, end)
 	tables := []string{"visit_logs"} // 存量基础表
 	for _, n := range candidates {
 		if exMap[n] {
@@ -63,16 +77,21 @@ func (s *AnalyticsService) GetTrafficOverview(days int) (map[string]interface{},
 		return nil, err
 	}
 
-	var totalVisits, uniqueIPs, botVisits, productViews, leadCount int64
+	var totalVisits, uniqueIPs, uniqueVisitors, botVisits, productViews, leadCount int64
 
-	// 全量访问
-	visitsSelect := `SELECT created_at, ip, device, entity_type FROM __T__ WHERE created_at >= ?`
+	// 全量页面浏览（只统计 page_view，排除 api_call，解决重复统计问题）
+	// 按 visitor_id + path 去重（同一访客同一页面只算一次浏览）
+	visitsSelect := `SELECT visitor_id, path, created_at, ip, device, entity_type FROM __T__ WHERE created_at >= ? AND visit_type = 'page_view'`
 	visitsSQL, visitsArgs := database.UnionAll(tables, visitsSelect, []interface{}{since})
-	if err := s.db.Raw(fmt.Sprintf(`SELECT COUNT(*) FROM (%s) t`, visitsSQL), visitsArgs...).Scan(&totalVisits).Error; err != nil {
+	if err := s.db.Raw(fmt.Sprintf(`SELECT COUNT(DISTINCT visitor_id || ':' || path) FROM (%s) t`, visitsSQL), visitsArgs...).Scan(&totalVisits).Error; err != nil {
 		return nil, err
 	}
 	// 独立 IP
-	if err := s.db.Raw(fmt.Sprintf(`SELECT COUNT(DISTINCT ip) FROM (%s) t`, visitsSQL), visitsArgs...).Scan(&uniqueIPs).Error; err != nil {
+	if err := s.db.Raw(fmt.Sprintf(`SELECT COUNT(DISTINCT ip) FROM (%s) t WHERE visit_type = 'page_view'`, visitsSQL), visitsArgs...).Scan(&uniqueIPs).Error; err != nil {
+		return nil, err
+	}
+	// 独立访客（按 visitor_id 去重，比 IP 更准确）
+	if err := s.db.Raw(fmt.Sprintf(`SELECT COUNT(DISTINCT visitor_id) FROM (%s) t WHERE visit_type = 'page_view' AND visitor_id != 'unknown' AND visitor_id != 'anonymous'`, visitsSQL), visitsArgs...).Scan(&uniqueVisitors).Error; err != nil {
 		return nil, err
 	}
 	// 机器人流量
@@ -81,24 +100,24 @@ func (s *AnalyticsService) GetTrafficOverview(days int) (map[string]interface{},
 	if err := s.db.Raw(fmt.Sprintf(`SELECT COUNT(*) FROM (%s) t`, botSQL), botArgs...).Scan(&botVisits).Error; err != nil {
 		return nil, err
 	}
-	// 产品浏览
-	prodSelect := `SELECT created_at FROM __T__ WHERE created_at >= ? AND entity_type = 'product'`
+	// 产品浏览（只统计 page_view）
+	prodSelect := `SELECT visitor_id, path FROM __T__ WHERE created_at >= ? AND entity_type = 'product' AND visit_type = 'page_view'`
 	prodSQL, prodArgs := database.UnionAll(tables, prodSelect, []interface{}{since})
-	if err := s.db.Raw(fmt.Sprintf(`SELECT COUNT(*) FROM (%s) t`, prodSQL), prodArgs...).Scan(&productViews).Error; err != nil {
+	if err := s.db.Raw(fmt.Sprintf(`SELECT COUNT(DISTINCT visitor_id || ':' || path) FROM (%s) t`, prodSQL), prodArgs...).Scan(&productViews).Error; err != nil {
 		return nil, err
 	}
 	// 询盘
 	s.db.Model(&models.Lead{}).Where("created_at >= ?", since).Count(&leadCount)
 
-	// 询盘转化率（访问 IP → 询盘）
+	// 询盘转化率（独立访客 → 询盘）
 	conversionRate := float64(0)
-	if uniqueIPs > 0 {
-		conversionRate = float64(leadCount) / float64(uniqueIPs) * 100
+	if uniqueVisitors > 0 {
+		conversionRate = float64(leadCount) / float64(uniqueVisitors) * 100
 	}
 
-	// 每日访问趋势
+	// 每日访问趋势（只统计 page_view，按 visitor_id + path 去重）
 	var dailyTrend []map[string]interface{}
-	trendSQL := fmt.Sprintf(`SELECT DATE(created_at) AS date, COUNT(*) AS visits, COUNT(DISTINCT ip) AS unique_ips FROM (%s) t GROUP BY DATE(created_at) ORDER BY date ASC`, visitsSQL)
+	trendSQL := fmt.Sprintf(`SELECT DATE(created_at) AS date, COUNT(DISTINCT visitor_id || ':' || path) AS visits, COUNT(DISTINCT ip) AS unique_ips FROM (%s) t WHERE visit_type = 'page_view' GROUP BY DATE(created_at) ORDER BY date ASC`, visitsSQL)
 	if err := s.db.Raw(trendSQL, visitsArgs...).Scan(&dailyTrend).Error; err != nil {
 		return nil, err
 	}
@@ -107,6 +126,7 @@ func (s *AnalyticsService) GetTrafficOverview(days int) (map[string]interface{},
 		"days":            days,
 		"total_visits":    totalVisits,
 		"unique_ips":      uniqueIPs,
+		"unique_visitors": uniqueVisitors,
 		"bot_visits":      botVisits,
 		"human_visits":    totalVisits - botVisits,
 		"product_views":   productViews,
@@ -390,4 +410,178 @@ func (s *AnalyticsService) ListVisitLogs(page, pageSize int, f VisitLogFilter) (
 		return nil, 0, err
 	}
 	return rows, total, nil
+}
+
+// GetVisitorJourney 获取访客旅程（某个访客的完整访问路径）
+func (s *AnalyticsService) GetVisitorJourney(visitorID string, days int) ([]map[string]interface{}, error) {
+	if days <= 0 || days > 90 {
+		days = 30
+	}
+	since := time.Now().AddDate(0, 0, -days)
+	end := time.Now()
+
+	tables, err := s.visitTables(since, end)
+	if err != nil {
+		return nil, err
+	}
+
+	selectFmt := `SELECT "created_at","path","entity_type","entity_slug","entity_name","visit_type","source","ip","country","device","session_id" FROM __T__ WHERE visitor_id = ? AND created_at >= ? AND visit_type = 'page_view'`
+	args := []interface{}{visitorID, since}
+	unionSQL, unionArgs := database.UnionAll(tables, selectFmt, args)
+
+	listSQL := fmt.Sprintf(`SELECT * FROM (%s) t ORDER BY created_at ASC`, unionSQL)
+	var rows []map[string]interface{}
+	if err := s.db.Raw(listSQL, unionArgs...).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// GetIPLeads 获取 IP 关联的询盘列表
+func (s *AnalyticsService) GetIPLeads(ip string, days int) ([]map[string]interface{}, error) {
+	if days <= 0 || days > 90 {
+		days = 30
+	}
+	since := time.Now().AddDate(0, 0, -days)
+
+	var rows []map[string]interface{}
+	err := s.db.Model(&models.Lead{}).
+		Select("id, name, company, email, country, status, score, score_level, source, medium, campaign, visitor_id, ip, created_at").
+		Where("ip = ? AND created_at >= ?", ip, since).
+		Order("created_at DESC").
+		Scan(&rows).Error
+	return rows, err
+}
+
+// ConversionFunnel 转化漏斗数据
+type ConversionFunnel struct {
+	PageViews    int64   `json:"page_views"`
+	ProductViews int64   `json:"product_views"`
+	Leads        int64   `json:"leads"`
+	ProductRate  float64 `json:"product_rate"`  // 页面浏览 → 产品浏览
+	LeadRate     float64 `json:"lead_rate"`     // 产品浏览 → 询盘
+}
+
+// GetConversionFunnel 获取转化漏斗（访问 → 产品浏览 → 询盘）
+func (s *AnalyticsService) GetConversionFunnel(days int) (*ConversionFunnel, error) {
+	if days <= 0 || days > 90 {
+		days = 30
+	}
+	since := time.Now().AddDate(0, 0, -days)
+	end := time.Now()
+
+	tables, err := s.visitTables(since, end)
+	if err != nil {
+		return nil, err
+	}
+
+	var pageViews, productViews int64
+
+	// 页面浏览量
+	pvSelect := `SELECT visitor_id, path FROM __T__ WHERE created_at >= ? AND visit_type = 'page_view'`
+	pvSQL, pvArgs := database.UnionAll(tables, pvSelect, []interface{}{since})
+	s.db.Raw(fmt.Sprintf(`SELECT COUNT(DISTINCT visitor_id || ':' || path) FROM (%s) t`, pvSQL), pvArgs...).Scan(&pageViews)
+
+	// 产品浏览量
+	prodSelect := `SELECT visitor_id, path FROM __T__ WHERE created_at >= ? AND visit_type = 'page_view' AND entity_type = 'product'`
+	prodSQL, prodArgs := database.UnionAll(tables, prodSelect, []interface{}{since})
+	s.db.Raw(fmt.Sprintf(`SELECT COUNT(DISTINCT visitor_id || ':' || path) FROM (%s) t`, prodSQL), prodArgs...).Scan(&productViews)
+
+	// 询盘数
+	var leads int64
+	s.db.Model(&models.Lead{}).Where("created_at >= ?", since).Count(&leads)
+
+	funnel := &ConversionFunnel{
+		PageViews:    pageViews,
+		ProductViews: productViews,
+		Leads:        leads,
+	}
+	if pageViews > 0 {
+		funnel.ProductRate = float64(productViews) / float64(pageViews) * 100
+	}
+	if productViews > 0 {
+		funnel.LeadRate = float64(leads) / float64(productViews) * 100
+	}
+
+	// 避免未使用 end 的编译警告
+	_ = end
+
+	return funnel, nil
+}
+
+// ConsentInsights 隐私合规洞察数据
+type ConsentInsights struct {
+	TotalVisitors   int64   `json:"total_visitors"`    // 总独立访客
+	GrantedCount    int64   `json:"granted_count"`     // 同意分析的人数
+	DeniedCount     int64   `json:"denied_count"`      // 拒绝分析的人数
+	ConsentRate     float64 `json:"consent_rate"`      // 同意率 %
+	GrantedLeads    int64   `json:"granted_leads"`     // 同意用户的询盘数
+	DeniedLeads     int64   `json:"denied_leads"`      // 拒绝用户的询盘数
+	GrantedConversion float64 `json:"granted_conversion"` // 同意用户转化率 %
+	DeniedConversion  float64 `json:"denied_conversion"`  // 拒绝用户转化率 %
+	AnonymizedRatio float64 `json:"anonymized_ratio"`  // 匿名化数据占比 %
+}
+
+// GetConsentInsights 获取隐私合规洞察（同意/未同意用户的转化对比）
+func (s *AnalyticsService) GetConsentInsights(days int) (*ConsentInsights, error) {
+	if days <= 0 || days > 90 {
+		days = 30
+	}
+	since := time.Now().AddDate(0, 0, -days)
+	end := time.Now()
+
+	tables, err := s.visitTables(since, end)
+	if err != nil {
+		return nil, err
+	}
+
+	var grantedVisitors, deniedVisitors, totalVisitors int64
+
+	// 同意分析的访客数
+	grantedSelect := `SELECT visitor_id FROM __T__ WHERE created_at >= ? AND visit_type = 'page_view' AND consent_status = 'granted' AND visitor_id != 'unknown'`
+	grantedSQL, grantedArgs := database.UnionAll(tables, grantedSelect, []interface{}{since})
+	s.db.Raw(fmt.Sprintf(`SELECT COUNT(DISTINCT visitor_id) FROM (%s) t`, grantedSQL), grantedArgs...).Scan(&grantedVisitors)
+
+	// 拒绝分析的访客数
+	deniedSelect := `SELECT visitor_id FROM __T__ WHERE created_at >= ? AND visit_type = 'page_view' AND consent_status = 'denied' AND visitor_id != 'unknown'`
+	deniedSQL, deniedArgs := database.UnionAll(tables, deniedSelect, []interface{}{since})
+	s.db.Raw(fmt.Sprintf(`SELECT COUNT(DISTINCT visitor_id) FROM (%s) t`, deniedSQL), deniedArgs...).Scan(&deniedVisitors)
+
+	totalVisitors = grantedVisitors + deniedVisitors
+
+	// 同意用户的询盘数（通过 visitor_id 关联）
+	var grantedLeads int64
+	s.db.Model(&models.Lead{}).
+		Where("created_at >= ? AND visitor_id != '' AND visitor_id != 'unknown' AND visitor_id != 'anonymous'", since).
+		Count(&grantedLeads)
+
+	// 拒绝用户的询盘数（通过 IP 关联，排除已有 visitor_id 的）
+	var deniedLeads int64
+	s.db.Model(&models.Lead{}).
+		Where("created_at >= ? AND (visitor_id = '' OR visitor_id = 'unknown' OR visitor_id = 'anonymous')", since).
+		Count(&deniedLeads)
+
+	insights := &ConsentInsights{
+		TotalVisitors: totalVisitors,
+		GrantedCount:  grantedVisitors,
+		DeniedCount:   deniedVisitors,
+		GrantedLeads:  grantedLeads,
+		DeniedLeads:   deniedLeads,
+	}
+
+	if totalVisitors > 0 {
+		insights.ConsentRate = float64(grantedVisitors) / float64(totalVisitors) * 100
+		insights.AnonymizedRatio = float64(deniedVisitors) / float64(totalVisitors) * 100
+	}
+	if grantedVisitors > 0 {
+		insights.GrantedConversion = float64(grantedLeads) / float64(grantedVisitors) * 100
+	}
+	if deniedVisitors > 0 {
+		insights.DeniedConversion = float64(deniedLeads) / float64(deniedVisitors) * 100
+	}
+
+	// 避免未使用 end 的编译警告
+	_ = end
+
+	return insights, nil
 }

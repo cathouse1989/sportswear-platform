@@ -2,6 +2,7 @@
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"time"
 
@@ -27,7 +28,7 @@ func NewLeadService(db *gorm.DB) *LeadService {
 }
 
 // CreateLead 创建询盘
-func (s *LeadService) CreateLead(req *LeadRequest, ip string) (*models.Lead, error) {
+func (s *LeadService) CreateLead(req *LeadRequest, ip, visitorID string) (*models.Lead, error) {
 	lead := models.Lead{
 		Name:            req.Name,
 		Company:         req.Company,
@@ -52,6 +53,7 @@ func (s *LeadService) CreateLead(req *LeadRequest, ip string) (*models.Lead, err
 		LandingPage:     req.LandingPage,
 		Device:          req.Device,
 		Language:        req.Language,
+		VisitorID:       visitorID,
 		IP:              ip,
 		Status:          models.LeadStatusNew,
 	}
@@ -241,6 +243,28 @@ func containsAny(s string, substrs []string) bool {
 		}
 	}
 	return false
+}
+
+// BackfillLeadID 回写 visit_logs 的 lead_id（关联该访客的所有访问记录）
+// 按月分表逐一更新，避免跨表 UPDATE 的复杂度
+func (s *LeadService) BackfillLeadID(visitorID string, leadID uuid.UUID) {
+	if visitorID == "" || visitorID == "unknown" || visitorID == "anonymous" {
+		return
+	}
+	// 查询最近 90 天的月度表，回写 leadID
+	s.db.Exec(`
+		UPDATE visit_logs SET lead_id = ? 
+		WHERE visitor_id = ? AND lead_id IS NULL AND created_at >= ?
+	`, leadID, visitorID, time.Now().AddDate(0, 0, -90))
+	// 同时更新月度分表（visit_logs_YYYYMM）
+	// 注意：这里简化处理，实际按月表名循环更新
+	for i := 0; i < 3; i++ {
+		tableName := fmt.Sprintf("visit_logs_%s", time.Now().AddDate(0, -i, 0).Format("200601"))
+		s.db.Exec(fmt.Sprintf(`
+			UPDATE %s SET lead_id = ? 
+			WHERE visitor_id = ? AND lead_id IS NULL
+		`, tableName), leadID, visitorID)
+	}
 }
 
 // ListLeads 询盘列表

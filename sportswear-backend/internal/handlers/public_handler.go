@@ -560,12 +560,19 @@ func (h *PublicHandler) CreateLead(c *gin.Context) {
 	}
 
 	ip := middleware.GetClientIP(c)
-	lead, err := h.leadService.CreateLead(&req, ip)
+	visitorID := c.GetHeader("X-Visitor-ID")
+	if visitorID == "" {
+		visitorID = "unknown"
+	}
+	lead, err := h.leadService.CreateLead(&req, ip, visitorID)
 	if err != nil {
 		utils.BadRequest(c, err.Error())
 		return
 	}
 	utils.Created(c, lead)
+
+	// 异步回写 visit_logs 的 lead_id（关联该访客的所有访问记录）
+	go h.leadService.BackfillLeadID(visitorID, lead.ID)
 }
 
 // UploadLeadAttachment 门户询盘附件上传（multipart/form-data，字段 file）
