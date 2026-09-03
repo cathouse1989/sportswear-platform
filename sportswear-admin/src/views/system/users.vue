@@ -129,6 +129,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { roleApi, userApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
+import { formatDateTime } from '@/utils/format'
 import type { Role, User } from '@/types'
 
 const authStore = useAuthStore()
@@ -184,8 +185,7 @@ function handleSearch() {
 
 function formatTime(iso?: string) {
   if (!iso) return '—'
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleString()
+  return formatDateTime(iso, '—')
 }
 
 function isSelf(row: User) {

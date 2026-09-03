@@ -101,6 +101,7 @@
 import { onMounted, ref } from 'vue'
 import { operationLogApi, analyticsApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
+import { formatDateTime } from '@/utils/format'
 
 const activeTab = ref<'operation' | 'visits'>('operation')
 const pageSize = useAdminPageSize()
@@ -114,7 +115,7 @@ const page = ref(1)
 
 const opLabels: Record<string, string> = { create: '创建', update: '更新', delete: '删除', publish: '发布', unpublish: '下线', upload: '上传', login: '登录', logout: '登出' }
 function operationLabel(op: string) { return opLabels[op] || op }
-function formatTime(t: string) { return !t ? '-' : new Date(t).toLocaleString() }
+function formatTime(t: string) { return formatDateTime(t) }
 function opRowKey(row: any) { return `${row.src || 'operation_logs'}-${row.id}` }
 
 // 点击"查询"按钮/回车触发：重置到第一页再加载

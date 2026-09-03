@@ -70,6 +70,11 @@
           <span class="breadcrumb">{{ currentTitle }}</span>
         </div>
         <div class="header-right">
+          <div class="header-clock" :title="`系统时区：${timeZone}（${offset}），页面时间均按此浏览器时区显示`">
+            <el-icon :size="15"><Clock /></el-icon>
+            <span class="tz">{{ timeZone }} {{ offset }}</span>
+            <span class="time">{{ currentTime }}</span>
+          </div>
           <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="notify-badge" @click="goToNotifications">
             <el-icon :size="20"><Bell /></el-icon>
           </el-badge>
@@ -95,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
@@ -103,7 +108,9 @@ import { hasAnyPermission } from '@/utils/permissions'
 import { notificationApi } from '@/api'
 import { http } from '@/api/client'
 // 图标按需引入（替换 main.ts 的全局注册，减小首屏包体积）
-import { Bell } from '@element-plus/icons-vue'
+import { Bell, Clock } from '@element-plus/icons-vue'
+// 时间工具：右上角展示浏览器时区与实时时间（页面时间统一按浏览器时区格式化）
+import { browserTimeZone, formatDateTime, timeZoneOffset } from '@/utils/format'
 import { MENU_CONFIG, type MenuItem } from '@/config/menu'
 
 const route = useRoute()
@@ -115,6 +122,29 @@ const logoAlt = ref('')
 const brandName = ref('')
 const brandSubtitle = ref('')
 const adminSystemName = ref('')
+
+// ============ 右上角系统时区 + 实时时钟 ============
+const timeZone = browserTimeZone()
+const offset = timeZoneOffset()
+const currentTime = ref(formatDateTime(new Date().toISOString()))
+let clockTimer: ReturnType<typeof setInterval> | null = null
+
+function tickClock() {
+  currentTime.value = formatDateTime(new Date().toISOString())
+}
+function startClock() {
+  stopClock()
+  if (typeof window !== 'undefined') {
+    tickClock()
+    clockTimer = setInterval(tickClock, 1000)
+  }
+}
+function stopClock() {
+  if (clockTimer) {
+    clearInterval(clockTimer)
+    clockTimer = null
+  }
+}
 
 const activeMenu = computed(() => route.path)
 const currentTitle = computed(() => (route.meta.title as string) || '')
@@ -151,6 +181,7 @@ const visibleMenu = computed(() => {
 })
 
 onMounted(async () => {
+  startClock()
   try {
     const result = await notificationApi.unreadCount()
     unreadCount.value = result.count
@@ -201,6 +232,8 @@ async function handleCommand(command: string) {
 function goToNotifications() {
   router.push('/notifications')
 }
+
+onUnmounted(stopClock)
 </script>
 
 <style scoped>
@@ -288,6 +321,24 @@ function goToNotifications() {
   display: flex;
   align-items: center;
   gap: 20px;
+}
+.header-clock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+.header-clock .el-icon {
+  color: #1e3a8a;
+}
+.header-clock .tz {
+  color: #1e3a8a;
+  font-weight: 500;
+}
+.header-clock .time {
+  font-variant-numeric: tabular-nums;
 }
 .notify-badge {
   cursor: pointer;

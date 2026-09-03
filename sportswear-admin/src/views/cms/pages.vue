@@ -179,8 +179,12 @@
               </template>
             </el-table-column>
             <el-table-column prop="note" label="备注" min-width="150" show-overflow-tooltip />
-            <el-table-column prop="created_at" label="创建时间" width="160" />
-            <el-table-column prop="published_at" label="发布时间" width="160" />
+            <el-table-column label="创建时间" width="160">
+              <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
+            </el-table-column>
+            <el-table-column label="发布时间" width="160">
+              <template #default="{ row }">{{ formatDateTime(row.published_at, '-') }}</template>
+            </el-table-column>
             <el-table-column label="操作" width="120">
               <template #default="{ row }">
                 <el-button v-permission="'page:publish'" v-if="row.status !== 'published'" size="small" type="success" @click="publishVersion(row)">发布</el-button>
@@ -205,6 +209,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { pageApi, portalApi, publicApi, navigationApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
+import { formatDateTime } from '@/utils/format'
 import type { Page, Navigation } from '@/types'
 
 const router = useRouter()

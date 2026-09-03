@@ -11,7 +11,9 @@
       <el-table-column prop="title" label="标题" width="160" />
       <el-table-column prop="content" label="内容" min-width="260" />
       <el-table-column prop="type" label="类型" width="100" />
-      <el-table-column prop="created_at" label="时间" width="170" />
+      <el-table-column label="时间" width="170">
+        <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
+      </el-table-column>
       <el-table-column label="操作" width="100">
         <template #default="{ row }">
           <el-button v-if="!row.is_read" size="small" @click="handleMarkRead(row)">标为已读</el-button>
@@ -26,6 +28,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { notificationApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
+import { formatDateTime } from '@/utils/format'
 
 const items = ref<any[]>([]); const loading = ref(false); const total = ref(0); const page = ref(1); const pageSize = useAdminPageSize(); const onlyUnread = ref(false)
 const hasUnread = computed(() => items.value.some(i => !i.is_read))

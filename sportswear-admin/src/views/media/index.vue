@@ -122,6 +122,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { mediaApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
+import { formatDateTime } from '@/utils/format'
 import type { Media } from '@/types'
 
 const CATEGORIES = [
@@ -175,7 +176,7 @@ function fmtSize(_: any, __: any, val: number) {
 
 function fmtTime(_: any, __: any, val: string) {
   if (!val) return '-'
-  return val.replace('T', ' ').replace(/\.\d+Z$/, '').replace(/Z$/, '')
+  return formatDateTime(val)
 }
 
 function onUploadSuccess() { ElMessage.success('上传成功'); loadData() }

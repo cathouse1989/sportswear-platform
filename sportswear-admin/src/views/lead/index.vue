@@ -90,7 +90,7 @@
         <div v-if="current.follow_ups?.length">
           <div v-for="fu in current.follow_ups" :key="fu.id" class="followup-item">
             <div class="followup-content">{{ fu.content }}</div>
-            <div class="followup-meta">{{ fu.method }} · {{ fu.created_at }}</div>
+            <div class="followup-meta">{{ fu.method }} · {{ formatDateTime(fu.created_at) }}</div>
           </div>
         </div>
         <el-empty v-else description="暂无跟进记录" :image-size="60" />
@@ -104,6 +104,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { leadApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
+import { formatDateTime } from '@/utils/format'
 import type { Lead } from '@/types'
 
 const leads = ref<Lead[]>([])
