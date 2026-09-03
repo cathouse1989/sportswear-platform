@@ -54,9 +54,12 @@ services:
       timeout: 5s
       retries: 5
 
-  # ==================== 后端 API（Go/Gin）====================
+    # ==================== 后端 API（Go/Gin）====================
   backend:
-    build: ./sportswear-backend
+    build:
+      context: ./sportswear-backend
+      args:
+        BASE_REGISTRY: ${BASE_REGISTRY:-}
     container_name: sportswear-backend
     environment:
       SERVER_PORT: "8080"
@@ -93,9 +96,12 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # ================== 管理后台（Vue3 SPA + nginx）==================
+    # ================== 管理后台（Vue3 SPA + nginx）==================
   admin:
-    build: ./sportswear-admin
+    build:
+      context: ./sportswear-admin
+      args:
+        BASE_REGISTRY: ${BASE_REGISTRY:-}
     container_name: sportswear-admin
     ports:
       - "8090:80"
@@ -103,9 +109,12 @@ services:
       - backend
     restart: unless-stopped
 
-  # ================== 门户前台（Nuxt3 SSR）==================
+    # ================== 门户前台（Nuxt3 SSR）==================
   portal:
-    build: ./sportswear-portal
+    build:
+      context: ./sportswear-portal
+      args:
+        BASE_REGISTRY: ${BASE_REGISTRY:-}
     container_name: sportswear-portal
     environment:
       NUXT_PUBLIC_API_BASE: /api/v1

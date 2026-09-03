@@ -23,3 +23,6 @@ _*.bat
 _*.py
 _*.log
 _*.html
+
+# Docker Compose 环境变量（本地自定义镜像源等）
+.env
