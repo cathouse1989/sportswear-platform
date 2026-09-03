@@ -89,11 +89,15 @@ const { data: heroDict } = await useAsyncData<Record<string, string>>(
   },
 )
 
+// 本地英雄轮播图片（存储于 public/images/hero/）
+// 使用本地图片而非外部 URL，提升加载速度与可靠性，并便于版本管理
+// 如需替换图片：1）放入新图片到 public/images/hero/ 2）更新此处路径即可
+// 原始图片来源：Unsplash（免费商业用途，详情见 public/images/hero/README.md）
 const DEFAULT_IMAGES = [
-  'https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?w=1600&h=900&fit=crop',
-  'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1600&h=900&fit=crop',
-  'https://images.unsplash.com/photo-1517466787929-bc90951d0974?w=1600&h=900&fit=crop',
-  'https://images.unsplash.com/photo-1577221084712-45b0445d2b00?w=1600&h=900&fit=crop',
+  '/images/hero/slide-1-sportswear-manufacturing.jpg',
+  '/images/hero/slide-2-running-training.jpg',
+  '/images/hero/slide-3-team-uniforms.jpg',
+  '/images/hero/slide-4-concept-to-product.jpg',
 ]
 
 // 从词条字典取文案；未配置时回退 slides 存量文本 / 静态语言包
