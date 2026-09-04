@@ -3,13 +3,13 @@
     <!-- Breadcrumb -->
     <div class="bg-white border-b border-[#EAE5DD]">
       <div class="max-w-7xl mx-auto px-4 lg:px-8 py-4">
-        <nav class="flex items-center gap-2 text-sm text-gray-500">
-          <NuxtLink :to="localePath('/')" class="hover:text-[#0D1B2A] transition">{{ $t('nav.home') }}</NuxtLink>
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-          <NuxtLink :to="localePath('/products')" class="hover:text-[#0D1B2A] transition">{{ $t('product.products') }}</NuxtLink>
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-          <span class="text-[#0D1B2A] font-medium truncate max-w-[200px]">{{ product.name || product.sku }}</span>
-        </nav>
+        <Breadcrumb
+          :items="[
+            { name: $t('nav.home'), to: localePath('/') },
+            { name: $t('product.products'), to: localePath('/products') },
+            { name: product.name || product.sku },
+          ]"
+        />
       </div>
     </div>
 
@@ -22,8 +22,10 @@
             <img
               v-if="currentImage"
               :src="currentImage"
-              :alt="product.sku"
+              :alt="`${product.sku || product.name} - Sportswear Product`"
               class="w-full h-full object-cover"
+              fetchpriority="high"
+              loading="eager"
             />
             <div v-else class="w-full h-full flex items-center justify-center text-8xl text-gray-200">📷</div>
             <!-- Image counter -->
@@ -47,7 +49,7 @@
               class="shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition"
               :class="currentImageIndex === i ? 'border-[#D4A853]' : 'border-transparent hover:border-gray-300'"
             >
-              <img :src="img" :alt="`${product.sku} - ${i + 1}`" class="w-full h-full object-cover" />
+              <img :src="img" :alt="`${product.sku || product.name} thumbnail ${i + 1}`" class="w-full h-full object-cover" loading="lazy" />
             </button>
           </div>
         </div>
@@ -232,7 +234,7 @@
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div v-for="(v, i) in product.videos" :key="v.id || i" class="bg-white rounded-2xl overflow-hidden border border-[#EAE5DD]">
             <div class="aspect-video bg-gray-100 relative group cursor-pointer" @click="openVideo(v)">
-              <img v-if="v.cover" :src="v.cover" :alt="v.title" class="w-full h-full object-cover" />
+              <img v-if="v.cover" :src="v.cover" :alt="`${v.title || 'Product video'} - ${product.sku || ''}`" class="w-full h-full object-cover" loading="lazy" />
               <div class="absolute inset-0 flex items-center justify-center">
                 <div class="w-14 h-14 bg-black/60 rounded-full flex items-center justify-center group-hover:bg-black/80 transition">
                   <svg class="w-6 h-6 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
@@ -299,7 +301,7 @@
         <!-- 当前图片 -->
         <img
           :src="allImages[lightboxIndex]"
-          :alt="product?.sku"
+          :alt="`${product?.sku || ''} - Product image ${lightboxIndex + 1}`"
           class="max-h-[85vh] max-w-[92vw] object-contain rounded-lg shadow-2xl"
           @click.stop
         />
@@ -443,12 +445,26 @@ const videoEmbedUrl = computed(() => {
   return url
 })
 
-useHead({
-  title: `${product.value?.name || product.value?.sku || slug} - Sportswear OEM/ODM`,
-  meta: [
-    { name: 'description', content: product.value?.brief?.slice(0, 160) || product.value?.description?.slice(0, 160) || '' },
-    { name: 'keywords', content: `${product.value?.sku}, ${product.value?.type}, ${product.value?.material}, sportswear OEM, ODM` },
-  ],
+// SEO - 产品详情页（动态数据驱动）
+const seoTitle = computed(() =>
+  product.value?.name ? `${product.value.name} - Premium OEM/ODM Sportswear` : `${slug} - Sportswear Product`
+)
+const seoDescription = computed(() =>
+  product.value?.brief?.slice(0, 160) || product.value?.description?.slice(0, 160) || ''
+)
+const seoKeywords = computed(() =>
+  [product.value?.sku, product.value?.type, product.value?.material, 'sportswear OEM', 'ODM', 'custom activewear']
+    .filter(Boolean).join(', ')
+)
+
+useSeoHead({
+  title: seoTitle,
+  description: seoDescription,
+  keywords: seoKeywords,
+  ogImage: computed(() => product.value?.cover_image || undefined),
+  schema: computed(() =>
+    product.value ? buildProductSchema(product.value) : undefined
+  ),
 })
 
 function prevImage() {

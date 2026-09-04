@@ -78,6 +78,16 @@
 </template>
 
 <script setup lang="ts">
+// SEO - 关于我们
+useSeoHead({
+  title: 'About Us - OEM/ODM Sportswear Manufacturer Since 2008',
+  description:
+    'Professional OEM/ODM sportswear manufacturer with 15+ years of experience. ISO 9001, BSCI, OEKO-TEX certified. 50,000 sqm facility serving 500+ global brands.',
+  keywords:
+    'sportswear manufacturer history, OEM factory China, ODM sportswear company, ISO certified activewear factory, garment manufacturing China',
+  ogImage: '/images/og-about.jpg',
+})
+
 const api = useApi()
 const localePath = useLocalePath()
 const { locale } = useI18n()
@@ -91,12 +101,7 @@ const factorySteps = [
   { icon: '🚢', title: 'Shipping', desc: 'Global logistics partnerships for timely delivery' },
 ]
 
-useHead({
-  title: 'About Us - OEM/ODM Sportswear Manufacturer',
-  meta: [
-    { name: 'description', content: 'Professional OEM/ODM sportswear manufacturer with 15+ years of experience. ISO 9001, BSCI, OEKO-TEX certified. 50,000 sqm facility serving global brands.' },
-  ],
-})
+
 
 // SSR 阶段拉取认证列表并内联进 HTML（提升 SEO + 配合 SWR HTML 缓存）
 const { data: certifications } = await useAsyncData<any[]>(

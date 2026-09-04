@@ -106,11 +106,9 @@ const regionalNotice = computed(() => {
   return notices[locale.value] || null
 })
 
-useHead({
+useSeoHead({
   title: t('privacy.title', 'Privacy Policy'),
-  meta: [
-    { name: 'description', content: t('privacy.meta_description', 'Our privacy policy explains how we collect, use, and protect your personal data.') },
-  ],
+  description: t('privacy.meta_description', 'Our privacy policy explains how we collect, use, and protect your personal data. Learn about your rights under GDPR, CCPA, and PIPL.'),
 })
 </script>
 

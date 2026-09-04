@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://sportswear-platform.com/sitemap.xml
+
+# Disallow admin paths (if any)
+Disallow: /api/
+Disallow: /_nuxt/
+Disallow: /uploads/
+
+# Crawl-delay: be friendly
+Crawl-delay: 10

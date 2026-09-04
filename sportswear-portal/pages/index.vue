@@ -49,7 +49,15 @@
 const localePath = useLocalePath()
 const { t, locale } = useI18n()
 
-const api = useApi()
+// SEO - 首页
+useSeoHead({
+  title: '', // 首页不需要额外 title，composable 会自动用 SITE_NAME
+  description:
+    'Leading OEM/ODM sportswear manufacturer specializing in custom activewear, athletic apparel, and team uniforms. 15+ years of experience serving global brands with ISO-certified quality.',
+  keywords:
+    'sportswear manufacturer, OEM sportswear, ODM activewear, custom athletic apparel, China sportswear factory, private label activewear',
+  ogImage: '/images/og-home.jpg',
+})
 
 // 首页数据（SSR 内联到 HTML）
 const { data: homeData } = await useAsyncData<any>(

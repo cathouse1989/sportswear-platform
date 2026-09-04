@@ -19,5 +19,11 @@ const { data: blog } = await useAsyncData<any>(
   () => api.getBlog(slug).catch(() => null),
 )
 
-useHead({ title: `${blog.value?.title || slug} - Blog - Sportswear OEM/ODM` })
+// SEO - 博客详情页
+useSeoHead({
+  title: computed(() => blog.value?.title ? `${blog.value.title} - Sportswear Manufacturing Blog` : 'Blog Article'),
+  description: computed(() => blog.value?.content?.replace(/<[^>]*>/g, '').slice(0, 160) || ''),
+  ogImage: computed(() => blog.value?.image || undefined),
+  schema: computed(() => blog.value ? buildArticleSchema(blog.value) : undefined),
+})
 </script>

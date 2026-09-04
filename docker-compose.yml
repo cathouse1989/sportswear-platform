@@ -119,6 +119,10 @@ services:
     environment:
       NUXT_PUBLIC_API_BASE: /api/v1
       NUXT_API_SERVER: http://backend:8080/api/v1
+      # SEO / Analytics（部署时替换为实际值）
+      NUXT_PUBLIC_GA_MEASUREMENT_ID: ${NUXT_PUBLIC_GA_MEASUREMENT_ID:-}
+      NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION: ${NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION:-}
+      NUXT_PUBLIC_SITE_URL: ${NUXT_PUBLIC_SITE_URL:-https://sportswear-platform.com}
     ports:
       - "3000:3000"
     depends_on:

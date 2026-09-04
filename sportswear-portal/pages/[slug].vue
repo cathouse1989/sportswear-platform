@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div>
     <section class="bg-gradient-to-br from-gray-900 to-gray-800 text-white py-16 md:py-20">
       <div class="max-w-7xl mx-auto px-4 lg:px-8">
@@ -14,7 +14,7 @@
           <div class="text-gray-600 leading-relaxed" v-html="m.config?.content || m.title"></div>
         </div>
         <div v-else-if="m.type === 'image'" class="text-center">
-          <img v-if="m.config?.url" :src="m.config.url" :alt="m.title" class="rounded-2xl max-w-full mx-auto" />
+          <img v-if="m.config?.url" :src="m.config.url" :alt="m.title || 'Image'" class="rounded-2xl max-w-full mx-auto" loading="lazy" />
           <p v-if="m.title" class="text-sm text-gray-500 mt-3">{{ m.title }}</p>
         </div>
         <div v-else-if="m.type === 'video'" class="aspect-video rounded-2xl overflow-hidden bg-black">
@@ -22,7 +22,7 @@
           <div v-else class="w-full h-full flex items-center justify-center text-white/50">No Video</div>
         </div>
         <div v-else-if="m.type === 'banner'" class="rounded-2xl overflow-hidden">
-          <img v-if="m.config?.image || m.config?.url" :src="m.config?.image || m.config?.url" :alt="m.title" class="w-full h-auto max-h-[480px] object-cover rounded-2xl" />
+          <img v-if="m.config?.image || m.config?.url" :src="m.config?.image || m.config?.url" :alt="m.title || 'Banner'" class="w-full h-auto max-h-[480px] object-cover rounded-2xl" loading="lazy" />
         </div>
         <div v-else-if="['product_recommend','oem','odm','factory','production','case','certification','blog'].includes(m.type)" class="bg-white rounded-2xl p-8 border border-[#EAE5DD]">
           <h2 v-if="m.title" class="text-xl font-bold text-[#0D1B2A] mb-4">{{ m.title }}</h2>
@@ -82,10 +82,8 @@ const visibleModules = computed(() => {
     .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
 })
 
-useHead({
+useSeoHead({
   title: computed(() => page.value?.title || 'Page'),
-  meta: [
-    { name: 'description', content: computed(() => page.value?.seo?.description || page.value?.title || '') },
-  ],
+  description: computed(() => page.value?.seo?.description || page.value?.title || ''),
 })
 </script>

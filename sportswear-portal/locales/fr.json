@@ -91,7 +91,8 @@
     "share": "Partager",
     "copy": "Copier",
     "copied": "Copié !",
-    "close": "Fermer"
+    "close": "Fermer",
+    "breadcrumb": "Fil d'Ariane"
   },
   "footer": {
     "newsletter_title": "Restez Informé",

@@ -41,7 +41,14 @@ const localePath = useLocalePath()
 const api = useApi()
 const { locale } = useI18n()
 const route = useRoute()
-useHead({ title: 'Cases - Sportswear OEM/ODM' })
+// SEO - 案例列表
+useSeoHead({
+  title: 'Case Studies - OEM/ODM Sportswear Manufacturing',
+  description:
+    'Explore our successful OEM/ODM sportswear projects. See how we help global brands bring their activewear visions to life with quality manufacturing and innovative solutions.',
+  keywords:
+    'sportswear case studies, OEM projects, ODM manufacturing cases, activewear brand partnerships, garment factory portfolio',
+})
 
 const cases = ref<any[]>([])
 const loading = ref(false)

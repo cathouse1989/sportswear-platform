@@ -44,7 +44,14 @@ const { locale } = useI18n()
 const route = useRoute()
 const openId = ref<string | null>(null)
 function toggle(id: string) { openId.value = openId.value === id ? null : id }
-useHead({ title: 'FAQ - Sportswear OEM/ODM' })
+// SEO - FAQ
+useSeoHead({
+  title: 'FAQ - Sportswear OEM/ODM Manufacturing',
+  description:
+    'Find answers to frequently asked questions about OEM/ODM sportswear manufacturing, MOQ, customization processes, pricing, shipping, and quality control.',
+  keywords:
+    'sportswear FAQ, OEM questions, ODM manufacturing, MOQ sportswear, custom activewear process, garment manufacturing FAQ',
+})
 
 const faqs = ref<any[]>([])
 const loading = ref(false)

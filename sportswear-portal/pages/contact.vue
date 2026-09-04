@@ -94,7 +94,14 @@ function formatSize(bytes: number) {
   return bytes + 'B'
 }
 
-useHead({ title: 'Contact Us - Sportswear OEM/ODM' })
+// SEO - 联系我们
+useSeoHead({
+  title: 'Contact Us - OEM/ODM Sportswear Manufacturer',
+  description:
+    'Get in touch with our OEM/ODM sportswear manufacturing team. Request a quote, ask about customization options, or discuss your activewear project. We respond within 24 hours.',
+  keywords:
+    'contact sportswear manufacturer, OEM inquiry, ODM quote, activewear supplier, China garment factory contact',
+})
 
 async function handleSubmit() {
   submitting.value = true

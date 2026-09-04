@@ -91,7 +91,8 @@
     "share": "Share",
     "copy": "Copy",
     "copied": "Copied!",
-    "close": "Close"
+    "close": "Close",
+    "breadcrumb": "Breadcrumb"
   },
   "footer": {
     "newsletter_title": "Stay Updated",

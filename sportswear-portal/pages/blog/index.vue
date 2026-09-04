@@ -50,7 +50,14 @@ const api = useApi()
 const { locale } = useI18n()
 const route = useRoute()
 
-useHead({ title: 'Blog - Sportswear OEM/ODM' })
+// SEO - 博客列表页
+useSeoHead({
+  title: 'Sportswear Manufacturing Blog - Industry Insights & Tips',
+  description:
+    'Expert insights on sportswear manufacturing, OEM/ODM processes, fabric technology, and industry trends. Learn how to choose the right manufacturer for your activewear brand.',
+  keywords:
+    'sportswear blog, OEM manufacturing insights, activewear industry, garment factory, sportswear manufacturing tips',
+})
 
 const blogs = ref<any[]>([])
 const loading = ref(false)

@@ -125,6 +125,15 @@
 
 <script setup lang="ts">
 const localePath = useLocalePath()
+// SEO - 产品列表页
+useSeoHead({
+  title: 'Custom Sportswear Products - OEM/ODM Activewear Collection',
+  description:
+    'Browse our extensive catalog of custom sportswear products. OEM/ODM activewear, yoga wear, running gear, sports bras, leggings, and team uniforms for global brands.',
+  keywords:
+    'custom sportswear, OEM activewear, ODM products, sports bra manufacturer, custom leggings, yoga wear wholesale, athletic apparel catalog',
+})
+
 const api = useApi()
 const route = useRoute()
 const products = ref<any[]>([])
@@ -141,7 +150,7 @@ const hasMore = ref(true)
 const total = ref(0)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 
-useHead({ title: 'Products - Premium Sportswear OEM/ODM' })
+
 
 onMounted(async () => {
   try {

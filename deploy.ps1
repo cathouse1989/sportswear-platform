@@ -258,6 +258,12 @@ Write-Host "  MinIO      : http://localhost:9001"   -ForegroundColor White
 Write-Host ""
 Write-Host "  默认管理员: admin@sportswear.com / Admin@123456" -ForegroundColor Gray
 Write-Host "  MinIO账号 : minioadmin / minioadmin"             -ForegroundColor Gray
+Write-Host ""
+Write-Host "  SEO 环境变量配置（如需）:" -ForegroundColor Yellow
+Write-Host "    请查看 sportswear-portal/.env.example 并设置 .env 文件" -ForegroundColor Gray
+Write-Host "    NUXT_PUBLIC_GA_MEASUREMENT_ID     # Google Analytics 4" -ForegroundColor Gray
+Write-Host "    NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION # Search Console" -ForegroundColor Gray
+Write-Host "    NUXT_PUBLIC_SITE_URL               # 生产域名" -ForegroundColor Gray
 Write-Host "========================================" -ForegroundColor Cyan
 
 pause
