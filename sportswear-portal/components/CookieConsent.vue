@@ -96,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useConsent, ConsentCategory } from '~/composables/useConsent'
 
 const localePath = useLocalePath()
@@ -117,46 +117,75 @@ const analyticsChecked = ref(false)
 const marketingChecked = ref(false)
 
 // ============ 浮动按钮拖动逻辑 ============
+// 位置以「距视口右 / 下边缘的像素间距」(anchor) 保存，而非绝对 left/top 像素。
+// 这样在窗口 resize / 移动端浏览时地址栏收起等场景下，按钮能始终锚定在对应
+// 角落而不会因视口高度抖动反复向上/向下漂移（之前以绝对 top 像素 + Math.min
+// 夹逼会导致按钮越滚越靠边且无法回弹）。
 const STORAGE_KEY = 'sw_cookie_trigger_pos'
+const EDGE_MARGIN = 20
+const btnSize = 56 // 按钮不可见 / 未测量时的兜底尺寸
 const triggerRef = ref<HTMLElement | null>(null)
 const isDragging = ref(false)
 const dragStartPos = ref({ x: 0, y: 0 })
-const triggerStartPos = ref({ x: 0, y: 0 })
+// 鼠标在按钮内部的按下偏移量，用于拖动时平滑跟随、不跳动
+const dragOffsetPos = ref({ x: btnSize / 2, y: btnSize / 2 })
+// 渲染用：按钮左上角的 left/top（viewport 像素），由 anchor 派生
 const triggerPos = ref({ x: 0, y: 0 })
+// 锚点：距离右 / 下边缘的间距（px），持久化存储的源头
+const anchor = ref<{ right: number; bottom: number }>({ right: EDGE_MARGIN, bottom: EDGE_MARGIN })
 const hasMoved = ref(false)
+const mounted = ref(false)
 
-// 默认位置：右下角
-const getDefaultPos = () => {
-  if (import.meta.server) return { x: 20, y: 20 }
-  const btnSize = 56
-  const margin = 20
-  return {
-    x: window.innerWidth - btnSize - margin,
-    y: window.innerHeight - btnSize - margin,
-  }
-}
+// 默认锚点：右下角
+const getDefaultAnchor = (): { right: number; bottom: number } => ({
+  right: EDGE_MARGIN,
+  bottom: EDGE_MARGIN,
+})
 
-// 从 localStorage 读取保存位置
-const loadSavedPos = () => {
-  if (import.meta.server) return getDefaultPos()
+// 从 localStorage 读取保存的锚点
+const loadSavedAnchor = (): { right: number; bottom: number } => {
+  if (import.meta.server) return getDefaultAnchor()
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
-      const pos = JSON.parse(saved)
-      // 确保位置在视口内
-      if (pos.x >= 0 && pos.x <= window.innerWidth - 56 &&
-          pos.y >= 0 && pos.y <= window.innerHeight - 56) {
-        return pos
+      const a = JSON.parse(saved)
+      if (
+        a &&
+        typeof a.right === 'number' &&
+        typeof a.bottom === 'number' &&
+        a.right >= 0 &&
+        a.right <= Math.max(0, window.innerWidth - btnSize) &&
+        a.bottom >= 0 &&
+        a.bottom <= Math.max(0, window.innerHeight - btnSize)
+      ) {
+        return { right: a.right, bottom: a.bottom }
       }
     }
   } catch { /* ignore */ }
-  return getDefaultPos()
+  return getDefaultAnchor()
 }
 
-const triggerStyle = computed(() => ({
-  left: `${triggerPos.value.x}px`,
-  top: `${triggerPos.value.y}px`,
-}))
+// 根据锚点 + 当前视口 + 按钮实际尺寸，重新计算 left/top
+const applyAnchor = () => {
+  if (!mounted.value) return
+  const el = triggerRef.value
+  const w = el ? el.offsetWidth : btnSize
+  const h = el ? el.offsetHeight : btnSize
+  triggerPos.value = {
+    x: Math.max(0, window.innerWidth - w - anchor.value.right),
+    y: Math.max(0, window.innerHeight - h - anchor.value.bottom),
+  }
+}
+
+const triggerStyle = computed(() => {
+  if (!mounted.value) return {}
+  return {
+    left: `${triggerPos.value.x}px`,
+    top: `${triggerPos.value.y}px`,
+    right: 'auto',
+    bottom: 'auto',
+  }
+})
 
 const startDrag = (e: MouseEvent | TouchEvent) => {
   isDragging.value = true
@@ -165,7 +194,13 @@ const startDrag = (e: MouseEvent | TouchEvent) => {
   const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
   const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
   dragStartPos.value = { x: clientX, y: clientY }
-  triggerStartPos.value = { ...triggerPos.value }
+
+  // 记录鼠标相对于按钮左上角的偏移，拖动时手位不跳动
+  const el = triggerRef.value
+  if (el) {
+    const rect = el.getBoundingClientRect()
+    dragOffsetPos.value = { x: clientX - rect.left, y: clientY - rect.top }
+  }
 
   document.addEventListener('mousemove', onDrag)
   document.addEventListener('mouseup', stopDrag)
@@ -187,12 +222,23 @@ const onDrag = (e: MouseEvent | TouchEvent) => {
     hasMoved.value = true
   }
 
-  // 限制在视口范围内
-  const btnSize = 56
-  const newX = Math.max(0, Math.min(window.innerWidth - btnSize, triggerStartPos.value.x + dx))
-  const newY = Math.max(0, Math.min(window.innerHeight - btnSize, triggerStartPos.value.y + dy))
+  // 限制在视口范围内（使用按钮实际尺寸）
+  const el = triggerRef.value
+  const w = el ? el.offsetWidth : btnSize
+  const h = el ? el.offsetHeight : btnSize
+
+  let newX = clientX - dragOffsetPos.value.x
+  let newY = clientY - dragOffsetPos.value.y
+  newX = Math.max(0, Math.min(window.innerWidth - w, newX))
+  newY = Math.max(0, Math.min(window.innerHeight - h, newY))
 
   triggerPos.value = { x: newX, y: newY }
+
+  // 同步锚点，保证 resize 后按钮停留在用户拖放的位置而非反弹
+  anchor.value = {
+    right: Math.max(0, window.innerWidth - w - newX),
+    bottom: Math.max(0, window.innerHeight - h - newY),
+  }
 
   // 触摸时阻止页面滚动
   if ('touches' in e && e.cancelable) {
@@ -207,9 +253,16 @@ const stopDrag = () => {
   document.removeEventListener('touchmove', onDrag)
   document.removeEventListener('touchend', stopDrag)
 
-  // 保存位置到 localStorage
+  // 落地时重新校准锚点（基于最终位置 + 实际尺寸），并持久化
+  const el = triggerRef.value
+  const w = el ? el.offsetWidth : btnSize
+  const h = el ? el.offsetHeight : btnSize
+  anchor.value = {
+    right: Math.max(0, window.innerWidth - w - triggerPos.value.x),
+    bottom: Math.max(0, window.innerHeight - h - triggerPos.value.y),
+  }
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(triggerPos.value))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(anchor.value))
   } catch { /* ignore */ }
 }
 
@@ -243,13 +296,25 @@ const openPreferences = () => {
   showBanner.value = true
 }
 
+// 按钮从横幅隐藏→显示（banner 收起）时，根据锚点校准一次位置
+watch(
+  () => !showBanner.value,
+  (visible) => {
+    if (visible && mounted.value) {
+      nextTick(() => applyAnchor())
+    }
+  },
+)
+
 onMounted(async () => {
   await initConsent()
   analyticsChecked.value = hasConsent(ConsentCategory.ANALYTICS)
   marketingChecked.value = hasConsent(ConsentCategory.MARKETING)
-  // 初始化位置
-  triggerPos.value = loadSavedPos()
-  // 窗口大小变化时调整位置
+  // 初始化锚点与位置
+  anchor.value = loadSavedAnchor()
+  mounted.value = true
+  applyAnchor()
+  // 窗口大小变化时，根据锚点重新计算位置，保持按钮固定在视口角落，不漂移
   window.addEventListener('resize', handleResize)
 })
 
@@ -262,22 +327,17 @@ onUnmounted(() => {
 })
 
 const handleResize = () => {
-  // 窗口变化时确保按钮在视口内
-  const btnSize = 56
-  triggerPos.value = {
-    x: Math.min(triggerPos.value.x, window.innerWidth - btnSize),
-    y: Math.min(triggerPos.value.y, window.innerHeight - btnSize),
-  }
+  if (!isDragging.value) applyAnchor()
 }
 </script>
 
 <style scoped>
 /* 隐私偏好浮动入口（横幅隐藏时显示，可拖动） */
 .preferences-trigger {
-  position: fixed;
-  /* 默认位置由内联样式 left/top 控制，bottom/right 作为 fallback */
-  bottom: auto;
-  right: auto;
+    position: fixed;
+  /* SSR/首次渲染兜底：固定在视口右下角；mounted 后内联 left/top 接管 */
+  right: 20px;
+  bottom: 20px;
   left: auto;
   top: auto;
   z-index: 9990;
