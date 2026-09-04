@@ -151,11 +151,6 @@ export default defineNuxtConfig({
     },
     // 服务端压缩（gzip / brotli）
     compressPublicAssets: true,
-    // 预渲染 sitemap fallback 页面路径
-    prerender: {
-      crawlLinks: false,
-      routes: ['/robots.txt'],
-    },
   },
 
   compatibilityDate: '2025-01-01',

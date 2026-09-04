@@ -85,7 +85,7 @@
           class="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300"
         >
           <div class="aspect-[4/5] bg-gray-100 relative overflow-hidden">
-            <img v-if="p.cover_image" :src="p.cover_image" :alt="p.sku"
+            <img v-if="p.cover_image" :src="imgUrl(p.cover_image)" :alt="p.sku"
               class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
               loading="lazy" />
             <div v-else class="absolute inset-0 flex items-center justify-center text-6xl opacity-30 group-hover:scale-110 transition-transform duration-500">🏋️</div>

@@ -21,7 +21,7 @@
           <div class="relative bg-white rounded-2xl overflow-hidden border border-[#EAE5DD] aspect-[4/5] mb-4 cursor-zoom-in" @click="openLightbox(currentImageIndex)">
             <img
               v-if="currentImage"
-              :src="currentImage"
+              :src="imgUrl(currentImage)"
               :alt="`${product.sku || product.name} - Sportswear Product`"
               class="w-full h-full object-cover"
               fetchpriority="high"
@@ -49,7 +49,7 @@
               class="shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition"
               :class="currentImageIndex === i ? 'border-[#D4A853]' : 'border-transparent hover:border-gray-300'"
             >
-              <img :src="img" :alt="`${product.sku || product.name} thumbnail ${i + 1}`" class="w-full h-full object-cover" loading="lazy" />
+              <img :src="imgUrl(img)" :alt="`${product.sku || product.name} thumbnail ${i + 1}`" class="w-full h-full object-cover" loading="lazy" />
             </button>
           </div>
         </div>
@@ -234,7 +234,7 @@
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div v-for="(v, i) in product.videos" :key="v.id || i" class="bg-white rounded-2xl overflow-hidden border border-[#EAE5DD]">
             <div class="aspect-video bg-gray-100 relative group cursor-pointer" @click="openVideo(v)">
-              <img v-if="v.cover" :src="v.cover" :alt="`${v.title || 'Product video'} - ${product.sku || ''}`" class="w-full h-full object-cover" loading="lazy" />
+              <img v-if="v.cover" :src="imgUrl(v.cover)" :alt="`${v.title || 'Product video'} - ${product.sku || ''}`" class="w-full h-full object-cover" loading="lazy" />
               <div class="absolute inset-0 flex items-center justify-center">
                 <div class="w-14 h-14 bg-black/60 rounded-full flex items-center justify-center group-hover:bg-black/80 transition">
                   <svg class="w-6 h-6 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
@@ -251,7 +251,7 @@
         <h2 class="text-xl font-bold text-[#0D1B2A] mb-6">{{ $t('product.detail.gallery') }}</h2>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           <div v-for="(img, i) in product.images" :key="img.id || i" class="bg-white rounded-2xl overflow-hidden border border-[#EAE5DD] aspect-square cursor-zoom-in group" @click="openLightbox(allImages.indexOf(img.url))">
-            <img :src="img.url" :alt="img.alt || product.sku" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+            <img :src="imgUrl(img.url)" :alt="img.alt || product.sku" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
           </div>
         </div>
       </div>
@@ -300,7 +300,7 @@
         </button>
         <!-- 当前图片 -->
         <img
-          :src="allImages[lightboxIndex]"
+          :src="imgUrl(allImages[lightboxIndex])"
           :alt="`${product?.sku || ''} - Product image ${lightboxIndex + 1}`"
           class="max-h-[85vh] max-w-[92vw] object-contain rounded-lg shadow-2xl"
           @click.stop

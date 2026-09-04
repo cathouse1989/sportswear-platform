@@ -24,7 +24,7 @@
             <div class="aspect-[3/4] bg-gray-100 relative overflow-hidden">
               <img
                 v-if="p.cover_image"
-                :src="p.cover_image"
+                :src="imgUrl(p.cover_image)"
                 :alt="p.sku"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 loading="lazy"
