@@ -1,24 +1,25 @@
 {
-    "name":  "sportswear-portal",
-    "private":  true,
-    "type":  "module",
-    "scripts":  {
-                    "dev":  "nuxt dev",
-                    "build":  "nuxt build",
-                    "generate":  "nuxt generate",
-                    "preview":  "nuxt preview"
-                },
-    "dependencies":  {
-                         "@nuxt/image":  "^1.10.0",
-                         "@nuxtjs/i18n":  "^9.3.0",
-                         "@nuxtjs/tailwindcss":  "^6.14.0",
-                         "nuxt":  "^3.15.0",
-                         "ofetch":  "^1.4.1",
-                         "vue":  "^3.5.13",
-                         "vue-router":  "^4.5.0",
-                         "web-vitals":  "^4.0.0"
-                     },
-    "devDependencies":  {
-                            "typescript":  "^5.6.3"
-                        }
+    "name": "sportswear-portal",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "nuxt dev",
+        "build": "nuxt build",
+        "generate": "nuxt generate",
+        "preview": "nuxt preview"
+    },
+    "dependencies": {
+        "@nuxt/image": "^1.10.0",
+        "@nuxtjs/i18n": "^9.3.0",
+        "@nuxtjs/tailwindcss": "^6.14.0",
+        "estree-walker": "^3.0.3",
+        "nuxt": "^3.15.0",
+        "ofetch": "^1.4.1",
+        "vue": "^3.5.13",
+        "vue-router": "^4.5.0",
+        "web-vitals": "^4.0.0"
+    },
+    "devDependencies": {
+        "typescript": "^5.6.3"
+    }
 }

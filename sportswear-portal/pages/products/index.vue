@@ -136,6 +136,7 @@ useSeoHead({
 
 const api = useApi()
 const route = useRoute()
+const { locale } = useI18n()
 const products = ref<any[]>([])
 const categories = ref<any[]>([])
 const selectedCategory = ref('')
@@ -150,16 +151,49 @@ const hasMore = ref(true)
 const total = ref(0)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 
+// SSR 首屏加载产品数据（内联到 HTML）
+const { data: ssrData } = await useAsyncData<any>(
+  'products-' + (locale.value || 'en'),
+  () => api.getProducts({ page: 1, pageSize: pageSize.value, lang: locale.value })
+    .then((res: any) => ({
+      items: Array.isArray(res) ? res : (res?.items || []),
+      total: typeof res?.total === 'number' ? res.total : 0,
+    }))
+    .catch(() => ({ items: [], total: 0 })),
+  {
+    getCachedData(key, nuxtApp) {
+      return nuxtApp.isHydrating ? nuxtApp.payload.data[key] : undefined
+    },
+  },
+)
 
+// SSR 首屏加载分类
+const { data: ssrCategories } = await useAsyncData<any[]>(
+  'categories-' + (locale.value || 'en'),
+  () => api.getCategories().catch(() => []),
+)
+
+// SSR 数据填充到响应式变量
+if (ssrData.value) {
+  products.value = ssrData.value.items || []
+  total.value = ssrData.value.total || 0
+  hasMore.value = products.value.length > 0 && products.value.length < total.value
+}
+if (ssrCategories.value) {
+  categories.value = ssrCategories.value
+}
 
 onMounted(async () => {
-  try {
-    const [catData] = await Promise.all([
-      api.getCategories(),
-    ])
-    categories.value = catData || []
-    await fetchProducts()
-  } catch (e) { console.error(e); loading.value = false }
+  // 如果没有 SSR 数据（客户端导航时），才重新加载
+  if (!products.value.length) {
+    try {
+      const [catData] = await Promise.all([
+        api.getCategories(),
+      ])
+      categories.value = catData || []
+      await fetchProducts()
+    } catch (e) { console.error(e); loading.value = false }
+  }
 })
 
 function debouncedSearch() {
