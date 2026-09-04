@@ -81,7 +81,7 @@ func (s *AnalyticsService) GetTrafficOverview(days int) (map[string]interface{},
 
 	// 全量页面浏览（只统计 page_view，排除 api_call，解决重复统计问题）
 	// 按 visitor_id + path 去重（同一访客同一页面只算一次浏览）
-	visitsSelect := `SELECT visitor_id, path, created_at, ip, device, entity_type FROM __T__ WHERE created_at >= ? AND visit_type = 'page_view'`
+	visitsSelect := `SELECT visitor_id, path, created_at, ip, device, entity_type, visit_type FROM __T__ WHERE created_at >= ? AND visit_type = 'page_view'`
 	visitsSQL, visitsArgs := database.UnionAll(tables, visitsSelect, []interface{}{since})
 	if err := s.db.Raw(fmt.Sprintf(`SELECT COUNT(DISTINCT visitor_id || ':' || path) FROM (%s) t`, visitsSQL), visitsArgs...).Scan(&totalVisits).Error; err != nil {
 		return nil, err
