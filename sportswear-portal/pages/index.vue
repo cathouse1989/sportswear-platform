@@ -87,32 +87,6 @@
         </div>
       </div>
     </section>
-
-    <!-- 自媒体：关注我们（仅已发布，受后台「最多展示数量」限制） -->
-    <section v-if="selfMedias?.length" class="py-16 md:py-20 bg-white border-t border-[#EAE5DD]">
-      <div class="max-w-7xl mx-auto px-4 lg:px-8">
-        <h2 class="text-2xl md:text-3xl font-bold text-[#0D1B2A] mb-8 md:mb-10 text-center">{{ $t('home.follow_us') }}</h2>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
-          <a
-            v-for="sm in selfMedias"
-            :key="sm.id"
-            :href="sm.url || '#'"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="group flex flex-col items-center bg-[#F5F0E8] rounded-2xl p-4 hover:shadow-md transition active:scale-[0.98]"
-            :title="sm.description || sm.name"
-            @click.prevent="handleSelfMediaClick(sm)"
-          >
-            <div class="w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden bg-white flex items-center justify-center mb-3">
-              <img v-if="sm.image" :src="imgUrl(sm.image)" :alt="sm.name" class="w-full h-full object-cover" loading="lazy" />
-              <span v-else class="text-3xl">{{ platformEmoji(sm.platform) }}</span>
-            </div>
-            <span class="text-sm font-semibold text-[#0D1B2A] line-clamp-1">{{ sm.name }}</span>
-            <span v-if="sm.account" class="text-xs text-gray-500 line-clamp-1">{{ sm.account }}</span>
-          </a>
-        </div>
-      </div>
-    </section>
   </div>
 </template>
 
@@ -155,25 +129,6 @@ const { data: themeData } = await useAsyncData<Record<string, any>>(
 
 const products = computed<any[]>(() => homeData.value?.featured_products || [])
 const blogs = computed<any[]>(() => homeData.value?.blogs || [])
-
-// 自媒体（关注我们）区块：仅已发布，受后台「最多展示数量」限制
-const { data: selfMediasData } = await useAsyncData<any[]>(
-  'self-medias-' + (locale.value || 'en'),
-  () => api.getSelfMedias().then((res: any) => res?.items || res || []).catch(() => []),
-)
-const selfMedias = computed<any[]>(() => selfMediasData.value || [])
-
-const PLATFORM_EMOJI: Record<string, string> = {
-  wechat: '💬', weibo: '🔴', douyin: '🎵', xiaohongshu: '📕', video: '📹', bilibili: '📺',
-  youtube: '▶️', instagram: '📸', facebook: '📘', twitter: '🐦', linkedin: '💼', tiktok: '🎶', other: '🌐',
-}
-const platformEmoji = (p?: string) => PLATFORM_EMOJI[p || ''] || '🌐'
-function handleSelfMediaClick(sm: any) {
-  if (sm.url && sm.url !== '#') {
-    api.trackClick(sm.platform || sm.name, sm.url).catch(() => {})
-    window.open(sm.url, '_blank', 'noopener,noreferrer')
-  }
-}
 
 // 语言切换后（同一页面组件复用、不重新挂载时），显式按新语言重新拉取首页聚合数据
 watch(locale, () => {
