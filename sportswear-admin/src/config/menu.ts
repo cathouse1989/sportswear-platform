@@ -23,6 +23,7 @@ import {
   Monitor,
   Bell,
   Star,
+  Promotion,
 } from '@element-plus/icons-vue'
 
 /** 权限类型：单一权限码或 any-of 数组，与 hasAnyPermission / can() 保持一致 */
@@ -95,6 +96,14 @@ export const MENU_CONFIG: MenuItem[] = [
     sort_order: 50,
     icon: Bell,
     permission: 'lead:view',
+  },
+  {
+    key: 'subscribers',
+    label: '订阅管理',
+    index: '/subscribers',
+    sort_order: 55,
+    icon: Promotion,
+    permission: 'subscription:view',
   },
 
   // ── 内容管理 ──

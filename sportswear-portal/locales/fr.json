@@ -188,6 +188,8 @@
     "newsletter_desc": "Recevez les dernières actualités produits et informations sectorielles.",
     "newsletter_placeholder": "Entrez votre email",
     "subscribe": "S'abonner",
+    "newsletter_success": "Abonnement réussi ! Merci de nous suivre.",
+    "newsletter_error": "Échec de l'abonnement. Veuillez réessayer plus tard.",
     "products": "Produits",
     "about_desc": "Fabricant professionnel de vêtements de sport OEM/ODM avec plus de 15 ans d'expérience. Certifié ISO 9001, BSCI et OEKO-TEX.",
     "cat_yoga_wear": "Vêtements de Yoga",

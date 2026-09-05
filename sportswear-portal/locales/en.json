@@ -188,6 +188,8 @@
     "newsletter_desc": "Get the latest product updates and industry insights.",
     "newsletter_placeholder": "Enter your email",
     "subscribe": "Subscribe",
+    "newsletter_success": "Subscribed! Thank you for staying tuned.",
+    "newsletter_error": "Subscription failed. Please try again later.",
     "products": "Products",
     "about_desc": "Professional sportswear OEM/ODM manufacturer with 15+ years of experience. ISO 9001, BSCI, OEKO-TEX certified.",
     "cat_yoga_wear": "Yoga Wear",

@@ -181,5 +181,6 @@ export const useApi = () => {
       return unwrap<any>('/public/uploads/lead-attachment', { method: 'POST', body: fd })
     },
     trackClick: (target: string, url: string) => unwrap<any>('/public/click-track', { method: 'POST', body: { target, url } }),
+    subscribe: (email: string) => unwrap<any>('/public/subscribe', { method: 'POST', body: { email } }),
   }
 }

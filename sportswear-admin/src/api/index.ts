@@ -3,6 +3,7 @@ import type {
   DashboardStats,
   Lead,
   LeadFollowUp,
+  Subscriber,
   Notification,
   OperationLog,
   PageResult,
@@ -211,6 +212,15 @@ export const leadApi = {
   delete: (id: string) => http.delete(`/admin/leads/${id}`),
   addFollowUp: (id: string, data: any) =>
     http.post<LeadFollowUp>(`/admin/leads/${id}/followups`, data),
+}
+
+// ============ 订阅 ============
+export const subscriberApi = {
+  stats: () =>
+    http.get<{ total: number; subscribed: number; unsubscribed: number }>('/admin/subscribers/stats'),
+  list: (params?: any) => http.get<PageResult<Subscriber>>('/admin/subscribers', params),
+  update: (id: string, data: any) => http.put<Subscriber>(`/admin/subscribers/${id}`, data),
+  delete: (id: string) => http.delete(`/admin/subscribers/${id}`),
 }
 
 // ============ 鎶ヤ环 ============

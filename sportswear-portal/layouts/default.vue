@@ -159,14 +159,18 @@
               <h3 class="text-xl font-bold mb-1">{{ $t('footer.newsletter_title') }}</h3>
               <p class="text-[#9A8C7A] text-sm">{{ $t('footer.newsletter_desc') }}</p>
             </div>
-            <form @submit.prevent="handleNewsletter" class="flex gap-2">
-              <input v-model="newsletterEmail" type="email" :placeholder="$t('footer.newsletter_placeholder')" required
-                class="flex-1 px-4 py-3 rounded-xl bg-[#1B2D44] border border-[#2A3F59] text-white placeholder-[#6B5D4B] focus:outline-none focus:border-[#D4A853] transition text-sm" />
-              <button type="submit"
-                class="px-6 py-3 bg-[#D4A853] text-white rounded-xl font-semibold hover:bg-[#C49A3F] transition text-sm whitespace-nowrap">
-                {{ $t('footer.subscribe') }}
-              </button>
-            </form>
+            <div>
+              <form @submit.prevent="handleNewsletter" class="flex gap-2">
+                <input v-model="newsletterEmail" type="email" :placeholder="$t('footer.newsletter_placeholder')" required
+                  class="flex-1 px-4 py-3 rounded-xl bg-[#1B2D44] border border-[#2A3F59] text-white placeholder-[#6B5D4B] focus:outline-none focus:border-[#D4A853] transition text-sm" />
+                <button type="submit" :disabled="newsletterState === 'loading'"
+                  class="px-6 py-3 bg-[#D4A853] text-white rounded-xl font-semibold hover:bg-[#C49A3F] transition text-sm whitespace-nowrap disabled:opacity-60">
+                  {{ $t('footer.subscribe') }}
+                </button>
+              </form>
+              <p v-if="newsletterState === 'success'" class="mt-2 text-sm text-emerald-400">{{ $t('footer.newsletter_success') }}</p>
+              <p v-else-if="newsletterState === 'error'" class="mt-2 text-sm text-red-400">{{ $t('footer.newsletter_error') }}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -265,6 +269,7 @@ const switchLocalePath = useSwitchLocalePath()
 const showLang = ref(false)
 const mobileMenuOpen = ref(false)
 const newsletterEmail = ref('')
+const newsletterState = ref<'idle' | 'loading' | 'success' | 'error'>('idle')
 const theme = ref<Record<string, any>>({})
 
 // 默认导航（API 失败时的回退值）
@@ -288,7 +293,7 @@ const DEFAULT_FOOTER = [
 ]
 
 // 动态导航数据（SSR + 客户端）
-const { getNavigations, getTheme, trackClick } = useApi()
+const { getNavigations, getTheme, trackClick, subscribe } = useApi()
 const { data: headerNavData } = await useAsyncData<any[]>(
   'nav-header',
   () => getNavigations('header').catch(() => null),
@@ -430,8 +435,17 @@ function switchLocale(code: string) {
   }
 }
 
-function handleNewsletter() {
-  newsletterEmail.value = ''
+async function handleNewsletter() {
+  const email = newsletterEmail.value.trim()
+  if (!email) return
+  newsletterState.value = 'loading'
+  try {
+    await subscribe(email)
+    newsletterEmail.value = ''
+    newsletterState.value = 'success'
+  } catch {
+    newsletterState.value = 'error'
+  }
 }
 
 // 加载主题配置（含社交链接和Logo）

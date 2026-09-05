@@ -665,6 +665,8 @@ func (s *AuthService) defaultPermissions() []models.Permission {
 		{Name: "询盘查看", Code: "lead:view", Module: "lead"},
 		{Name: "询盘修改", Code: "lead:update", Module: "lead"},
 		{Name: "询盘跟进", Code: "lead:followup", Module: "lead"},
+		{Name: "订阅查看", Code: "subscription:view", Module: "lead"},
+		{Name: "订阅管理", Code: "subscription:update", Module: "lead"},
 		{Name: "SEO管理", Code: "seo:manage", Module: "seo"},
 		{Name: "语言管理", Code: "language:manage", Module: "system"},
 		{Name: "系统配置", Code: "setting:manage", Module: "system"},
@@ -687,8 +689,11 @@ func (s *AuthService) ensureDefaultPermissions() {
 // ensureDefaultRolePermissions 幂等补齐默认角色的扩展权限(仅追加缺失项，不覆盖已有自定义权限)
 func (s *AuthService) ensureDefaultRolePermissions() {
 	extra := map[string][]string{
-		"admin":         {"production:manage"},
-		"content_admin": {"production:manage"},
+		"admin":         {"production:manage", "subscription:view", "subscription:update"},
+		"content_admin": {"production:manage", "subscription:view"},
+		"sales_manager": {"subscription:view"},
+		"sales":         {"subscription:view"},
+		"viewer":        {"subscription:view"},
 	}
 	for roleCode, codes := range extra {
 		var role models.Role
@@ -874,6 +879,7 @@ func (s *AuthService) assignRolePermissions() {
 			"factory:manage", "certification:manage", "production:manage",
 			"media:upload", "media:manage",
 			"lead:view", "lead:update", "lead:followup",
+			"subscription:view", "subscription:update",
 			"seo:manage", "dashboard:view",
 		},
 		"content_admin": { // 内容管理员：CMS 相关(页面管理只读，通过导航管理+轮播图管理操作)
@@ -881,6 +887,7 @@ func (s *AuthService) assignRolePermissions() {
 			"blog:manage", "case:manage", "faq:manage",
 			"factory:manage", "certification:manage", "production:manage",
 			"media:upload", "media:manage",
+			"subscription:view",
 		},
 		"product_admin": { // 产品管理员：产品相关
 			"product:view", "product:create", "product:update", "product:delete", "product:publish",
@@ -893,10 +900,12 @@ func (s *AuthService) assignRolePermissions() {
 		},
 		"sales_manager": { // 销售经理：询盘全部权限 + 统计
 			"lead:view", "lead:update", "lead:followup", "dashboard:view",
+			"subscription:view",
 			"product:view",
 		},
 		"sales": { // 销售人员：询盘查看和跟进
 			"lead:view", "lead:followup",
+			"subscription:view",
 			"product:view",
 		},
 		"editor": { // 编辑人员：内容编辑
@@ -905,7 +914,7 @@ func (s *AuthService) assignRolePermissions() {
 			"media:upload",
 		},
 		"viewer": { // 只读用户
-			"product:view", "page:view", "lead:view",
+			"product:view", "page:view", "lead:view", "subscription:view",
 		},
 	}
 

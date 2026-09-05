@@ -188,6 +188,8 @@
     "newsletter_desc": "获取最新产品资讯和行业洞察。",
     "newsletter_placeholder": "输入您的邮箱",
     "subscribe": "订阅",
+    "newsletter_success": "订阅成功，感谢您的关注！",
+    "newsletter_error": "订阅失败，请稍后重试。",
     "products": "产品分类",
     "about_desc": "专业运动服装 OEM/ODM 制造商，深耕行业 15 年以上，通过 ISO 9001、BSCI、OEKO-TEX 认证。",
     "cat_yoga_wear": "瑜伽服",

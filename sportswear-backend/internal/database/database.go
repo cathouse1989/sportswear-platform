@@ -131,6 +131,8 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.Lead{},
 		&models.LeadFollowUp{},
 		&models.Quote{},
+		// 订阅（门户"订阅更新"Newsletter）
+		&models.Subscriber{},
 		// 系统
 		&models.Notification{},
 		&models.OperationLog{},

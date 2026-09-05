@@ -45,6 +45,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'storage-sources', name: 'StorageSources', component: () => import('@/views/system/storage-sources.vue'), meta: { title: '存储源配置', permission: 'setting:manage' } },
       { path: 'quotes', name: 'Quotes', component: () => import('@/views/system/quotes.vue'), meta: { title: '报价管理', permission: 'lead:view' } },
       { path: 'notifications', name: 'Notifications', component: () => import('@/views/system/notifications.vue'), meta: { title: '通知列表', permission: 'lead:view' } },
+      { path: 'subscribers', name: 'Subscribers', component: () => import('@/views/lead/subscribers.vue'), meta: { title: '订阅管理', permission: 'subscription:view' } },
       { path: 'portal-preview', name: 'PortalPreview', component: () => import('@/views/portal/preview.vue'), meta: { title: '门户预览', permission: 'dashboard:view' } },
       { path: 'analytics', name: 'Analytics', component: () => import('@/views/analytics/index.vue'), meta: { title: '数据分析', permission: ['dashboard:view', 'lead:view'] } },
       { path: 'operation-logs', name: 'OperationLogs', component: () => import('@/views/system/operation-logs.vue'), meta: { title: '操作日志', permission: 'setting:manage' } },

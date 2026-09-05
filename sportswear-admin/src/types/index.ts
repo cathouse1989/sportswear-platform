@@ -450,6 +450,24 @@ export interface LeadFollowUp {
   created_at: string
 }
 
+export interface Subscriber {
+  id: string
+  email: string
+  status: string
+  language: string
+  source: string
+  medium: string
+  campaign: string
+  keyword: string
+  landing_page: string
+  device: string
+  ip: string
+  visitor_id: string
+  subscribed_at?: string
+  unsubscribed_at?: string
+  created_at: string
+}
+
 export interface Quote {
   id: string
   lead_id: string
