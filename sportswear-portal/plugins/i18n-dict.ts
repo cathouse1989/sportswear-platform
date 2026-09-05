@@ -5,6 +5,18 @@
 export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig()
 
+  /**
+   * vue-i18n 消息格式特殊字符转义：
+   * `@` 是"链接消息"前缀、`|` 是复数分隔符，纯文本文案（如邮箱 cathouse1989@gmail.com）
+   * 含裸 `@` 会触发 "Message compilation error: Invalid linked format"，
+   * 生产环境 SSR 直接 500。后台词条一律按纯文本维护，故在合并进 vue-i18n 前统一转义为字面量；
+   * 已按 vue-i18n 语法转义过的 {'x'} 先还原再转义，避免二次转义。
+   */
+  const escapeI18nSpecials = (value: string) =>
+    value
+      .replace(/\{'(.)'\}/g, '$1')
+      .replace(/[@|]/g, (ch) => `{'${ch}'}`)
+
   /** 将 "a.b.c" 扁平 key 还原为嵌套结构，保证 vue-i18n 可解析；换行符归一化 */
   const nestDict = (dict: Record<string, string>) => {
     const messages: Record<string, any> = {}
@@ -15,7 +27,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       for (let i = 0; i < parts.length - 1; i++) {
         node = node[parts[i]] ||= {}
       }
-      node[parts[parts.length - 1]] = value.replace(/\r\n?/g, '\n')
+      node[parts[parts.length - 1]] = escapeI18nSpecials(value.replace(/\r\n?/g, '\n'))
     }
     return messages
   }
