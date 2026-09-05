@@ -44,8 +44,15 @@ export function useSeoHead(opts: SeoOptions) {
 
   const siteName = opts.appendSiteName !== false ? ` | ${SITE_NAME}` : ''
 
-  const resolve = <T>(v: T | (() => T)): T =>
-    typeof v === 'function' ? (v as () => T)() : v
+  const resolve = <T>(v: T | (() => T)): T => {
+    const val = typeof v === 'function' ? (v as () => T)() : v
+    // 兼容调用方传入 Vue ref/computed（对象含 value 字段时解包为实际值），
+    // 否则 `t.includes is not a function` 会直接抛错导致 SSR 500。
+    if (val && typeof val === 'object' && 'value' in (val as object)) {
+      return (val as { value: T }).value
+    }
+    return val
+  }
 
   const resolvedTitle = computed(() => {
     const t = resolve(opts.title)
