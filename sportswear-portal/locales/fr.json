@@ -171,7 +171,22 @@
   },
   "blog": {
     "title": "Blog",
-    "read_more": "Lire la Suite"
+    "subtitle": "Aperçus de l'industrie, guides de fabrication et rapports de tendances pour les marques de sport.",
+    "read_more": "Lire la Suite",
+    "empty": "Aucun article pour le moment. Revenez bientôt.",
+    "all_loaded": "Tous les articles sont chargés",
+    "back_to_list": "Retour au Blog",
+    "not_found": "Cet article est introuvable.",
+    "categories": {
+      "oem_guide": "Guide OEM",
+      "odm_guide": "Guide ODM",
+      "fabric": "Tissu",
+      "trend": "Tendance",
+      "industry": "Industrie",
+      "sourcing": "Approvisionnement",
+      "brand": "Marque",
+      "production": "Production"
+    }
   },
   "case": {
     "title": "Cas",

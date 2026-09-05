@@ -20,6 +20,7 @@ export const cmsApi = {
     update: (id: string, data: any) => http.put<Blog>(`/admin/blogs/${id}`, data),
     delete: (id: string) => http.delete(`/admin/blogs/${id}`),
     publish: (id: string) => http.post(`/admin/blogs/${id}/publish`),
+    unpublish: (id: string) => http.post(`/admin/blogs/${id}/unpublish`),
   },
   // 案例
   cases: {

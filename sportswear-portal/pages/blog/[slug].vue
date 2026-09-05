@@ -1,29 +1,81 @@
 <template>
-  <div v-if="blog" class="max-w-4xl mx-auto px-4 py-12">
-    <p class="text-sm text-blue-600 mb-2">{{ blog.category }}</p>
-    <h1 class="text-3xl font-bold mb-4">{{ blog.title }}</h1>
-    <div class="h-64 bg-gray-100 rounded-xl flex items-center justify-center text-6xl mb-8">📝</div>
-    <div class="prose max-w-none" v-html="blog.content"></div>
+  <div class="max-w-3xl mx-auto px-4 py-12 md:py-16">
+    <!-- 返回列表 -->
+    <NuxtLink :to="localePath('/blog')" class="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-black mb-8 transition-colors">
+      <span aria-hidden="true">←</span> {{ $t('blog.back_to_list') }}
+    </NuxtLink>
+
+    <template v-if="blog">
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 mb-5">
+        <span class="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-medium">{{ categoryLabel(blog.category) }}</span>
+        <time>{{ formatDate(blog.published_at || blog.created_at) }}</time>
+        <span v-if="blog.author">· {{ blog.author }}</span>
+      </div>
+      <h1 class="text-3xl md:text-4xl font-bold leading-tight mb-8 md:mb-10">{{ blog.title }}</h1>
+      <img v-if="blog.cover_image" :src="blog.cover_image" :alt="blog.title" class="w-full rounded-xl object-cover mb-10 md:mb-12 max-h-[440px] bg-gray-100" />
+      <div class="prose prose-lg max-w-none" v-html="blog.content"></div>
+      <div v-if="tags.length" class="mt-10 md:mt-12 flex flex-wrap gap-2">
+        <span v-for="tag in tags" :key="tag" class="px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-xs">#{{ tag }}</span>
+      </div>
+    </template>
+
+    <div v-else-if="!pending" class="text-center py-24">
+      <p class="text-gray-400 mb-5">{{ $t('blog.not_found') }}</p>
+      <NuxtLink :to="localePath('/blog')" class="inline-flex items-center gap-1.5 text-blue-700 font-medium">
+        <span aria-hidden="true">←</span> {{ $t('blog.back_to_list') }}
+      </NuxtLink>
+    </div>
+    <div v-else class="text-center py-24 text-gray-400">{{ $t('common.loading') }}</div>
   </div>
-  <div v-else class="text-center py-24 text-gray-400">Loading...</div>
 </template>
 <script setup lang="ts">
 const route = useRoute()
 const api = useApi()
-const { locale } = useI18n()
+const localePath = useLocalePath()
+const { locale, t, te } = useI18n()
 const slug = route.params.slug as string
 
 // SSR 阶段拉取博客详情并内联进 HTML（提升 SEO + 配合 SWR HTML 缓存）
-const { data: blog } = await useAsyncData<any>(
+const { data: blog, pending } = await useAsyncData<any>(
   'blog-' + (locale.value || 'en') + '-' + slug,
   () => api.getBlog(slug).catch(() => null),
 )
 
+const tags = computed(() => {
+  const raw = blog.value?.tags || ''
+  return raw.split(',').map((s: string) => s.trim()).filter(Boolean)
+})
+
+// 本地化分类标签
+function categoryLabel(value?: string) {
+  if (!value) return ''
+  const key = `blog.categories.${value}`
+  return te(key) ? t(key) : value
+}
+
+// 本地化日期
+function formatDate(value?: string) {
+  if (!value) return ''
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return ''
+  try {
+    return new Intl.DateTimeFormat(locale.value || 'en', { year: 'numeric', month: 'long', day: 'numeric' }).format(d)
+  } catch {
+    return d.toISOString().slice(0, 10)
+  }
+}
+
+// 去除 HTML 标签生成摘要
+function stripHtml(html?: string) {
+  return (html || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
 // SEO - 博客详情页
 useSeoHead({
   title: computed(() => blog.value?.title ? `${blog.value.title} - Sportswear Manufacturing Blog` : 'Blog Article'),
-  description: computed(() => blog.value?.content?.replace(/<[^>]*>/g, '').slice(0, 160) || ''),
-  ogImage: computed(() => blog.value?.image || undefined),
-  schema: computed(() => blog.value ? buildArticleSchema(blog.value) : undefined),
+  description: computed(() => stripHtml(blog.value?.content).slice(0, 160) || ''),
+  ogImage: computed(() => blog.value?.cover_image || undefined),
+  ogType: 'article',
+  schema: computed(() => blog.value ? buildArticleSchema({ ...blog.value, image: blog.value.cover_image }) : undefined),
 })
 </script>

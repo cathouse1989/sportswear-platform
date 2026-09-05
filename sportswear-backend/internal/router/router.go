@@ -273,6 +273,8 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 				middleware.RequirePermission("blog:manage"), cmsHandler.DeleteBlog)
 			auth.POST("/blogs/:id/publish",
 				middleware.RequirePermission("blog:manage"), cmsHandler.PublishBlog)
+			auth.POST("/blogs/:id/unpublish",
+				middleware.RequirePermission("blog:manage"), cmsHandler.UnpublishBlog)
 
 			// 案例管理
 			auth.GET("/cases",

@@ -326,6 +326,16 @@ func (h *CMSHandler) PublishBlog(c *gin.Context) {
 	utils.Success(c, gin.H{"published": true})
 }
 
+// UnpublishBlog 下线博客
+func (h *CMSHandler) UnpublishBlog(c *gin.Context) {
+	if err := h.cmsService.UnpublishBlog(c.Param("id")); err != nil {
+		utils.BadRequest(c, "下线博客失败")
+		return
+	}
+	h.invalidateCache("blog", "")
+	utils.Success(c, gin.H{"unpublished": true})
+}
+
 // ==================== 案例 ====================
 
 // ListCases 案例列表

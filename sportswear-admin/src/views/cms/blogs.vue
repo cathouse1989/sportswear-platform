@@ -20,13 +20,24 @@
       <el-table-column label="分类" width="120">
         <template #default="{ row }">{{ categoryLabel(row.category) }}</template>
       </el-table-column>
-      <el-table-column prop="status" label="状态" width="100">
-        <template #default="{ row }"><el-tag :type="row.status === 'published' ? 'success' : 'info'" size="small">{{ row.status }}</el-tag></template>
+      <el-table-column label="翻译" min-width="130">
+        <template #default="{ row }">
+          <template v-if="(row.translations || []).length">
+            <el-tag v-for="t in row.translations" :key="t.id || t.language" size="small" type="info" class="lang-tag">{{ t.language }}</el-tag>
+          </template>
+          <span v-else class="muted">—</span>
+        </template>
       </el-table-column>
-      <el-table-column label="操作" width="220">
+      <el-table-column prop="status" label="状态" width="100">
+        <template #default="{ row }">
+          <el-tag :type="statusTag(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="260">
         <template #default="{ row }: any">
           <el-button size="small" @click="openEditDialog(row)">编辑</el-button>
           <el-button size="small" type="success" @click="handlePublish(row)" v-if="row.status !== 'published'">发布</el-button>
+          <el-button size="small" type="warning" @click="handleUnpublish(row)" v-else>下线</el-button>
           <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
@@ -34,29 +45,54 @@
     <el-pagination class="pagination" v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, sizes, prev, pager, next, jumper" :page-sizes="[10, 20, 50, 100]" @current-change="loadData" @size-change="loadData" />
 
     <!-- 编辑弹窗（缺陷 B-01 修复：此前模板缺失导致新建/编辑点击无响应） -->
-    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑博客' : '新建博客'" width="640px" destroy-on-close>
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
-        <el-form-item label="标题" prop="title">
-          <el-input v-model="form.title" maxlength="200" show-word-limit />
-        </el-form-item>
-        <el-form-item label="Slug" prop="slug">
-          <el-input v-model="form.slug" placeholder="URL 标识，如 oem-vs-odm-guide" />
-        </el-form-item>
-        <el-form-item label="分类" prop="category">
-          <el-select v-model="form.category" style="width: 100%">
-            <el-option v-for="c in CATEGORIES" :key="c.value" :label="c.label" :value="c.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="标签">
-          <el-input v-model="form.tags" placeholder="逗号分隔，如 yoga,leggings" />
-        </el-form-item>
-        <el-form-item label="封面图">
-          <MediaPicker v-model="form.cover_image" />
-        </el-form-item>
-        <el-form-item label="正文" prop="content">
-          <el-input v-model="form.content" type="textarea" :rows="8" placeholder="正文内容（富文本编辑器见打磨方案 P2-#12）" />
-        </el-form-item>
-      </el-form>
+    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑博客' : '新建博客'" width="760px" :close-on-click-modal="false" destroy-on-close>
+      <el-tabs v-model="activeTab">
+        <el-tab-pane label="基础信息" name="basic">
+          <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
+            <el-form-item label="标题" prop="title">
+              <el-input v-model="form.title" maxlength="200" show-word-limit />
+            </el-form-item>
+            <el-form-item label="Slug" prop="slug">
+              <el-input v-model="form.slug" placeholder="URL 标识，如 oem-vs-odm-guide" />
+            </el-form-item>
+            <el-form-item label="分类" prop="category">
+              <el-select v-model="form.category" style="width: 100%">
+                <el-option v-for="c in CATEGORIES" :key="c.value" :label="c.label" :value="c.value" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="作者">
+              <el-input v-model="form.author" placeholder="可选，如 Admin" />
+            </el-form-item>
+            <el-form-item label="标签">
+              <el-input v-model="form.tags" placeholder="逗号分隔，如 yoga,leggings" />
+            </el-form-item>
+            <el-form-item label="封面图">
+              <MediaPicker v-model="form.cover_image" />
+            </el-form-item>
+            <el-form-item label="正文" prop="content">
+              <el-input v-model="form.content" type="textarea" :rows="8" placeholder="正文内容（富文本编辑器见打磨方案 P2-#12）" />
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+        <el-tab-pane label="多语言翻译" name="translations">
+          <div class="trans-toolbar">
+            <el-button size="small" type="primary" @click="addTranslation">添加翻译</el-button>
+            <span class="trans-tip">门户按语言显示对应翻译，未配置时回退主表内容（英文）</span>
+          </div>
+          <div v-for="(t, i) in translations" :key="i" class="translation-item">
+            <div class="translation-head">
+              <el-select v-model="t.language" size="small" style="width: 160px" placeholder="语言">
+                <el-option v-for="l in LANGUAGES" :key="l.value" :label="l.label" :value="l.value" />
+              </el-select>
+              <div class="spacer" />
+              <el-button size="small" type="danger" @click="removeTranslation(i)">删除</el-button>
+            </div>
+            <el-input v-model="t.title" size="small" placeholder="翻译标题" class="trans-title" />
+            <el-input v-model="t.content" type="textarea" :rows="4" placeholder="翻译正文" class="trans-content" />
+          </div>
+          <el-empty v-if="!translations.length" description="暂无翻译，点击「添加翻译」配置多语言内容" :image-size="60" />
+        </el-tab-pane>
+      </el-tabs>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
@@ -85,6 +121,14 @@ const CATEGORIES = [
 ]
 function categoryLabel(value: string) { return CATEGORIES.find((c) => c.value === value)?.label || value }
 
+// 与门户支持语言保持一致
+const LANGUAGES = [
+  { label: 'English', value: 'en' },
+  { label: '中文', value: 'zh' },
+  { label: 'Español', value: 'es' },
+  { label: 'Français', value: 'fr' },
+]
+
 const blogs = ref<Blog[]>([])
 const loading = ref(false)
 const saving = ref(false)
@@ -96,8 +140,10 @@ const category = ref('')
 
 const formRef = ref<FormInstance>()
 const dialogVisible = ref(false)
+const activeTab = ref('basic')
 const editingId = ref('')
-const form = reactive({ title: '', slug: '', category: '', tags: '', cover_image: '', content: '' })
+const form = reactive({ title: '', slug: '', category: '', author: '', tags: '', cover_image: '', content: '' })
+const translations = ref<Array<{ language: string; title: string; content: string }>>([])
 const rules: FormRules = {
   title: [
     { required: true, message: '请输入标题', trigger: 'blur' },
@@ -119,20 +165,51 @@ async function loadData() {
     total.value = result.total
   } finally { loading.value = false }
 }
+function statusTag(status: string) {
+  if (status === 'published') return 'success'
+  if (status === 'offline') return 'warning'
+  return 'info'
+}
+function statusLabel(status: string) {
+  const map: Record<string, string> = { draft: '草稿', review: '审核中', published: '已发布', offline: '已下线', archived: '已归档' }
+  return map[status] || status
+}
 function handleSearch() { page.value = 1; loadData() }
-function resetForm() { Object.assign(form, { title: '', slug: '', category: '', tags: '', cover_image: '', content: '' }) }
-function openCreateDialog() { editingId.value = ''; resetForm(); dialogVisible.value = true }
-function openEditDialog(row: Blog) {
+function resetForm() { Object.assign(form, { title: '', slug: '', category: '', author: '', tags: '', cover_image: '', content: '' }) }
+function openCreateDialog() { editingId.value = ''; activeTab.value = 'basic'; resetForm(); translations.value = []; dialogVisible.value = true }
+async function openEditDialog(row: Blog) {
   editingId.value = row.id
-  Object.assign(form, { title: row.title, slug: row.slug, category: row.category, tags: row.tags || '', cover_image: row.cover_image || '', content: row.content || '' })
+  activeTab.value = 'basic'
+  Object.assign(form, { title: row.title, slug: row.slug, category: row.category, author: row.author || '', tags: row.tags || '', cover_image: row.cover_image || '', content: row.content || '' })
+  // 优先用列表已预加载的翻译；为空时回拉详情确保完整回填
+  translations.value = (row.translations || []).map((t: any) => ({ language: t.language, title: t.title || '', content: t.content || '' }))
+  if (!translations.value.length) {
+    try {
+      const detail = await cmsApi.blogs.get(row.id)
+      translations.value = (detail.translations || []).map((t: any) => ({ language: t.language, title: t.title || '', content: t.content || '' }))
+    } catch { /* 忽略：翻译为空也不影响主表编辑 */ }
+  }
   dialogVisible.value = true
 }
+function addTranslation() {
+  const used = new Set(translations.value.map((t) => t.language))
+  const lang = LANGUAGES.find((l) => !used.has(l.value))?.value || ''
+  translations.value.push({ language: lang, title: '', content: '' })
+}
+function removeTranslation(i: number) { translations.value.splice(i, 1) }
 async function handleSave() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
+  for (const t of translations.value) {
+    if (!t.language) { ElMessage.warning('翻译语言不能为空'); activeTab.value = 'translations'; return }
+  }
   saving.value = true
   try {
-    if (editingId.value) { await cmsApi.blogs.update(editingId.value, form) } else { await cmsApi.blogs.create(form) }
+    const payload = {
+      ...form,
+      translations: translations.value.map((t) => ({ language: t.language, title: t.title || '', content: t.content || '' })),
+    }
+    if (editingId.value) { await cmsApi.blogs.update(editingId.value, payload) } else { await cmsApi.blogs.create(payload) }
     ElMessage.success('保存成功'); dialogVisible.value = false; loadData()
   } catch {} finally { saving.value = false }
 }
@@ -147,6 +224,12 @@ async function handlePublish(row: Blog) {
   ElMessage.success('已发布')
   loadData()
 }
+async function handleUnpublish(row: Blog) {
+  await ElMessageBox.confirm(`确定下线博客「${row.title}」吗？下线后前台不可见。`, '警告', { type: 'warning' })
+  await cmsApi.blogs.unpublish(row.id)
+  ElMessage.success('已下线')
+  loadData()
+}
 async function handleDelete(row: Blog) { await ElMessageBox.confirm(`确定删除博客 ${row.title} 吗？`, '警告', { type: 'warning' }); await cmsApi.blogs.delete(row.id); ElMessage.success('已删除'); loadData() }
 onMounted(loadData)
 </script>
@@ -156,4 +239,11 @@ onMounted(loadData)
 .pagination { margin-top: 16px; justify-content: flex-end; }
 .cover-thumb { width: 44px; height: 44px; border-radius: 4px; }
 .cover-placeholder { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #c0c4cc; background: #f5f7fa; border-radius: 4px; }
+.lang-tag { margin-right: 4px; }
+.muted { color: #c0c4cc; }
+.trans-toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+.trans-tip { color: #909399; font-size: 12px; }
+.translation-item { border: 1px solid #e4e7ed; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; background: #fafbfc; }
+.translation-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.trans-title { margin-bottom: 8px; }
 </style>

@@ -903,6 +903,11 @@ func (s *CMSService) PublishBlog(id string) error {
 	}).Error
 }
 
+// UnpublishBlog 下线博客（前台不可见）
+func (s *CMSService) UnpublishBlog(id string) error {
+	return s.db.Model(&models.Blog{}).Where("id = ?", id).Update("status", models.ContentStatusOffline).Error
+}
+
 // ==================== 案例管理 ====================
 
 // ListCases 案例列表（后台：全部状态）

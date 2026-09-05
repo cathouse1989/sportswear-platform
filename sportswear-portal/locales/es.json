@@ -171,7 +171,22 @@
   },
   "blog": {
     "title": "Blog",
-    "read_more": "Leer Más"
+    "subtitle": "Perspectivas de la industria, guías de fabricación e informes de tendencias para marcas deportivas.",
+    "read_more": "Leer Más",
+    "empty": "Aún no hay artículos. Vuelve pronto.",
+    "all_loaded": "Todos los artículos cargados",
+    "back_to_list": "Volver al Blog",
+    "not_found": "No se pudo encontrar este artículo.",
+    "categories": {
+      "oem_guide": "Guía OEM",
+      "odm_guide": "Guía ODM",
+      "fabric": "Tejido",
+      "trend": "Tendencia",
+      "industry": "Industria",
+      "sourcing": "Abastecimiento",
+      "brand": "Marca",
+      "production": "Producción"
+    }
   },
   "case": {
     "title": "Casos",

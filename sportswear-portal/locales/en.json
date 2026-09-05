@@ -171,7 +171,22 @@
   },
   "blog": {
     "title": "Blog",
-    "read_more": "Read More"
+    "subtitle": "Industry insights, manufacturing guides and trend reports for sportswear brands.",
+    "read_more": "Read More",
+    "empty": "No articles yet. Check back soon.",
+    "all_loaded": "All articles loaded",
+    "back_to_list": "Back to Blog",
+    "not_found": "This article could not be found.",
+    "categories": {
+      "oem_guide": "OEM Guide",
+      "odm_guide": "ODM Guide",
+      "fabric": "Fabric",
+      "trend": "Trend",
+      "industry": "Industry",
+      "sourcing": "Sourcing",
+      "brand": "Brand",
+      "production": "Production"
+    }
   },
   "case": {
     "title": "Cases",

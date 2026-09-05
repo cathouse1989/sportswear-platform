@@ -171,7 +171,22 @@
   },
   "blog": {
     "title": "博客资讯",
-    "read_more": "查看更多"
+    "subtitle": "运动服装品牌行业洞察、制造指南与趋势报告。",
+    "read_more": "查看更多",
+    "empty": "暂无文章，敬请期待。",
+    "all_loaded": "已全部加载",
+    "back_to_list": "返回博客",
+    "not_found": "未找到该文章。",
+    "categories": {
+      "oem_guide": "OEM 指南",
+      "odm_guide": "ODM 指南",
+      "fabric": "面料",
+      "trend": "趋势",
+      "industry": "行业",
+      "sourcing": "采购",
+      "brand": "品牌",
+      "production": "生产"
+    }
   },
   "case": {
     "title": "案例展示",
