@@ -49,6 +49,29 @@
       </el-form>
     </el-card>
 
+    <!-- 联系方式（Contact Information） -->
+    <el-card shadow="never" class="mb-4">
+      <template #header><span class="font-semibold">联系方式（Contact Information）</span></template>
+      <el-form label-width="160px" label-position="left">
+        <el-form-item label="邮箱 Email">
+          <el-input v-model="contactEmail" placeholder="info@sportswear.com" size="large" />
+        </el-form-item>
+        <el-form-item label="电话 Phone">
+          <el-input v-model="contactPhone" placeholder="+86 123 4567 8900" size="large" />
+        </el-form-item>
+        <el-form-item label="地址 Address">
+          <el-input v-model="contactAddress" placeholder="Guangzhou, China" size="large" />
+        </el-form-item>
+        <el-form-item label="工作时间 Working Hours">
+          <el-input v-model="contactHours" placeholder="Mon-Fri 9:00-18:00 (GMT+8)" size="large" />
+        </el-form-item>
+        <el-form-item>
+          <div class="mt-1 text-xs text-gray-400">保存后门户 Footer「Contact Info」区块与联系我们页「Contact Information」区块将同步更新</div>
+          <el-button type="primary" size="large" @click="handleSaveContact" :loading="savingContact">保存联系方式</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
     <!-- 原有主题配置表 -->
     <el-card shadow="never">
       <template #header><span class="font-semibold">其他主题配置项</span></template>
@@ -100,6 +123,11 @@ const ABOUT_LANGS = ['en', 'zh', 'es', 'fr']
 const aboutLangLabels: Record<string, string> = { en: 'English', zh: '中文', es: 'Español', fr: 'Français' }
 const aboutDesc = reactive<Record<string, string>>({ en: '', zh: '', es: '', fr: '' })
 const savingAbout = ref(false)
+const contactEmail = ref('')
+const contactPhone = ref('')
+const contactAddress = ref('')
+const contactHours = ref('')
+const savingContact = ref(false)
 
 // 数值型配置项：以数字输入框渲染
 const NUMBER_KEYS = [
@@ -112,6 +140,9 @@ const isNumberKey = (key: string) => NUMBER_KEYS.includes(key)
 
 // 商标/Logo 相关配置仅在「商标 Logo 配置」区块维护，避免与下方「其他主题配置项」重复出现
 const LOGO_KEYS = ['logo_url', 'logo_alt', 'favicon_url', 'brand_name', 'brand_subtitle', 'admin_system_name']
+
+// 联系方式相关配置仅在「联系方式」区块维护，避免与下方「其他主题配置项」重复出现
+const CONTACT_KEYS = ['contact_email', 'contact_phone', 'contact_address', 'contact_hours']
 
 // 主题配置值以 JSON 字符串存储（如 `"SPORTSWEAR"`），读取时解析为干净值供表单展示
 function parseThemeValue(v: any): string {
@@ -129,13 +160,17 @@ async function loadData() {
   loading.value = true
   try {
     const allItems = await themeApi.adminList()
-    items.value = allItems.filter((i: any) => !LOGO_KEYS.includes(i.key))
+    items.value = allItems.filter((i: any) => !LOGO_KEYS.includes(i.key) && !CONTACT_KEYS.includes(i.key))
     logoUrl.value = parseThemeValue(allItems.find((i: any) => i.key === 'logo_url')?.value)
     faviconUrl.value = parseThemeValue(allItems.find((i: any) => i.key === 'favicon_url')?.value)
     brandName.value = parseThemeValue(allItems.find((i: any) => i.key === 'brand_name')?.value)
     brandSubtitle.value = parseThemeValue(allItems.find((i: any) => i.key === 'brand_subtitle')?.value)
     adminSystemName.value = parseThemeValue(allItems.find((i: any) => i.key === 'admin_system_name')?.value)
     logoAlt.value = parseThemeValue(allItems.find((i: any) => i.key === 'logo_alt')?.value)
+    contactEmail.value = parseThemeValue(allItems.find((i: any) => i.key === 'contact_email')?.value)
+    contactPhone.value = parseThemeValue(allItems.find((i: any) => i.key === 'contact_phone')?.value)
+    contactAddress.value = parseThemeValue(allItems.find((i: any) => i.key === 'contact_address')?.value)
+    contactHours.value = parseThemeValue(allItems.find((i: any) => i.key === 'contact_hours')?.value)
   } finally { loading.value = false }
 }
 
@@ -184,6 +219,26 @@ async function handleSaveAbout() {
   } catch {
     ElMessage.error('保存失败')
   } finally { savingAbout.value = false }
+}
+
+async function handleSaveContact() {
+  savingContact.value = true
+  try {
+    const contactKeys: Record<string, string> = {
+      contact_email: contactEmail.value,
+      contact_phone: contactPhone.value,
+      contact_address: contactAddress.value,
+      contact_hours: contactHours.value,
+    }
+    await Promise.all(
+      Object.entries(contactKeys).map(([key, value]) =>
+        themeApi.update(key, value)
+      )
+    )
+    ElMessage.success('联系方式已保存')
+  } catch {
+    ElMessage.error('保存失败')
+  } finally { savingContact.value = false }
 }
 
 async function handleSave(row: any) {

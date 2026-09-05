@@ -206,12 +206,21 @@ func (s *PortalService) UpdateThemeConfig(key string, value string) error {
 func (s *PortalService) InitDefaultTheme() error {
 	for i := range models.DefaultThemeConfigs {
 		item := models.DefaultThemeConfigs[i]
-		var count int64
-		if err := s.db.Model(&models.ThemeConfig{}).Where("\"key\" = ?", item.Key).Count(&count).Error; err != nil {
+		var cfg models.ThemeConfig
+		err := s.db.Where("\"key\" = ?", item.Key).First(&cfg).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := s.db.Create(&item).Error; err != nil {
+				return err
+			}
+			continue
+		}
+		if err != nil {
 			return err
 		}
-		if count == 0 {
-			if err := s.db.Create(&item).Error; err != nil {
+		// 该键已存在：若为历史停用状态（如曾因迁至硬编码维护而 is_active=false），
+		// 重新启用以恢复门户联动展示（不覆盖已有 value）。
+		if !cfg.IsActive {
+			if err := s.db.Model(&cfg).Update("is_active", true).Error; err != nil {
 				return err
 			}
 		}
@@ -223,8 +232,9 @@ func (s *PortalService) InitDefaultTheme() error {
 		"social_youtube", "social_instagram", "social_xiaohongshu",
 		"social_facebook", "social_twitter", "social_linkedin",
 		"self_media_max_display",
-		// 联系方式（邮箱/电话/地址/坐标）已回归门户 Footer 硬编码维护，停用 theme_configs 中的历史遗留键
-		"contact_email", "contact_phone", "contact_address", "contact_latitude", "contact_longitude",
+		// 联系方式（邮箱/电话/地址）已回归「主题配置」统一管理（见 DefaultThemeConfigs），
+		// 此处仅停用坐标类历史遗留键（当前门户无地图展示功能）。
+		"contact_latitude", "contact_longitude",
 	}
 	if err := s.db.Model(&models.ThemeConfig{}).Where("\"key\" IN ?", deprecatedKeys).Update("is_active", false).Error; err != nil {
 		return err
