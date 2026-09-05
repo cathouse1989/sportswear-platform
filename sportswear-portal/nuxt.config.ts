@@ -118,6 +118,12 @@ export default defineNuxtConfig({
     '/zh': { swr: false, headers: { 'cache-control': 'no-store' } },
     '/es': { swr: false, headers: { 'cache-control': 'no-store' } },
     '/fr': { swr: false, headers: { 'cache-control': 'no-store' } },
+    // 博客页面：缩短 SWR 缓存，让内容更新与多语言切换更快反映
+    // （后台保存翻译时已通过 invalidateCache 清掉 API 层 Redis 缓存，这里再缩短 HTML 层缓存）
+    '/en/blog/**': { swr: 30, headers: { 'cache-control': 'public, s-maxage=300, max-age=0, stale-while-revalidate=30' } },
+    '/zh/blog/**': { swr: 30, headers: { 'cache-control': 'public, s-maxage=300, max-age=0, stale-while-revalidate=30' } },
+    '/es/blog/**': { swr: 30, headers: { 'cache-control': 'public, s-maxage=300, max-age=0, stale-while-revalidate=30' } },
+    '/fr/blog/**': { swr: 30, headers: { 'cache-control': 'public, s-maxage=300, max-age=0, stale-while-revalidate=30' } },
     // 子页面 SWR（5 分钟）+ CDN 边缘缓存（1 小时），s-maxage 对 CDN 生效
     '/en/**': { swr: 300, headers: { 'cache-control': 'public, s-maxage=3600, max-age=0, stale-while-revalidate=300' } },
     '/zh/**': { swr: 300, headers: { 'cache-control': 'public, s-maxage=3600, max-age=0, stale-while-revalidate=300' } },
