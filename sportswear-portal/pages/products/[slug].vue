@@ -200,15 +200,33 @@
       <div class="grid lg:grid-cols-2 gap-8 lg:gap-12 mt-12">
         <div v-if="product.description" class="bg-white rounded-2xl p-6 lg:p-8 border border-[#EAE5DD]">
           <h2 class="text-xl font-bold text-[#0D1B2A] mb-4">{{ $t('product.detail.description') }}</h2>
-          <div class="prose prose-sm max-w-none text-gray-600 leading-relaxed whitespace-pre-wrap">{{ product.description }}</div>
+          <div class="relative" :class="{ 'max-h-64 overflow-hidden': expandable(product.description) && !expanded.description }">
+            <div class="prose prose-sm max-w-none text-gray-600 leading-relaxed whitespace-pre-wrap">{{ product.description }}</div>
+            <div v-if="expandable(product.description) && !expanded.description" class="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
+          </div>
+          <button v-if="expandable(product.description)" @click="toggleExpand('description')" class="mt-3 text-sm font-medium text-[#D4A853] hover:text-[#C49A3F] transition">
+            {{ expanded.description ? $t('product.detail.show_less') : $t('product.detail.show_more') }}
+          </button>
         </div>
         <div v-if="product.features" class="bg-white rounded-2xl p-6 lg:p-8 border border-[#EAE5DD]">
           <h2 class="text-xl font-bold text-[#0D1B2A] mb-4">{{ $t('product.detail.features') }}</h2>
-          <div class="prose prose-sm max-w-none text-gray-600 leading-relaxed whitespace-pre-wrap">{{ product.features }}</div>
+          <div class="relative" :class="{ 'max-h-64 overflow-hidden': expandable(product.features) && !expanded.features }">
+            <div class="prose prose-sm max-w-none text-gray-600 leading-relaxed whitespace-pre-wrap">{{ product.features }}</div>
+            <div v-if="expandable(product.features) && !expanded.features" class="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
+          </div>
+          <button v-if="expandable(product.features)" @click="toggleExpand('features')" class="mt-3 text-sm font-medium text-[#D4A853] hover:text-[#C49A3F] transition">
+            {{ expanded.features ? $t('product.detail.show_less') : $t('product.detail.show_more') }}
+          </button>
         </div>
         <div v-if="product.usage" class="bg-white rounded-2xl p-6 lg:p-8 border border-[#EAE5DD]">
           <h2 class="text-xl font-bold text-[#0D1B2A] mb-4">{{ $t('product.detail.usage') }}</h2>
-          <div class="prose prose-sm max-w-none text-gray-600 leading-relaxed whitespace-pre-wrap">{{ product.usage }}</div>
+          <div class="relative" :class="{ 'max-h-64 overflow-hidden': expandable(product.usage) && !expanded.usage }">
+            <div class="prose prose-sm max-w-none text-gray-600 leading-relaxed whitespace-pre-wrap">{{ product.usage }}</div>
+            <div v-if="expandable(product.usage) && !expanded.usage" class="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
+          </div>
+          <button v-if="expandable(product.usage)" @click="toggleExpand('usage')" class="mt-3 text-sm font-medium text-[#D4A853] hover:text-[#C49A3F] transition">
+            {{ expanded.usage ? $t('product.detail.show_less') : $t('product.detail.show_more') }}
+          </button>
         </div>
       </div>
 
@@ -254,8 +272,18 @@
         </div>
         <div v-if="product.fabrics?.length" class="bg-white rounded-2xl p-6 lg:p-8 border border-[#EAE5DD]">
           <h2 class="text-xl font-bold text-[#0D1B2A] mb-4">{{ $t('product.detail.fabrics') }}</h2>
-          <div class="flex flex-wrap gap-2">
-            <span v-for="f in product.fabrics" :key="f.id" class="px-3 py-1.5 bg-[#FBF9F6] rounded-full text-sm text-gray-700 border border-[#EAE5DD]">{{ f.name }}</span>
+          <div class="space-y-4">
+            <div v-for="f in product.fabrics" :key="f.id" class="border border-[#EAE5DD] rounded-xl p-4">
+              <div class="flex items-center justify-between gap-3 flex-wrap">
+                <div class="font-semibold text-[#0D1B2A]">{{ f.name }}</div>
+                <div v-if="f.code" class="text-xs text-gray-400 font-mono">{{ f.code }}</div>
+              </div>
+              <div v-if="f.composition" class="text-sm text-gray-600 mt-1">{{ f.composition }}</div>
+              <div v-if="fabricTags(f).length" class="flex flex-wrap gap-1.5 mt-3">
+                <span v-for="tag in fabricTags(f)" :key="tag.label" class="px-2 py-1 bg-[#FBF9F6] rounded text-xs text-gray-600 border border-[#EAE5DD]">{{ tag.label }}: {{ tag.value }}</span>
+              </div>
+              <div v-if="f.description" class="text-sm text-gray-500 mt-3 leading-relaxed">{{ f.description }}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -647,6 +675,32 @@ function imageIndexForOption(opt: string): number {
 
 function clearSelection() {
   Object.keys(selectedOptions).forEach(k => delete selectedOptions[k])
+}
+
+// ==================== 长文本展开/收起 + 面料详情 ====================
+const expanded = reactive<Record<string, boolean>>({})
+
+function expandable(text?: string): boolean {
+  return (text?.length || 0) > 260
+}
+
+function toggleExpand(key: string) {
+  expanded[key] = !expanded[key]
+}
+
+// 面料完整属性标签（采购快速了解面料性能）
+function fabricTags(f: any): Array<{ label: string; value: string }> {
+  const map: Array<[string, any]> = [
+    ['Weight', f?.weight],
+    ['Elasticity', f?.elasticity],
+    ['Breathability', f?.breathability],
+    ['Moisture Wicking', f?.moisture_wicking],
+    ['Softness', f?.softness],
+    ['Compression', f?.compression],
+    ['UV Protection', f?.uv_protection],
+    ['Eco Friendly', f?.eco_friendly],
+  ]
+  return map.filter(([, v]) => v).map(([label, v]) => ({ label, value: String(v) }))
 }
 
 const waNumber = computed(() => theme.value?.whatsapp_number || '8612345678900')

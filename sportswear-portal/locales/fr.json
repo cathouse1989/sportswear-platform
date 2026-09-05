@@ -73,7 +73,9 @@
       "size_moq": "QM Taille",
       "select_options": "Sélectionner les Options",
       "your_selection": "Votre Sélection",
-      "clear": "Effacer"
+      "clear": "Effacer",
+      "show_more": "Voir Plus",
+      "show_less": "Voir Moins"
     }
   },
   "about": {

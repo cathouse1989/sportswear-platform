@@ -73,7 +73,9 @@
       "size_moq": "CM de Talla",
       "select_options": "Seleccionar Opciones",
       "your_selection": "Tu Selección",
-      "clear": "Limpiar"
+      "clear": "Limpiar",
+      "show_more": "Ver Más",
+      "show_less": "Ver Menos"
     }
   },
   "about": {

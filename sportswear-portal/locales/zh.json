@@ -73,7 +73,9 @@
       "size_moq": "尺码起订量",
       "select_options": "选择规格",
       "your_selection": "已选规格",
-      "clear": "清空"
+      "clear": "清空",
+      "show_more": "展开全文",
+      "show_less": "收起"
     }
   },
   "about": {
