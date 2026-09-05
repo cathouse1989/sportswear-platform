@@ -75,20 +75,27 @@
           </el-form>
         </el-tab-pane>
         <el-tab-pane label="多语言翻译" name="translations">
+          <el-alert
+            type="info"
+            show-icon
+            :closable="false"
+            class="trans-tip"
+            title="默认语言（English）内容请在「基础信息」编辑；此处仅为其他语种配置翻译，未配置的语言将自动回退默认语言。"
+          />
           <div class="trans-toolbar">
             <el-button size="small" type="primary" @click="addTranslation">添加翻译</el-button>
-            <span class="trans-tip">门户按语言显示对应翻译，未配置时回退主表内容（英文）</span>
+            <span class="trans-tip">切换门户语言后按对应语种展示，未翻译则回退默认语言（YouTube 式）</span>
           </div>
           <div v-for="(t, i) in translations" :key="i" class="translation-item">
             <div class="translation-head">
               <el-select v-model="t.language" size="small" style="width: 160px" placeholder="语言">
-                <el-option v-for="l in LANGUAGES" :key="l.value" :label="l.label" :value="l.value" />
+                <el-option v-for="l in TRANSLATABLE_LANGS" :key="l.value" :label="l.label" :value="l.value" />
               </el-select>
               <div class="spacer" />
               <el-button size="small" type="danger" @click="removeTranslation(i)">删除</el-button>
             </div>
-            <el-input v-model="t.title" size="small" placeholder="翻译标题" class="trans-title" />
-            <RichTextEditor v-model="t.content" placeholder="翻译正文" min-height="120px" class="trans-content" />
+            <el-input v-model="t.title" size="small" placeholder="翻译标题（留空则沿用默认语言标题）" class="trans-title" />
+            <RichTextEditor v-model="t.content" placeholder="翻译正文（留空则沿用默认语言正文）" min-height="120px" class="trans-content" />
           </div>
           <el-empty v-if="!translations.length" description="暂无翻译，点击「添加翻译」配置多语言内容" :image-size="60" />
         </el-tab-pane>
@@ -122,9 +129,11 @@ const CATEGORIES = [
 ]
 function categoryLabel(value: string) { return CATEGORIES.find((c) => c.value === value)?.label || value }
 
-// 与门户支持语言保持一致
-const LANGUAGES = [
-  { label: 'English', value: 'en' },
+// 与门户支持语言保持一致。
+// 主语言（源语言）= en：主表 title/content 即英文，在「基础信息」编辑；
+// 翻译 Tab 仅配置其他语言，未配置时门户回退主语言内容（YouTube 式多语言）。
+const PRIMARY_LANG = 'en'
+const TRANSLATABLE_LANGS = [
   { label: '中文', value: 'zh' },
   { label: 'Español', value: 'es' },
   { label: 'Français', value: 'fr' },
@@ -193,7 +202,7 @@ async function openEditDialog(row: Blog) {
 }
 function addTranslation() {
   const used = new Set(translations.value.map((t) => t.language))
-  const lang = LANGUAGES.find((l) => !used.has(l.value))?.value || ''
+  const lang = TRANSLATABLE_LANGS.find((l) => !used.has(l.value))?.value || ''
   translations.value.push({ language: lang, title: '', content: '' })
 }
 function removeTranslation(i: number) { translations.value.splice(i, 1) }
@@ -208,11 +217,13 @@ async function handleSave() {
   for (const t of translations.value) {
     if (!t.language) { ElMessage.warning('翻译语言不能为空'); activeTab.value = 'translations'; return }
   }
+  // 过滤空翻译：标题与正文都为空的行不提交（避免生成无效的空翻译记录）
+  const validTranslations = translations.value.filter((t) => t.language && (t.title.trim() || hasContent(t.content)))
   saving.value = true
   try {
     const payload = {
       ...form,
-      translations: translations.value.map((t) => ({ language: t.language, title: t.title || '', content: t.content || '' })),
+      translations: validTranslations.map((t) => ({ language: t.language, title: t.title || '', content: t.content || '' })),
     }
     if (editingId.value) { await cmsApi.blogs.update(editingId.value, payload) } else { await cmsApi.blogs.create(payload) }
     ElMessage.success('保存成功'); dialogVisible.value = false; loadData()

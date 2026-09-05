@@ -747,17 +747,18 @@ func (s *CMSService) CreateBlog(req *BlogRequest) (*models.Blog, error) {
 		return nil, err
 	}
 
-	// 创建翻译
-	if len(req.Translations) > 0 {
-		for _, t := range req.Translations {
-			s.db.Create(&models.BlogTranslation{
-				BlogID:   blog.ID,
-				Language: t.Language,
-				Title:    t.Title,
-				Content:  t.Content,
-				Status:   models.TranslationStatusPublished,
-			})
+	// 创建翻译（跳过标题与正文均为空的空翻译，避免产生无效记录）
+	for _, t := range req.Translations {
+		if t.Title == "" && t.Content == "" {
+			continue
 		}
+		s.db.Create(&models.BlogTranslation{
+			BlogID:   blog.ID,
+			Language: t.Language,
+			Title:    t.Title,
+			Content:  t.Content,
+			Status:   models.TranslationStatusPublished,
+		})
 	}
 
 	// 创建 SEO
@@ -823,26 +824,28 @@ func (s *CMSService) UpdateBlog(id string, req *BlogRequest) (*models.Blog, erro
 		return nil, err
 	}
 
-	// 更新翻译
-	if len(req.Translations) > 0 {
-		for _, t := range req.Translations {
-			var translation models.BlogTranslation
-			err := s.db.Where("blog_id = ? AND language = ?", blog.ID, t.Language).First(&translation).Error
-			if err != nil {
-				s.db.Create(&models.BlogTranslation{
-					BlogID:   blog.ID,
-					Language: t.Language,
-					Title:    t.Title,
-					Content:  t.Content,
-					Status:   models.TranslationStatusPublished,
-				})
-			} else {
-				s.db.Model(&translation).Updates(map[string]interface{}{
-					"title":   t.Title,
-					"content": t.Content,
-					"status":  models.TranslationStatusPublished,
-				})
-			}
+	// 更新翻译：标题与正文均为空视为删除该语言翻译，否则 upsert
+	for _, t := range req.Translations {
+		if t.Title == "" && t.Content == "" {
+			s.db.Where("blog_id = ? AND language = ?", blog.ID, t.Language).Delete(&models.BlogTranslation{})
+			continue
+		}
+		var translation models.BlogTranslation
+		err := s.db.Where("blog_id = ? AND language = ?", blog.ID, t.Language).First(&translation).Error
+		if err != nil {
+			s.db.Create(&models.BlogTranslation{
+				BlogID:   blog.ID,
+				Language: t.Language,
+				Title:    t.Title,
+				Content:  t.Content,
+				Status:   models.TranslationStatusPublished,
+			})
+		} else {
+			s.db.Model(&translation).Updates(map[string]interface{}{
+				"title":   t.Title,
+				"content": t.Content,
+				"status":  models.TranslationStatusPublished,
+			})
 		}
 	}
 
