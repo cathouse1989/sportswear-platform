@@ -70,6 +70,9 @@
 </template>
 
 <script setup lang="ts">
+const api = useApi()
+const { locale, t } = useI18n()
+
 // SEO - 关于我们（多语言，随语言切换）
 useSeoHead({
   title: () => t('about.seo_title'),
@@ -77,9 +80,6 @@ useSeoHead({
   keywords: () => t('about.seo_keywords'),
   ogImage: '/images/og-about.jpg',
 })
-
-const api = useApi()
-const { locale, t } = useI18n()
 
 const factorySteps = computed(() => [
   { icon: '✂️', title: t('about.step_cutting_title'), desc: t('about.step_cutting_desc') },
