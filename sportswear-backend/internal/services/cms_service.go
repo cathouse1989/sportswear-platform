@@ -1192,7 +1192,7 @@ func (s *CMSService) UnpublishCase(id string) error {
 // ==================== FAQ 管理 ====================
 
 // ListFAQs FAQ 列表
-func (s *CMSService) ListFAQs(page, pageSize int, category, language string) ([]models.FAQ, int64, error) {
+func (s *CMSService) ListFAQs(page, pageSize int, category, language, keyword string) ([]models.FAQ, int64, error) {
 	var faqs []models.FAQ
 	var total int64
 
@@ -1202,6 +1202,9 @@ func (s *CMSService) ListFAQs(page, pageSize int, category, language string) ([]
 	}
 	if language != "" {
 		query = query.Where("language = ?", language)
+	}
+	if keyword != "" {
+		query = query.Where("question LIKE ? OR answer LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
 	}
 
 	query.Count(&total)
@@ -1308,11 +1311,21 @@ func (s *CMSService) DeleteFAQ(id string) error {
 
 // ==================== 工厂管理 ====================
 
-// ListFactories 工厂列表（后台：全部状态）
-func (s *CMSService) ListFactories() ([]models.Factory, error) {
+// ListFactories 工厂列表（后台：全部状态，服务端分页 + 名称搜索）
+func (s *CMSService) ListFactories(page, pageSize int, keyword string) ([]models.Factory, int64, error) {
 	var factories []models.Factory
-	err := s.db.Order("name ASC").Find(&factories).Error
-	return factories, err
+	var total int64
+
+	query := s.db.Model(&models.Factory{})
+	if keyword != "" {
+		query = query.Where("name LIKE ?", "%"+keyword+"%")
+	}
+
+	query.Count(&total)
+	err := query.Order("name ASC").
+		Offset((page - 1) * pageSize).Limit(pageSize).Find(&factories).Error
+
+	return factories, total, err
 }
 
 // ListPublishedFactories 已发布工厂列表（前台）
@@ -1415,11 +1428,21 @@ func (s *CMSService) DeleteFactory(id string) error {
 
 // ==================== 认证管理 ====================
 
-// ListCertifications 认证列表（后台：全部状态）
-func (s *CMSService) ListCertifications() ([]models.Certification, error) {
+// ListCertifications 认证列表（后台：全部状态，服务端分页 + 名称/编号搜索）
+func (s *CMSService) ListCertifications(page, pageSize int, keyword string) ([]models.Certification, int64, error) {
 	var certifications []models.Certification
-	err := s.db.Order("name ASC").Find(&certifications).Error
-	return certifications, err
+	var total int64
+
+	query := s.db.Model(&models.Certification{})
+	if keyword != "" {
+		query = query.Where("name LIKE ? OR code LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
+	}
+
+	query.Count(&total)
+	err := query.Order("name ASC").
+		Offset((page - 1) * pageSize).Limit(pageSize).Find(&certifications).Error
+
+	return certifications, total, err
 }
 
 // ListPublishedCertifications 已发布认证列表（前台）
@@ -1500,4 +1523,97 @@ func (s *CMSService) UpdateCertification(id string, req *CertificationRequest) (
 // DeleteCertification 删除认证
 func (s *CMSService) DeleteCertification(id string) error {
 	return s.db.Delete(&models.Certification{}, "id = ?", id).Error
+}
+
+// ==================== 生产流程管理 ====================
+
+// ListProductionProcesses 生产流程列表（后台：全部状态，服务端分页 + 名称搜索）
+func (s *CMSService) ListProductionProcesses(page, pageSize int, keyword string) ([]models.ProductionProcess, int64, error) {
+	var processes []models.ProductionProcess
+	var total int64
+
+	query := s.db.Model(&models.ProductionProcess{})
+	if keyword != "" {
+		query = query.Where("name LIKE ?", "%"+keyword+"%")
+	}
+
+	query.Count(&total)
+	err := query.Order("sort_order ASC").
+		Offset((page - 1) * pageSize).Limit(pageSize).Find(&processes).Error
+
+	return processes, total, err
+}
+
+// ListPublishedProductionProcesses 已发布生产流程列表（前台）
+func (s *CMSService) ListPublishedProductionProcesses() ([]models.ProductionProcess, error) {
+	var processes []models.ProductionProcess
+	err := s.db.Where("status = ?", models.ProductStatusPublished).
+		Order("sort_order ASC").Find(&processes).Error
+	return processes, err
+}
+
+// PublishProductionProcess 发布生产流程（前端可见）
+func (s *CMSService) PublishProductionProcess(id string) error {
+	return s.db.Model(&models.ProductionProcess{}).Where("id = ?", id).
+		Update("status", models.ProductStatusPublished).Error
+}
+
+// UnpublishProductionProcess 下线生产流程（前端不可见）
+func (s *CMSService) UnpublishProductionProcess(id string) error {
+	return s.db.Model(&models.ProductionProcess{}).Where("id = ?", id).
+		Update("status", models.ProductStatusOffline).Error
+}
+
+// CreateProductionProcess 创建生产流程
+func (s *CMSService) CreateProductionProcess(req *ProductionProcessRequest) (*models.ProductionProcess, error) {
+	p := models.ProductionProcess{
+		Name:        req.Name,
+		Status:      req.Status,
+		Description: req.Description,
+		Image:       req.Image,
+		Video:       req.Video,
+		SortOrder:   req.SortOrder,
+		IsActive:    req.IsActive,
+	}
+	if err := s.db.Create(&p).Error; err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// ProductionProcessRequest 生产流程请求
+type ProductionProcessRequest struct {
+	Name        string               `json:"name" binding:"required"`
+	Description string               `json:"description"`
+	Image       string               `json:"image"`
+	Video       string               `json:"video"`
+	SortOrder   int                  `json:"sort_order"`
+	Status      models.ProductStatus `json:"status"`
+	IsActive    bool                 `json:"is_active"`
+}
+
+// UpdateProductionProcess 更新生产流程
+func (s *CMSService) UpdateProductionProcess(id string, req *ProductionProcessRequest) (*models.ProductionProcess, error) {
+	var p models.ProductionProcess
+	if err := s.db.First(&p, "id = ?", id).Error; err != nil {
+		return nil, errors.New("生产流程不存在")
+	}
+
+	updates := map[string]interface{}{
+		"name":        req.Name,
+		"description": req.Description,
+		"image":       req.Image,
+		"video":       req.Video,
+		"sort_order":  req.SortOrder,
+		"is_active":   req.IsActive,
+	}
+	if err := s.db.Model(&p).Updates(updates).Error; err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DeleteProductionProcess 删除生产流程
+func (s *CMSService) DeleteProductionProcess(id string) error {
+	return s.db.Delete(&models.ProductionProcess{}, "id = ?", id).Error
 }

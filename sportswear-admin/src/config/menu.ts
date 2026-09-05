@@ -112,6 +112,7 @@ export const MENU_CONFIG: MenuItem[] = [
       { key: 'faqs', label: 'FAQ 管理', index: '/faqs', sort_order: 50, permission: ['faq:manage', 'page:view'] },
       { key: 'factories', label: '工厂管理', index: '/factories', sort_order: 60, permission: ['factory:manage', 'page:view'] },
       { key: 'certifications', label: '认证管理', index: '/certifications', sort_order: 70, permission: ['certification:manage', 'page:view'] },
+      { key: 'production-processes', label: '生产流程', index: '/production-processes', sort_order: 80, permission: ['production:manage', 'page:view'] },
     ],
   },
 

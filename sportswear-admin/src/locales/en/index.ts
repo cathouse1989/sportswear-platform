@@ -20,6 +20,7 @@ export default {
     faqs: 'FAQs',
     factories: 'Factories',
     certifications: 'Certifications',
+    processes: 'Processes',
     media: 'Media',
     users: 'Users',
     roles: 'Roles',

@@ -104,6 +104,7 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 		public.GET("/fabrics", publicHandler.ListFabrics)
 		public.GET("/factories", publicHandler.ListFactories)
 		public.GET("/certifications", publicHandler.ListCertifications)
+		public.GET("/production-processes", publicHandler.ListProductionProcesses)
 		public.GET("/navigations", publicHandler.ListNavigations)
 		public.POST("/leads", publicHandler.CreateLead)                        // 询盘提交（受频率限制保护）
 		public.POST("/uploads/lead-attachment", publicHandler.UploadLeadAttachment) // 询盘附件上传（图片/文档/压缩包，默认≤20MB，受频率限制保护）
@@ -330,6 +331,20 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 				middleware.RequirePermission("certification:manage"), cmsHandler.PublishCertification)
 			auth.POST("/certifications/:id/unpublish",
 				middleware.RequirePermission("certification:manage"), cmsHandler.UnpublishCertification)
+
+			// 生产流程管理
+			auth.GET("/production-processes",
+				middleware.RequireAnyPermission("production:manage", "page:view"), cmsHandler.ListProductionProcesses)
+			auth.POST("/production-processes",
+				middleware.RequirePermission("production:manage"), cmsHandler.CreateProductionProcess)
+			auth.PUT("/production-processes/:id",
+				middleware.RequirePermission("production:manage"), cmsHandler.UpdateProductionProcess)
+			auth.DELETE("/production-processes/:id",
+				middleware.RequirePermission("production:manage"), cmsHandler.DeleteProductionProcess)
+			auth.POST("/production-processes/:id/publish",
+				middleware.RequirePermission("production:manage"), cmsHandler.PublishProductionProcess)
+			auth.POST("/production-processes/:id/unpublish",
+				middleware.RequirePermission("production:manage"), cmsHandler.UnpublishProductionProcess)
 
 
 			// ---------- 媒体管理 ----------

@@ -19,6 +19,7 @@ import type {
   FAQ,
   Factory,
   Certification,
+  ProductionProcess,
   Navigation,
   Media,
   StorageSource,
@@ -165,7 +166,7 @@ export const faqApi = {
 
 // ============ 宸ュ巶 ============
 export const factoryApi = {
-  list: (params?: any) => http.get<Factory[]>('/admin/factories', params),
+  list: (params?: any) => http.get<PageResult<Factory>>('/admin/factories', params),
   create: (data: any) => http.post<Factory>('/admin/factories', data),
   update: (id: string, data: any) => http.put<Factory>(`/admin/factories/${id}`, data),
   delete: (id: string) => http.delete(`/admin/factories/${id}`),
@@ -175,12 +176,21 @@ export const factoryApi = {
 
 // ============ 璁よ瘉 ============
 export const certificationApi = {
-  list: (params?: any) => http.get<Certification[]>('/admin/certifications', params),
+  list: (params?: any) => http.get<PageResult<Certification>>('/admin/certifications', params),
   create: (data: any) => http.post<Certification>('/admin/certifications', data),
   update: (id: string, data: any) => http.put<Certification>(`/admin/certifications/${id}`, data),
   delete: (id: string) => http.delete(`/admin/certifications/${id}`),
   publish: (id: string) => http.post(`/admin/certifications/${id}/publish`),
   unpublish: (id: string) => http.post(`/admin/certifications/${id}/unpublish`),
+}
+
+export const productionProcessApi = {
+  list: (params?: any) => http.get<PageResult<ProductionProcess>>('/admin/production-processes', params),
+  create: (data: any) => http.post<ProductionProcess>('/admin/production-processes', data),
+  update: (id: string, data: any) => http.put<ProductionProcess>(`/admin/production-processes/${id}`, data),
+  delete: (id: string) => http.delete(`/admin/production-processes/${id}`),
+  publish: (id: string) => http.post(`/admin/production-processes/${id}/publish`),
+  unpublish: (id: string) => http.post(`/admin/production-processes/${id}/unpublish`),
 }
 
 // ============ 濯掍綋 ============

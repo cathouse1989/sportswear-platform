@@ -436,8 +436,9 @@ func (h *CMSHandler) ListFAQs(c *gin.Context) {
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
 	category := c.Query("category")
 	language := c.Query("language")
+	keyword := c.Query("keyword")
 
-	faqs, total, err := h.cmsService.ListFAQs(page, pageSize, category, language)
+	faqs, total, err := h.cmsService.ListFAQs(page, pageSize, category, language, keyword)
 	if err != nil {
 		utils.InternalError(c, "获取 FAQ 列表失败")
 		return
@@ -493,12 +494,16 @@ func (h *CMSHandler) DeleteFAQ(c *gin.Context) {
 
 // ListFactories 工厂列表
 func (h *CMSHandler) ListFactories(c *gin.Context) {
-	factories, err := h.cmsService.ListFactories()
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	keyword := c.Query("keyword")
+
+	factories, total, err := h.cmsService.ListFactories(page, pageSize, keyword)
 	if err != nil {
 		utils.InternalError(c, "获取工厂列表失败")
 		return
 	}
-	utils.Success(c, factories)
+	utils.SuccessPage(c, factories, page, pageSize, total)
 }
 
 // CreateFactory 创建工厂
@@ -569,12 +574,16 @@ func (h *CMSHandler) UnpublishFactory(c *gin.Context) {
 
 // ListCertifications 认证列表
 func (h *CMSHandler) ListCertifications(c *gin.Context) {
-	certifications, err := h.cmsService.ListCertifications()
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	keyword := c.Query("keyword")
+
+	certifications, total, err := h.cmsService.ListCertifications(page, pageSize, keyword)
 	if err != nil {
 		utils.InternalError(c, "获取认证列表失败")
 		return
 	}
-	utils.Success(c, certifications)
+	utils.SuccessPage(c, certifications, page, pageSize, total)
 }
 
 // CreateCertification 创建认证
@@ -638,5 +647,83 @@ func (h *CMSHandler) UnpublishCertification(c *gin.Context) {
 		return
 	}
 	h.invalidateCache("certification", "")
+	utils.Success(c, gin.H{"unpublished": true})
+}
+
+// ==================== 生产流程 ====================
+
+// ListProductionProcesses 生产流程列表
+func (h *CMSHandler) ListProductionProcesses(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	keyword := c.Query("keyword")
+
+	processes, total, err := h.cmsService.ListProductionProcesses(page, pageSize, keyword)
+	if err != nil {
+		utils.InternalError(c, "获取生产流程列表失败")
+		return
+	}
+	utils.SuccessPage(c, processes, page, pageSize, total)
+}
+
+// CreateProductionProcess 创建生产流程
+func (h *CMSHandler) CreateProductionProcess(c *gin.Context) {
+	var req services.ProductionProcessRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, "参数错误: "+err.Error())
+		return
+	}
+	p, err := h.cmsService.CreateProductionProcess(&req)
+	if err != nil {
+		utils.BadRequest(c, err.Error())
+		return
+	}
+	h.invalidateCache("production_process", "")
+	utils.Created(c, p)
+}
+
+// UpdateProductionProcess 更新生产流程
+func (h *CMSHandler) UpdateProductionProcess(c *gin.Context) {
+	var req services.ProductionProcessRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, "参数错误: "+err.Error())
+		return
+	}
+	p, err := h.cmsService.UpdateProductionProcess(c.Param("id"), &req)
+	if err != nil {
+		utils.BadRequest(c, err.Error())
+		return
+	}
+	h.invalidateCache("production_process", "")
+	utils.Success(c, p)
+}
+
+// DeleteProductionProcess 删除生产流程
+func (h *CMSHandler) DeleteProductionProcess(c *gin.Context) {
+	if err := h.cmsService.DeleteProductionProcess(c.Param("id")); err != nil {
+		utils.BadRequest(c, "删除生产流程失败")
+		return
+	}
+	h.invalidateCache("production_process", "")
+	utils.Success(c, gin.H{"deleted": true})
+}
+
+// PublishProductionProcess 发布生产流程
+func (h *CMSHandler) PublishProductionProcess(c *gin.Context) {
+	if err := h.cmsService.PublishProductionProcess(c.Param("id")); err != nil {
+		utils.BadRequest(c, "发布生产流程失败")
+		return
+	}
+	h.invalidateCache("production_process", "")
+	utils.Success(c, gin.H{"published": true})
+}
+
+// UnpublishProductionProcess 下线生产流程
+func (h *CMSHandler) UnpublishProductionProcess(c *gin.Context) {
+	if err := h.cmsService.UnpublishProductionProcess(c.Param("id")); err != nil {
+		utils.BadRequest(c, "下线生产流程失败")
+		return
+	}
+	h.invalidateCache("production_process", "")
 	utils.Success(c, gin.H{"unpublished": true})
 }

@@ -113,7 +113,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { blogApi } from '@/api'
-import { useAdminPageSize } from '@/composables/useAdminPageSize'
+import { useCrud } from '@/composables/useCrud'
 import MediaPicker from '@/components/media/MediaPicker.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
 import type { Blog } from '@/types'
@@ -139,14 +139,19 @@ const TRANSLATABLE_LANGS = [
   { label: 'Français', value: 'fr' },
 ]
 
-const blogs = ref<Blog[]>([])
-const loading = ref(false)
 const saving = ref(false)
-const total = ref(0)
-const page = ref(1)
-const pageSize = useAdminPageSize()
-const keyword = ref('')
 const category = ref('')
+
+// 列表分页/搜索复用 useCrud（服务端分页）；弹窗与翻译/SEO 保存逻辑保留在本视图
+const {
+  items: blogs, total, loading, page, pageSize, keyword,
+  loadData, handleSearch,
+} = useCrud({
+  api: blogApi,
+  emptyForm: () => ({}),
+  serverPagination: true,
+  extraParams: () => ({ category: category.value }),
+})
 
 const formRef = ref<FormInstance>()
 const dialogVisible = ref(false)
@@ -166,14 +171,6 @@ const rules: FormRules = {
   category: [{ required: true, message: '请选择分类', trigger: 'change' }],
 }
 
-async function loadData() {
-  loading.value = true
-  try {
-    const result = await blogApi.list({ page: page.value, pageSize: pageSize.value, keyword: keyword.value, category: category.value })
-    blogs.value = result.items
-    total.value = result.total
-  } finally { loading.value = false }
-}
 function statusTag(status: string) {
   if (status === 'published') return 'success'
   if (status === 'offline') return 'warning'
@@ -183,7 +180,6 @@ function statusLabel(status: string) {
   const map: Record<string, string> = { draft: '草稿', review: '审核中', published: '已发布', offline: '已下线', archived: '已归档' }
   return map[status] || status
 }
-function handleSearch() { page.value = 1; loadData() }
 function resetForm() { Object.assign(form, { title: '', slug: '', category: '', author: '', tags: '', cover_image: '', content: '' }) }
 function openCreateDialog() { editingId.value = ''; activeTab.value = 'basic'; resetForm(); translations.value = []; dialogVisible.value = true }
 async function openEditDialog(row: Blog) {

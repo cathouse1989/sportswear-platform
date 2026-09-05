@@ -18,6 +18,7 @@ export default {
     faqs: 'FAQ 管理',
     factories: '工厂管理',
     certifications: '认证管理',
+    processes: '生产流程',
     media: '媒体管理',
     users: '用户管理',
     roles: '角色权限',

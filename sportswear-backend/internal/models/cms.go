@@ -174,3 +174,15 @@ type Certification struct {
 	Description string        `gorm:"type:text" json:"description"`
 	IsActive    bool          `gorm:"default:true" json:"is_active"`
 }
+
+// ProductionProcess 生产流程
+type ProductionProcess struct {
+	BaseModel
+	Name        string        `gorm:"type:varchar(200);not null" json:"name"`
+	Status      ProductStatus `gorm:"type:varchar(20);default:draft;index" json:"status"` // 前端展示状态标识
+	Description string        `gorm:"type:text" json:"description"`
+	Image       string        `gorm:"type:varchar(500)" json:"image"`
+	Video       string        `gorm:"type:varchar(500)" json:"video"`
+	SortOrder   int           `gorm:"default:0" json:"sort_order"`
+	IsActive    bool          `gorm:"default:true" json:"is_active"`
+}

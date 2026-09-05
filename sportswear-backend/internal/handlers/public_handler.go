@@ -538,6 +538,21 @@ func (h *PublicHandler) ListCertifications(c *gin.Context) {
 	utils.Success(c, certifications)
 }
 
+// ListProductionProcesses 生产流程列表（仅已发布 + Redis 缓存）
+func (h *PublicHandler) ListProductionProcesses(c *gin.Context) {
+	lang := middleware.GetLang(c)
+	key := "cache:production-processes:" + lang
+
+	processes, err := cached[[]models.ProductionProcess](h, key, services.CacheTTLMedium, !h.previewMode(c), func() ([]models.ProductionProcess, error) {
+		return h.cmsService.ListPublishedProductionProcesses()
+	})
+	if err != nil {
+		utils.InternalError(c, "获取生产流程列表失败")
+		return
+	}
+	utils.Success(c, processes)
+}
+
 // ListNavigations 导航列表（Redis 缓存，长 TTL）
 func (h *PublicHandler) ListNavigations(c *gin.Context) {
 	navType := c.DefaultQuery("type", "header")

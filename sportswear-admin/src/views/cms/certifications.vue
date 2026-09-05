@@ -27,7 +27,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <el-pagination class="pagination" v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, sizes, prev, pager, next, jumper" :page-sizes="[10, 20, 50, 100]" @current-change="(val: number) => { page = val }" @size-change="handleSearch" />
+    <el-pagination class="pagination" v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, sizes, prev, pager, next, jumper" :page-sizes="[10, 20, 50, 100]" @current-change="loadData" @size-change="handleSearch" />
     <ProFormDialog v-model="dialogVisible" :title="editingId ? '编辑认证' : '新建认证'" :form="form" :rules="rules" @submit="handleSave">
       <el-form-item label="名称" prop="name"><el-input v-model="form.name" /></el-form-item>
       <el-form-item label="编号"><el-input v-model="form.code" /></el-form-item>
@@ -38,35 +38,22 @@
   </el-card>
 </template>
 <script setup lang="ts">
-import { onMounted, computed, reactive, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { onMounted } from 'vue'
 import type { FormRules } from 'element-plus'
 import { certificationApi } from '@/api'
-import { useAdminPageSize } from '@/composables/useAdminPageSize'
 import MediaPicker from '@/components/media/MediaPicker.vue'
 import ProFormDialog from '@/components/pro/ProFormDialog.vue'
+import { useCrud } from '@/composables/useCrud'
 
-const allItems = ref<any[]>([])
-const items = computed(() => {
-  const kw = keyword.value.trim().toLowerCase()
-  const filtered = kw ? allItems.value.filter((i: any) => (i.name || '').toLowerCase().includes(kw) || (i.code || '').toLowerCase().includes(kw)) : allItems.value
-  return filtered.slice((page.value - 1) * pageSize.value, page.value * pageSize.value)
-})
-const total = computed(() => {
-  const kw = keyword.value.trim().toLowerCase()
-  return kw ? allItems.value.filter((i: any) => (i.name || '').toLowerCase().includes(kw) || (i.code || '').toLowerCase().includes(kw)).length : allItems.value.length
-})
-const loading = ref(false); const page = ref(1); const pageSize = useAdminPageSize(); const keyword = ref('')
-async function loadData() { loading.value = true; try { allItems.value = await certificationApi.list() } finally { loading.value = false } }
-const dialogVisible = ref(false); const editingId = ref(''); const form = reactive({ name: '', code: '', image: '', pdf: '', description: '' })
+const emptyForm = () => ({ name: '', code: '', image: '', pdf: '', description: '' })
+const {
+  items, total, loading, page, pageSize, keyword,
+  loadData, handleSearch,
+  dialogVisible, editingId, form,
+  openCreateDialog, openEditDialog, handleSave,
+  handlePublish, handleUnpublish, handleDelete,
+} = useCrud({ api: certificationApi, emptyForm, serverPagination: true })
 const rules: FormRules = { name: [{ required: true, message: '请输入名称', trigger: 'blur' }] }
-function handleSearch() { page.value = 1; loadData() }
-function openCreateDialog() { editingId.value = ''; Object.assign(form, { name: '', code: '', image: '', pdf: '', description: '' }); dialogVisible.value = true }
-function openEditDialog(row: any) { editingId.value = row.id; Object.assign(form, { name: row.name, code: row.code, image: row.image || '', pdf: row.pdf || '', description: row.description || '' }); dialogVisible.value = true }
-async function handleSave() { try { if (editingId.value) { await certificationApi.update(editingId.value, form) } else { await certificationApi.create(form) }; ElMessage.success('保存成功'); dialogVisible.value = false; loadData() } catch {} }
-async function handlePublish(row: any) { await certificationApi.publish(row.id); ElMessage.success('已发布'); loadData() }
-async function handleUnpublish(row: any) { await certificationApi.unpublish(row.id); ElMessage.success('已下线'); loadData() }
-async function handleDelete(row: any) { await ElMessageBox.confirm(`确定删除 ${row.name} 吗？`, '警告', { type: 'warning' }); await certificationApi.delete(row.id); ElMessage.success('已删除'); loadData() }
 onMounted(loadData)
 </script>
 <style scoped>

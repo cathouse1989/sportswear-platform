@@ -43,6 +43,9 @@ func WarmUpPublicCache(db *gorm.DB, cache *CacheService) {
 		if list, err := cmsSvc.ListPublishedCertifications(); err == nil {
 			cache.Set("cache:certifications:"+lang, list, CacheTTLMedium)
 		}
+		if list, err := cmsSvc.ListPublishedProductionProcesses(); err == nil {
+			cache.Set("cache:production-processes:"+lang, list, CacheTTLMedium)
+		}
 	}
 
 	// 导航（低频变更，长 TTL）- 同时预热 header 和 footer

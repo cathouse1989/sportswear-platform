@@ -198,7 +198,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { caseApi } from '@/api'
-import { useAdminPageSize } from '@/composables/useAdminPageSize'
+import { useCrud } from '@/composables/useCrud'
 import MediaPicker from '@/components/media/MediaPicker.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
 import type { Case } from '@/types'
@@ -241,14 +241,19 @@ interface TranslationForm {
   result: string
 }
 
-const cases = ref<Case[]>([])
-const loading = ref(false)
 const saving = ref(false)
-const total = ref(0)
-const page = ref(1)
-const pageSize = useAdminPageSize()
-const keyword = ref('')
 const projectType = ref('')
+
+// 列表分页/搜索复用 useCrud（服务端分页）；弹窗与翻译/SEO 保存逻辑保留在本视图
+const {
+  items: cases, total, loading, page, pageSize, keyword,
+  loadData, handleSearch,
+} = useCrud({
+  api: caseApi,
+  emptyForm: () => ({}),
+  serverPagination: true,
+  extraParams: () => ({ project_type: projectType.value }),
+})
 
 const formRef = ref<FormInstance>()
 const dialogVisible = ref(false)
@@ -271,14 +276,6 @@ const rules: FormRules = {
   ],
 }
 
-async function loadData() {
-  loading.value = true
-  try {
-    const result = await caseApi.list({ page: page.value, pageSize: pageSize.value, keyword: keyword.value, project_type: projectType.value })
-    cases.value = result.items
-    total.value = result.total
-  } finally { loading.value = false }
-}
 function statusTag(status: string) {
   if (status === 'published') return 'success'
   if (status === 'offline') return 'warning'
@@ -288,7 +285,6 @@ function statusLabel(status: string) {
   const map: Record<string, string> = { draft: '草稿', review: '审核中', published: '已发布', offline: '已下线', archived: '已归档' }
   return map[status] || status
 }
-function handleSearch() { page.value = 1; loadData() }
 function resetForm() {
   Object.assign(form, {
     title: '', slug: '', client_industry: '', project_type: '', products: '',

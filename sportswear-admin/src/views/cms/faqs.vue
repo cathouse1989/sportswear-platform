@@ -31,7 +31,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <el-pagination class="pagination" v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, sizes, prev, pager, next, jumper" :page-sizes="[10, 20, 50, 100]" @current-change="loadData" @size-change="loadData" />
+    <el-pagination class="pagination" v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, sizes, prev, pager, next, jumper" :page-sizes="[10, 20, 50, 100]" @current-change="loadData" @size-change="handleSearch" />
 
     <!-- 编辑弹窗（缺陷 B-01 修复：此前模板缺失导致新建/编辑点击无响应） -->
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑 FAQ' : '新建 FAQ'" width="640px" destroy-on-close>
@@ -68,12 +68,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { faqApi } from '@/api'
-import { useAdminPageSize } from '@/composables/useAdminPageSize'
-import type { FAQ } from '@/types'
+import { useCrud } from '@/composables/useCrud'
 
 // 分类统一定义：列表筛选与表单共用
 const CATEGORIES = [
@@ -98,51 +97,38 @@ const LANGUAGES = [
   { label: 'Français', value: 'fr' },
 ]
 
-const faqs = ref<FAQ[]>([])
-const loading = ref(false)
-const saving = ref(false)
-const total = ref(0)
-const page = ref(1)
-const pageSize = useAdminPageSize()
-const keyword = ref('')
 const category = ref('')
 const language = ref('')
-
 const formRef = ref<FormInstance>()
-const dialogVisible = ref(false)
-const editingId = ref('')
-const form = reactive({ question: '', answer: '', category: '', language: 'en', sort_order: 0, is_active: true })
 const rules: FormRules = {
   question: [{ required: true, message: '请输入问题', trigger: 'blur' }],
   answer: [{ required: true, message: '请输入答案', trigger: 'blur' }],
 }
 
-async function loadData() {
-  loading.value = true
-  try {
-    const result = await faqApi.list({ page: page.value, pageSize: pageSize.value, keyword: keyword.value, category: category.value, language: language.value })
-    faqs.value = result.items
-    total.value = result.total
-  } finally { loading.value = false }
+const emptyForm = () => ({ question: '', answer: '', category: '', language: 'en', sort_order: 0, is_active: true })
+const {
+  items: faqs, total, loading, page, pageSize, keyword,
+  loadData, handleSearch,
+  dialogVisible, editingId, form, saving,
+  openCreateDialog, openEditDialog, handleSave,
+} = useCrud({
+  api: faqApi,
+  emptyForm,
+  serverPagination: true,
+  extraParams: () => ({ category: category.value, language: language.value }),
+  // 表单校验作为保存前钩子，false 时中止保存
+  beforeSave: async () => {
+    const valid = await formRef.value?.validate().catch(() => false)
+    return !!valid
+  },
+})
+
+// FAQ 删除确认不带实体名（问题文本可能过长）
+async function handleDelete(row: any) {
+  await ElMessageBox.confirm('确定删除此 FAQ 吗？', '警告', { type: 'warning' })
+  await faqApi.delete(row.id)
+  ElMessage.success('已删除'); loadData()
 }
-function handleSearch() { page.value = 1; loadData() }
-function resetForm() { Object.assign(form, { question: '', answer: '', category: '', language: 'en', sort_order: 0, is_active: true }) }
-function openCreateDialog() { editingId.value = ''; resetForm(); dialogVisible.value = true }
-function openEditDialog(row: FAQ) {
-  editingId.value = row.id
-  Object.assign(form, { question: row.question, answer: row.answer, category: row.category || '', language: row.language || 'en', sort_order: row.sort_order ?? 0, is_active: row.is_active })
-  dialogVisible.value = true
-}
-async function handleSave() {
-  const valid = await formRef.value?.validate().catch(() => false)
-  if (!valid) return
-  saving.value = true
-  try {
-    if (editingId.value) { await faqApi.update(editingId.value, form) } else { await faqApi.create(form) }
-    ElMessage.success('保存成功'); dialogVisible.value = false; loadData()
-  } catch {} finally { saving.value = false }
-}
-async function handleDelete(row: FAQ) { await ElMessageBox.confirm('确定删除此 FAQ 吗？', '警告', { type: 'warning' }); await faqApi.delete(row.id); ElMessage.success('已删除'); loadData() }
 onMounted(loadData)
 </script>
 <style scoped>

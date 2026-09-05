@@ -35,6 +35,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'faqs', name: 'FAQs', component: () => import('@/views/cms/faqs.vue'), meta: { title: 'FAQ 管理', permission: ['faq:manage', 'page:view'] } },
       { path: 'factories', name: 'Factories', component: () => import('@/views/cms/factories.vue'), meta: { title: '工厂管理', permission: ['factory:manage', 'page:view'] } },
       { path: 'certifications', name: 'Certifications', component: () => import('@/views/cms/certifications.vue'), meta: { title: '认证管理', permission: ['certification:manage', 'page:view'] } },
+      { path: 'production-processes', name: 'ProductionProcesses', component: () => import('@/views/cms/production-processes.vue'), meta: { title: '生产流程', permission: ['production:manage', 'page:view'] } },
       { path: 'media', name: 'Media', component: () => import('@/views/media/index.vue'), meta: { title: '媒体管理', permission: ['media:manage', 'media:upload'] } },
       { path: 'roles', name: 'Roles', component: () => import('@/views/system/roles.vue'), meta: { title: '角色权限', permission: 'role:manage' } },
       { path: 'theme', name: 'Theme', component: () => import('@/views/system/theme.vue'), meta: { title: '主题配置', permission: 'setting:manage' } },

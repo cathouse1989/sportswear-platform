@@ -1,10 +1,10 @@
 <template>
   <el-card shadow="never">
     <div class="toolbar">
-      <el-input v-model="keyword" placeholder="搜索工厂名称" clearable style="width: 240px" @keyup.enter="handleSearch" />
+      <el-input v-model="keyword" placeholder="搜索流程名称" clearable style="width: 240px" @keyup.enter="handleSearch" />
       <el-button type="primary" @click="handleSearch">查询</el-button>
       <div class="spacer" />
-      <el-button type="primary" @click="openCreateDialog">新建工厂</el-button>
+      <el-button type="primary" @click="openCreateDialog">新建流程</el-button>
     </div>
     <el-table :data="items" v-loading="loading" stripe>
       <el-table-column label="图片" width="76" align="center">
@@ -14,8 +14,7 @@
         </template>
       </el-table-column>
       <el-table-column prop="name" label="名称" min-width="180" />
-      <el-table-column prop="location" label="位置" min-width="160" />
-      <el-table-column prop="employees" label="员工数" width="100" />
+      <el-table-column prop="sort_order" label="排序" width="80" />
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }"><el-tag :type="row.status === 'published' ? 'success' : 'info'" size="small">{{ row.status }}</el-tag></template>
       </el-table-column>
@@ -29,32 +28,32 @@
       </el-table-column>
     </el-table>
     <el-pagination class="pagination" v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, sizes, prev, pager, next, jumper" :page-sizes="[10, 20, 50, 100]" @current-change="loadData" @size-change="handleSearch" />
-    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑工厂' : '新建工厂'" width="560px">
-      <el-form :model="form" label-width="90px">
-        <el-form-item label="名称" required><el-input v-model="form.name" /></el-form-item>
-        <el-form-item label="图片"><MediaPicker v-model="form.image" /></el-form-item>
-        <el-form-item label="位置"><el-input v-model="form.location" /></el-form-item>
-        <el-form-item label="员工数"><el-input-number v-model="form.employees" :min="0" /></el-form-item>
-        <el-form-item label="描述"><el-input v-model="form.description" type="textarea" /></el-form-item>
-      </el-form>
-      <template #footer><el-button @click="dialogVisible = false">取消</el-button><el-button type="primary" @click="handleSave">保存</el-button></template>
-    </el-dialog>
+    <ProFormDialog v-model="dialogVisible" :title="editingId ? '编辑流程' : '新建流程'" :form="form" :rules="rules" @submit="handleSave">
+      <el-form-item label="名称" prop="name"><el-input v-model="form.name" /></el-form-item>
+      <el-form-item label="图片"><MediaPicker v-model="form.image" /></el-form-item>
+      <el-form-item label="视频"><el-input v-model="form.video" placeholder="视频 URL（可选）" /></el-form-item>
+      <el-form-item label="排序"><el-input-number v-model="form.sort_order" :min="0" /></el-form-item>
+      <el-form-item label="描述"><el-input v-model="form.description" type="textarea" /></el-form-item>
+    </ProFormDialog>
   </el-card>
 </template>
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { factoryApi } from '@/api'
+import type { FormRules } from 'element-plus'
+import { productionProcessApi } from '@/api'
 import MediaPicker from '@/components/media/MediaPicker.vue'
+import ProFormDialog from '@/components/pro/ProFormDialog.vue'
 import { useCrud } from '@/composables/useCrud'
 
-const emptyForm = () => ({ name: '', image: '', location: '', employees: 0, description: '' })
+const emptyForm = () => ({ name: '', description: '', image: '', video: '', sort_order: 0 })
 const {
   items, total, loading, page, pageSize, keyword,
   loadData, handleSearch,
   dialogVisible, editingId, form,
   openCreateDialog, openEditDialog, handleSave,
   handlePublish, handleUnpublish, handleDelete,
-} = useCrud({ api: factoryApi, emptyForm, serverPagination: true })
+} = useCrud({ api: productionProcessApi, emptyForm, serverPagination: true })
+const rules: FormRules = { name: [{ required: true, message: '请输入名称', trigger: 'blur' }] }
 onMounted(loadData)
 </script>
 <style scoped>
