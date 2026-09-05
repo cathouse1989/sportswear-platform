@@ -160,7 +160,6 @@ type Factory struct {
 	IsActive             bool          `gorm:"default:true" json:"is_active"`
 }
 
-
 // Certification 认证
 type Certification struct {
 	BaseModel
@@ -184,5 +183,21 @@ type ProductionProcess struct {
 	Image       string        `gorm:"type:varchar(500)" json:"image"`
 	Video       string        `gorm:"type:varchar(500)" json:"video"`
 	SortOrder   int           `gorm:"default:0" json:"sort_order"`
+	IsActive    bool          `gorm:"default:true" json:"is_active"`
+}
+
+// SelfMedia 自媒体账号（门户「自媒体」区块展示）
+// 后台可配置管理；status 控制展示（published）/ 不展示（draft、offline）；
+// 门户侧结合 theme_configs.self_media_max_display 控制最多展示数量。
+type SelfMedia struct {
+	BaseModel
+	Name        string        `gorm:"type:varchar(200);not null" json:"name"`             // 账号/渠道名称
+	Platform    string        `gorm:"type:varchar(50);index" json:"platform"`             // 平台：wechat/weibo/douyin/xiaohongshu/video/bilibili/youtube/instagram/facebook/twitter/linkedin/tiktok/other
+	Account     string        `gorm:"type:varchar(200)" json:"account"`                   // 账号 ID / 昵称
+	URL         string        `gorm:"type:varchar(500)" json:"url"`                       // 跳转链接
+	Image       string        `gorm:"type:varchar(500)" json:"image"`                     // 二维码 / 头像图
+	Description string        `gorm:"type:text" json:"description"`                       // 简介
+	SortOrder   int           `gorm:"default:0" json:"sort_order"`                        // 排序（越小越靠前）
+	Status      ProductStatus `gorm:"type:varchar(20);default:draft;index" json:"status"` // 展示状态：published=展示，draft/offline=不展示
 	IsActive    bool          `gorm:"default:true" json:"is_active"`
 }

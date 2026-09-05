@@ -64,6 +64,8 @@ var DefaultThemeConfigs = []ThemeConfig{
 	{Key: "social_facebook", Value: `"https://facebook.com/sportswear"`, Group: "social", Name: "Facebook 链接", IsActive: true},
 	{Key: "social_twitter", Value: `"https://twitter.com/sportswear"`, Group: "social", Name: "Twitter/X 链接", IsActive: true},
 	{Key: "social_linkedin", Value: `"https://linkedin.com/company/sportswear"`, Group: "social", Name: "LinkedIn 链接", IsActive: true},
+	{Key: "self_media_max_display", Value: "6", Group: "social", Name: "自媒体最多展示数量", IsActive: true},
+
 	// 翻页配置
 	{Key: "products_page_size", Value: "20", Group: "pagination", Name: "产品列表每页条数", IsActive: true},
 	{Key: "blogs_page_size", Value: "20", Group: "pagination", Name: "博客列表每页条数", IsActive: true},

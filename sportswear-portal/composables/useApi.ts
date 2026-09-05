@@ -168,6 +168,7 @@ export const useApi = () => {
     getFactories: () => unwrap<any>('/public/factories', { params: withPreview() }),
     getCertifications: () => unwrap<any>('/public/certifications', { params: withPreview() }),
     getProductionProcesses: () => unwrap<any>('/public/production-processes', { params: withPreview() }),
+    getSelfMedias: () => unwrap<any>('/public/self-medias', { params: withPreview() }),
     getNavigations: (type: string = 'header') => unwrap<any>('/public/navigations', { params: withPreview({ type }) }),
     getTheme: () => unwrap<any>('/public/theme', { params: withPreview() }),
     getI18n: () => unwrap<any>('/public/i18n', { params: withPreview({ lang: getLang() }) }),

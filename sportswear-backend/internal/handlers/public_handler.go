@@ -1,4 +1,4 @@
-﻿package handlers
+package handlers
 
 import (
 	"encoding/json"
@@ -144,6 +144,7 @@ func (h *PublicHandler) GetHome(c *gin.Context) {
 // 兼容两种 config 结构：
 //   - 新版："slides": [{"image","title","subtitle","button_text","button_url"}, ...]
 //   - 旧版：单对象 {"image","title","subtitle","button_text","button_url"}（自动包装为单张轮播图）
+//
 // 返回统一结构供门户 / 管理后台门户预览渲染轮播图；无有效配置时返回 nil。
 func extractHeroSlides(page *models.Page) []gin.H {
 	if page == nil {
@@ -556,6 +557,32 @@ func (h *PublicHandler) ListProductionProcesses(c *gin.Context) {
 		return
 	}
 	utils.Success(c, processes)
+}
+
+// ListSelfMedias 自媒体列表（仅已发布 + Redis 缓存 + 最多展示数量控制）
+func (h *PublicHandler) ListSelfMedias(c *gin.Context) {
+	lang := middleware.GetLang(c)
+	key := "cache:self-medias:" + lang
+
+	// 兼容控制：显式 ?limit= 优先，否则读取后台「自媒体最多展示数量」配置
+	limit := 0
+	if v := c.Query("limit"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			limit = n
+		}
+	}
+	if limit <= 0 {
+		limit = h.cmsService.SelfMediaMaxDisplay()
+	}
+
+	items, err := cached[[]models.SelfMedia](h, key, services.CacheTTLMedium, !h.previewMode(c), func() ([]models.SelfMedia, error) {
+		return h.cmsService.ListPublishedSelfMedias(limit)
+	})
+	if err != nil {
+		utils.InternalError(c, "获取自媒体列表失败")
+		return
+	}
+	utils.Success(c, items)
 }
 
 // ListNavigations 导航列表（Redis 缓存，长 TTL）

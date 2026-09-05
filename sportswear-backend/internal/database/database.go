@@ -1,4 +1,4 @@
-﻿package database
+package database
 
 import (
 	"context"
@@ -123,6 +123,8 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.Factory{},
 		&models.Certification{},
 		&models.ProductionProcess{},
+		&models.SelfMedia{},
+
 		// SEO
 		&models.SEO{},
 		// 媒体
@@ -155,6 +157,9 @@ func AutoMigrate(db *gorm.DB) error {
 	// ========== 性能复合索引 ==========
 	indexes := []string{
 		// 产品：状态+排序（公开列表高频查询）
+		// 自媒体：状态+排序（公开列表高频查询）
+		"CREATE INDEX IF NOT EXISTS idx_self_medias_status_sort ON self_medias (status, sort_order)",
+
 		"CREATE INDEX IF NOT EXISTS idx_products_status_sort ON products (status, sort_order)",
 		"CREATE INDEX IF NOT EXISTS idx_products_category_status ON products (category_id, status)",
 		// 页面：状态+slug（公开访问高频查询）

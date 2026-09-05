@@ -1,4 +1,4 @@
-﻿package router
+package router
 
 import (
 	"github.com/gin-gonic/gin"
@@ -107,14 +107,15 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 		public.GET("/factories", publicHandler.ListFactories)
 		public.GET("/certifications", publicHandler.ListCertifications)
 		public.GET("/production-processes", publicHandler.ListProductionProcesses)
+		public.GET("/self-medias", publicHandler.ListSelfMedias)
 		public.GET("/navigations", publicHandler.ListNavigations)
-		public.POST("/leads", publicHandler.CreateLead)                        // 询盘提交（受频率限制保护）
-		public.POST("/subscribe", subscriptionHandler.Subscribe)               // 订阅更新（Newsletter，受频率限制保护）
+		public.POST("/leads", publicHandler.CreateLead)                             // 询盘提交（受频率限制保护）
+		public.POST("/subscribe", subscriptionHandler.Subscribe)                    // 订阅更新（Newsletter，受频率限制保护）
 		public.POST("/uploads/lead-attachment", publicHandler.UploadLeadAttachment) // 询盘附件上传（图片/文档/压缩包，默认≤20MB，受频率限制保护）
-		public.POST("/click-track", publicHandler.TrackClick)                  // 外部链接点击跟踪（社交媒体跳转）
+		public.POST("/click-track", publicHandler.TrackClick)                       // 外部链接点击跟踪（社交媒体跳转）
 
 		// 隐私合规 API（GDPR / PIPL / CCPA / LGPD）
-		public.POST("/data-export", publicHandler.RequestDataExport)    // 数据主体请求导出个人数据
+		public.POST("/data-export", publicHandler.RequestDataExport)     // 数据主体请求导出个人数据
 		public.POST("/data-deletion", publicHandler.RequestDataDeletion) // 数据主体请求删除个人数据（被遗忘权）
 
 		public.GET("/theme", portalHandler.GetThemeConfig)                     // 主题配置（前端渲染视觉风格）
@@ -349,6 +350,19 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 			auth.POST("/production-processes/:id/unpublish",
 				middleware.RequirePermission("production:manage"), cmsHandler.UnpublishProductionProcess)
 
+			// 自媒体管理
+			auth.GET("/self-medias",
+				middleware.RequireAnyPermission("selfmedia:manage", "page:view"), cmsHandler.ListSelfMedias)
+			auth.POST("/self-medias",
+				middleware.RequirePermission("selfmedia:manage"), cmsHandler.CreateSelfMedia)
+			auth.PUT("/self-medias/:id",
+				middleware.RequirePermission("selfmedia:manage"), cmsHandler.UpdateSelfMedia)
+			auth.DELETE("/self-medias/:id",
+				middleware.RequirePermission("selfmedia:manage"), cmsHandler.DeleteSelfMedia)
+			auth.POST("/self-medias/:id/publish",
+				middleware.RequirePermission("selfmedia:manage"), cmsHandler.PublishSelfMedia)
+			auth.POST("/self-medias/:id/unpublish",
+				middleware.RequirePermission("selfmedia:manage"), cmsHandler.UnpublishSelfMedia)
 
 			// ---------- 媒体管理 ----------
 			auth.GET("/media",

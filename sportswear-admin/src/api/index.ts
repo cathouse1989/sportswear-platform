@@ -21,6 +21,7 @@ import type {
   Factory,
   Certification,
   ProductionProcess,
+  SelfMedia,
   Navigation,
   Media,
   StorageSource,
@@ -195,6 +196,16 @@ export const productionProcessApi = {
 }
 
 // ============ 濯掍綋 ============
+// ============ 自媒体 ============
+export const selfMediaApi = {
+  list: (params?: any) => http.get<PageResult<SelfMedia>>('/admin/self-medias', params),
+  create: (data: any) => http.post<SelfMedia>('/admin/self-medias', data),
+  update: (id: string, data: any) => http.put<SelfMedia>(`/admin/self-medias/${id}`, data),
+  delete: (id: string) => http.delete(`/admin/self-medias/${id}`),
+  publish: (id: string) => http.post(`/admin/self-medias/${id}/publish`),
+  unpublish: (id: string) => http.post(`/admin/self-medias/${id}/unpublish`),
+}
+
 export const mediaApi = {
   list: (params?: any) => http.get<PageResult<Media>>('/admin/media', params),
   get: (id: string) => http.get<Media>(`/admin/media/${id}`),

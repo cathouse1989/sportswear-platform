@@ -1,4 +1,4 @@
-﻿package services
+package services
 
 import (
 	"encoding/json"
@@ -1616,4 +1616,124 @@ func (s *CMSService) UpdateProductionProcess(id string, req *ProductionProcessRe
 // DeleteProductionProcess 删除生产流程
 func (s *CMSService) DeleteProductionProcess(id string) error {
 	return s.db.Delete(&models.ProductionProcess{}, "id = ?", id).Error
+}
+
+// ==================== 自媒体管理 ====================
+
+// SelfMediaMaxDisplay 读取「自媒体最多展示数量」配置（theme_configs），缺省 6
+func (s *CMSService) SelfMediaMaxDisplay() int {
+	const defaultMax = 6
+	var cfg models.ThemeConfig
+	if err := s.db.Where("\"key\" = ?", "self_media_max_display").First(&cfg).Error; err != nil {
+		return defaultMax
+	}
+	// Value 可能是 `6` 或 `"6"`（历史主题配置可能以 JSON 字符串存储），做兼容解析
+	raw := strings.TrimSpace(cfg.Value)
+	raw = strings.Trim(raw, `"`)
+	n, err := strconv.Atoi(raw)
+	if err != nil || n < 1 {
+		return defaultMax
+	}
+	return n
+}
+
+// ListSelfMedias 自媒体列表（后台：全部状态，服务端分页 + 名称/平台/账号搜索）
+func (s *CMSService) ListSelfMedias(page, pageSize int, keyword string) ([]models.SelfMedia, int64, error) {
+	var items []models.SelfMedia
+	var total int64
+
+	query := s.db.Model(&models.SelfMedia{})
+	if keyword != "" {
+		query = query.Where("name LIKE ? OR platform LIKE ? OR account LIKE ?", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
+	}
+
+	query.Count(&total)
+	err := query.Order("sort_order ASC, created_at DESC").
+		Offset((page - 1) * pageSize).Limit(pageSize).Find(&items).Error
+
+	return items, total, err
+}
+
+// ListPublishedSelfMedias 已发布自媒体列表（前台，按排序截取 limit 条）
+func (s *CMSService) ListPublishedSelfMedias(limit int) ([]models.SelfMedia, error) {
+	var items []models.SelfMedia
+	q := s.db.Where("status = ?", models.ProductStatusPublished).
+		Order("sort_order ASC, created_at ASC")
+	if limit > 0 {
+		q = q.Limit(limit)
+	}
+	err := q.Find(&items).Error
+	return items, err
+}
+
+// PublishSelfMedia 发布自媒体（前端可见）
+func (s *CMSService) PublishSelfMedia(id string) error {
+	return s.db.Model(&models.SelfMedia{}).Where("id = ?", id).
+		Update("status", models.ProductStatusPublished).Error
+}
+
+// UnpublishSelfMedia 下线自媒体（前端不可见）
+func (s *CMSService) UnpublishSelfMedia(id string) error {
+	return s.db.Model(&models.SelfMedia{}).Where("id = ?", id).
+		Update("status", models.ProductStatusOffline).Error
+}
+
+// CreateSelfMedia 创建自媒体
+func (s *CMSService) CreateSelfMedia(req *SelfMediaRequest) (*models.SelfMedia, error) {
+	item := models.SelfMedia{
+		Name:        req.Name,
+		Platform:    req.Platform,
+		Account:     req.Account,
+		URL:         req.URL,
+		Image:       req.Image,
+		Description: req.Description,
+		SortOrder:   req.SortOrder,
+		Status:      req.Status,
+		IsActive:    req.IsActive,
+	}
+	if err := s.db.Create(&item).Error; err != nil {
+		return nil, err
+	}
+	return &item, nil
+}
+
+// SelfMediaRequest 自媒体请求
+type SelfMediaRequest struct {
+	Name        string               `json:"name" binding:"required"`
+	Platform    string               `json:"platform"`
+	Account     string               `json:"account"`
+	URL         string               `json:"url"`
+	Image       string               `json:"image"`
+	Description string               `json:"description"`
+	SortOrder   int                  `json:"sort_order"`
+	Status      models.ProductStatus `json:"status"`
+	IsActive    bool                 `json:"is_active"`
+}
+
+// UpdateSelfMedia 更新自媒体
+func (s *CMSService) UpdateSelfMedia(id string, req *SelfMediaRequest) (*models.SelfMedia, error) {
+	var item models.SelfMedia
+	if err := s.db.First(&item, "id = ?", id).Error; err != nil {
+		return nil, errors.New("自媒体不存在")
+	}
+
+	updates := map[string]interface{}{
+		"name":        req.Name,
+		"platform":    req.Platform,
+		"account":     req.Account,
+		"url":         req.URL,
+		"image":       req.Image,
+		"description": req.Description,
+		"sort_order":  req.SortOrder,
+		"is_active":   req.IsActive,
+	}
+	if err := s.db.Model(&item).Updates(updates).Error; err != nil {
+		return nil, err
+	}
+	return &item, nil
+}
+
+// DeleteSelfMedia 删除自媒体
+func (s *CMSService) DeleteSelfMedia(id string) error {
+	return s.db.Delete(&models.SelfMedia{}, "id = ?", id).Error
 }

@@ -727,3 +727,83 @@ func (h *CMSHandler) UnpublishProductionProcess(c *gin.Context) {
 	h.invalidateCache("production_process", "")
 	utils.Success(c, gin.H{"unpublished": true})
 }
+
+// ==================== 自媒体 ====================
+
+// ListSelfMedias 自媒体列表
+func (h *CMSHandler) ListSelfMedias(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	keyword := c.Query("keyword")
+
+	items, total, err := h.cmsService.ListSelfMedias(page, pageSize, keyword)
+	if err != nil {
+		utils.InternalError(c, "获取自媒体列表失败")
+		return
+	}
+	utils.SuccessPage(c, items, page, pageSize, total)
+}
+
+// CreateSelfMedia 创建自媒体
+func (h *CMSHandler) CreateSelfMedia(c *gin.Context) {
+	var req services.SelfMediaRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, "参数错误: "+err.Error())
+		return
+	}
+
+	item, err := h.cmsService.CreateSelfMedia(&req)
+	if err != nil {
+		utils.BadRequest(c, err.Error())
+		return
+	}
+	h.invalidateCache("self_media", "")
+	utils.Created(c, item)
+}
+
+// UpdateSelfMedia 更新自媒体
+func (h *CMSHandler) UpdateSelfMedia(c *gin.Context) {
+	var req services.SelfMediaRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, "参数错误: "+err.Error())
+		return
+	}
+
+	item, err := h.cmsService.UpdateSelfMedia(c.Param("id"), &req)
+	if err != nil {
+		utils.BadRequest(c, err.Error())
+		return
+	}
+	h.invalidateCache("self_media", "")
+	utils.Success(c, item)
+}
+
+// DeleteSelfMedia 删除自媒体
+func (h *CMSHandler) DeleteSelfMedia(c *gin.Context) {
+	if err := h.cmsService.DeleteSelfMedia(c.Param("id")); err != nil {
+		utils.BadRequest(c, "删除自媒体失败")
+		return
+	}
+	h.invalidateCache("self_media", "")
+	utils.Success(c, gin.H{"deleted": true})
+}
+
+// PublishSelfMedia 发布自媒体（前端可见）
+func (h *CMSHandler) PublishSelfMedia(c *gin.Context) {
+	if err := h.cmsService.PublishSelfMedia(c.Param("id")); err != nil {
+		utils.BadRequest(c, "发布自媒体失败")
+		return
+	}
+	h.invalidateCache("self_media", "")
+	utils.Success(c, gin.H{"published": true})
+}
+
+// UnpublishSelfMedia 下线自媒体（前端不可见）
+func (h *CMSHandler) UnpublishSelfMedia(c *gin.Context) {
+	if err := h.cmsService.UnpublishSelfMedia(c.Param("id")); err != nil {
+		utils.BadRequest(c, "下线自媒体失败")
+		return
+	}
+	h.invalidateCache("self_media", "")
+	utils.Success(c, gin.H{"unpublished": true})
+}

@@ -336,6 +336,9 @@ func (s *CacheService) InvalidateContentCache(entityType, slug string) {
 	case "certification":
 		s.InvalidatePattern("cache:certifications:*")
 		invalidateHome()
+	case "self_media":
+		s.InvalidatePattern("cache:self-medias:*")
+		invalidateHome()
 	case "navigation":
 		s.InvalidatePattern("cache:navigations:*")
 	case "theme":
@@ -358,6 +361,7 @@ func (s *CacheService) RefreshPublicCache(db *gorm.DB) bool {
 		"cache:categories:*", "cache:series:*", "cache:fabrics:*",
 		"cache:blogs:*", "cache:blog:*", "cache:cases:*", "cache:case:*",
 		"cache:faqs:*", "cache:factories:*", "cache:certifications:*",
+		"cache:self-medias:*",
 		"cache:navigations:*",
 	} {
 		s.InvalidatePattern(pattern)

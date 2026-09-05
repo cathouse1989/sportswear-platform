@@ -364,6 +364,19 @@ export interface ProductionProcess {
   is_active: boolean
 }
 
+export interface SelfMedia {
+  id: string
+  name: string
+  platform: string
+  account?: string
+  url?: string
+  image?: string
+  description?: string
+  sort_order: number
+  status: string
+  is_active: boolean
+}
+
 export interface Navigation {
   id: string
   name: string

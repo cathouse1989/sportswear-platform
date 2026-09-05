@@ -48,6 +48,15 @@
             <el-input v-if="['primary_color','secondary_color','accent_color'].includes(row.key)" v-model="row.value" size="small">
               <template #append><el-color-picker v-model="row.value" size="small" /></template>
             </el-input>
+            <el-input-number
+              v-else-if="isNumberKey(row.key)"
+              :model-value="Number(row.value)"
+              :min="0"
+              size="small"
+              controls-position="right"
+              style="width: 100%"
+              @update:model-value="(v) => (row.value = String(v))"
+            />
             <el-input v-else v-model="row.value" size="small" />
           </template>
         </el-table-column>
@@ -74,6 +83,15 @@ const brandSubtitle = ref('')
 const adminSystemName = ref('')
 const logoAlt = ref('')
 const savingLogo = ref(false)
+
+// 数值型配置项：以数字输入框渲染（含「自媒体最多展示数量」）
+const NUMBER_KEYS = [
+  'header_height', 'footer_columns', 'section_spacing', 'container_width',
+  'button_radius', 'card_radius',
+  'products_page_size', 'blogs_page_size', 'cases_page_size', 'faqs_page_size', 'admin_page_size',
+  'hero_interval_ms', 'self_media_max_display',
+]
+const isNumberKey = (key: string) => NUMBER_KEYS.includes(key)
 
 async function loadData() {
   loading.value = true

@@ -660,6 +660,7 @@ func (s *AuthService) defaultPermissions() []models.Permission {
 		{Name: "工厂管理", Code: "factory:manage", Module: "cms"},
 		{Name: "认证管理", Code: "certification:manage", Module: "cms"},
 		{Name: "生产流程", Code: "production:manage", Module: "cms"},
+		{Name: "自媒体管理", Code: "selfmedia:manage", Module: "cms"},
 		{Name: "媒体上传", Code: "media:upload", Module: "media"},
 		{Name: "媒体管理", Code: "media:manage", Module: "media"},
 		{Name: "询盘查看", Code: "lead:view", Module: "lead"},
@@ -689,8 +690,8 @@ func (s *AuthService) ensureDefaultPermissions() {
 // ensureDefaultRolePermissions 幂等补齐默认角色的扩展权限(仅追加缺失项，不覆盖已有自定义权限)
 func (s *AuthService) ensureDefaultRolePermissions() {
 	extra := map[string][]string{
-		"admin":         {"production:manage", "subscription:view", "subscription:update"},
-		"content_admin": {"production:manage", "subscription:view"},
+		"admin":         {"production:manage", "subscription:view", "subscription:update", "selfmedia:manage"},
+		"content_admin": {"production:manage", "subscription:view", "selfmedia:manage"},
 		"sales_manager": {"subscription:view"},
 		"sales":         {"subscription:view"},
 		"viewer":        {"subscription:view"},
@@ -877,6 +878,7 @@ func (s *AuthService) assignRolePermissions() {
 			"page:view", "page:update", "page:publish", "navigation:manage",
 			"blog:manage", "case:manage", "faq:manage",
 			"factory:manage", "certification:manage", "production:manage",
+			"selfmedia:manage",
 			"media:upload", "media:manage",
 			"lead:view", "lead:update", "lead:followup",
 			"subscription:view", "subscription:update",
@@ -886,6 +888,7 @@ func (s *AuthService) assignRolePermissions() {
 			"page:view", "navigation:manage",
 			"blog:manage", "case:manage", "faq:manage",
 			"factory:manage", "certification:manage", "production:manage",
+			"selfmedia:manage",
 			"media:upload", "media:manage",
 			"subscription:view",
 		},
