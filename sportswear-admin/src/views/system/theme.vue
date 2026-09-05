@@ -36,6 +36,28 @@
       </el-form>
     </el-card>
 
+    <!-- 门户联系方式配置 -->
+    <el-card shadow="never" class="mb-4">
+      <template #header><span class="font-semibold">门户联系方式配置</span></template>
+      <el-form label-width="160px" label-position="left">
+        <el-form-item label="WhatsApp 号码">
+          <el-input v-model="whatsappNumber" placeholder="含国家代码，不含 + 号，如 8612345678900" size="large" />
+        </el-form-item>
+        <el-form-item label="WhatsApp 默认消息">
+          <el-input v-model="whatsappMessage" type="textarea" placeholder="访客点击 WhatsApp 按钮时预填的消息" />
+        </el-form-item>
+        <el-form-item label="联系邮箱">
+          <el-input v-model="contactEmail" placeholder="如 info@sportswear.com" size="large" />
+        </el-form-item>
+        <el-form-item label="联系电话">
+          <el-input v-model="contactPhone" placeholder="如 +86 123 4567 8900" size="large" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" size="large" @click="handleSaveContact" :loading="savingContact">保存联系方式</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
     <!-- 原有主题配置表 -->
     <el-card shadow="never">
       <template #header><span class="font-semibold">其他主题配置项</span></template>
@@ -83,6 +105,11 @@ const brandSubtitle = ref('')
 const adminSystemName = ref('')
 const logoAlt = ref('')
 const savingLogo = ref(false)
+const whatsappNumber = ref('')
+const whatsappMessage = ref('')
+const contactEmail = ref('')
+const contactPhone = ref('')
+const savingContact = ref(false)
 
 // 数值型配置项：以数字输入框渲染
 const NUMBER_KEYS = [
@@ -96,17 +123,36 @@ const isNumberKey = (key: string) => NUMBER_KEYS.includes(key)
 // 商标/Logo 相关配置仅在「商标 Logo 配置」区块维护，避免与下方「其他主题配置项」重复出现
 const LOGO_KEYS = ['logo_url', 'logo_alt', 'favicon_url', 'brand_name', 'brand_subtitle', 'admin_system_name']
 
+// 门户联系方式相关配置：单独在「门户联系方式配置」区块维护
+const CONTACT_KEYS = ['whatsapp_number', 'whatsapp_message', 'contact_email', 'contact_phone']
+
+// 主题配置值以 JSON 字符串存储（如 `"SPORTSWEAR"`），读取时解析为干净值供表单展示
+function parseThemeValue(v: any): string {
+  if (v == null) return ''
+  const s = String(v)
+  try {
+    const parsed = JSON.parse(s)
+    return typeof parsed === 'string' ? parsed : s
+  } catch {
+    return s
+  }
+}
+
 async function loadData() {
   loading.value = true
   try {
     const allItems = await themeApi.adminList()
-    items.value = allItems.filter((i: any) => !LOGO_KEYS.includes(i.key))
-    logoUrl.value = allItems.find((i: any) => i.key === 'logo_url')?.value || ''
-    faviconUrl.value = allItems.find((i: any) => i.key === 'favicon_url')?.value || ''
-    brandName.value = allItems.find((i: any) => i.key === 'brand_name')?.value || ''
-    brandSubtitle.value = allItems.find((i: any) => i.key === 'brand_subtitle')?.value || ''
-    adminSystemName.value = allItems.find((i: any) => i.key === 'admin_system_name')?.value || ''
-    logoAlt.value = allItems.find((i: any) => i.key === 'logo_alt')?.value || ''
+    items.value = allItems.filter((i: any) => !LOGO_KEYS.includes(i.key) && !CONTACT_KEYS.includes(i.key))
+    logoUrl.value = parseThemeValue(allItems.find((i: any) => i.key === 'logo_url')?.value)
+    faviconUrl.value = parseThemeValue(allItems.find((i: any) => i.key === 'favicon_url')?.value)
+    brandName.value = parseThemeValue(allItems.find((i: any) => i.key === 'brand_name')?.value)
+    brandSubtitle.value = parseThemeValue(allItems.find((i: any) => i.key === 'brand_subtitle')?.value)
+    adminSystemName.value = parseThemeValue(allItems.find((i: any) => i.key === 'admin_system_name')?.value)
+    logoAlt.value = parseThemeValue(allItems.find((i: any) => i.key === 'logo_alt')?.value)
+    whatsappNumber.value = parseThemeValue(allItems.find((i: any) => i.key === 'whatsapp_number')?.value)
+    whatsappMessage.value = parseThemeValue(allItems.find((i: any) => i.key === 'whatsapp_message')?.value)
+    contactEmail.value = parseThemeValue(allItems.find((i: any) => i.key === 'contact_email')?.value)
+    contactPhone.value = parseThemeValue(allItems.find((i: any) => i.key === 'contact_phone')?.value)
   } finally { loading.value = false }
 }
 
@@ -130,6 +176,26 @@ async function handleSaveLogo() {
   } catch {
     ElMessage.error('保存失败')
   } finally { savingLogo.value = false }
+}
+
+async function handleSaveContact() {
+  savingContact.value = true
+  try {
+    const contactKeys: Record<string, string> = {
+      whatsapp_number: whatsappNumber.value,
+      whatsapp_message: whatsappMessage.value,
+      contact_email: contactEmail.value,
+      contact_phone: contactPhone.value,
+    }
+    await Promise.all(
+      Object.entries(contactKeys).map(([key, value]) =>
+        themeApi.update(key, value)
+      )
+    )
+    ElMessage.success('联系方式已保存')
+  } catch {
+    ElMessage.error('保存失败')
+  } finally { savingContact.value = false }
 }
 
 async function handleSave(row: any) {
