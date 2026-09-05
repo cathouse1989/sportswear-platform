@@ -645,15 +645,22 @@
     <el-dialog v-model="customDialogVisible" title="产品定制能力管理" width="680px" class="custom-dialog" destroy-on-close>
       <template v-if="customProductId">
         <div class="custom-list">
-          <div v-for="(c, idx) in customizations" :key="idx" class="custom-row">
-            <el-select v-model="c.type" placeholder="定制类型" style="width: 160px">
-              <el-option v-for="opt in customTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-            </el-select>
-            <el-switch v-model="c.is_enabled" active-text="启用" style="width: 90px" />
-            <el-input v-model="c.note" placeholder="备注说明" style="width: 180px" />
-            <el-button type="danger" size="small" @click="removeCustomization(idx)" circle>
-              <template #icon><el-icon><Delete /></el-icon></template>
-            </el-button>
+          <div v-for="(c, idx) in customizations" :key="idx" class="custom-item">
+            <div class="custom-row">
+              <el-select v-model="c.type" placeholder="定制类型" style="width: 160px">
+                <el-option v-for="opt in customTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+              </el-select>
+              <el-switch v-model="c.is_enabled" active-text="启用" style="width: 90px" />
+              <el-button type="danger" size="small" @click="removeCustomization(idx)" circle>
+                <template #icon><el-icon><Delete /></el-icon></template>
+              </el-button>
+            </div>
+            <div class="custom-trans">
+              <el-input v-model="c.note" placeholder="备注 (英文)" />
+              <el-input v-model="c.note_zh" placeholder="备注 (中文)" />
+              <el-input v-model="c.note_es" placeholder="备注 (西语)" />
+              <el-input v-model="c.note_fr" placeholder="备注 (法语)" />
+            </div>
           </div>
         </div>
         <el-button size="small" @click="addCustomization" class="mt-2">
@@ -1405,17 +1412,24 @@ async function openCustomizationDialog(row: Product) {
     const detail = await productApi.get(row.id)
     customDetail.value = detail
     if (detail.customizations?.length) {
-      customizations.value = detail.customizations.map(c => ({
-        type: c.type,
-        is_enabled: c.is_enabled,
-        note: c.note || '',
-      }))
+      customizations.value = detail.customizations.map(c => {
+        let t: Record<string, string> = {}
+        try { t = c.translations ? JSON.parse(c.translations) : {} } catch { t = {} }
+        return {
+          type: c.type,
+          is_enabled: c.is_enabled,
+          note: c.note || '',
+          note_zh: t.zh || '',
+          note_es: t.es || '',
+          note_fr: t.fr || '',
+        }
+      })
     }
   } catch {}
 }
 
 function addCustomization() {
-  customizations.value.push({ type: 'logo', is_enabled: true, note: '' })
+  customizations.value.push({ type: 'logo', is_enabled: true, note: '', note_zh: '', note_es: '', note_fr: '' })
 }
 
 function removeCustomization(idx: number) {
@@ -1425,7 +1439,16 @@ function removeCustomization(idx: number) {
 async function saveCustomizations() {
   savingCustom.value = true
   try {
-    await productApi.update(customProductId.value, { ...productPayload(customDetail.value), customizations: customizations.value })
+    // 将多语言 note（note_zh/es/fr）序列化为 JSONB translations 字段提交
+    const payload = customizations.value.map((c: any) => {
+      const { note_zh, note_es, note_fr, ...rest } = c
+      const translations: Record<string, string> = {}
+      if (note_zh) translations.zh = note_zh
+      if (note_es) translations.es = note_es
+      if (note_fr) translations.fr = note_fr
+      return { ...rest, translations: JSON.stringify(translations) }
+    })
+    await productApi.update(customProductId.value, { ...productPayload(customDetail.value), customizations: payload })
     ElMessage.success('定制选项保存成功')
     customDialogVisible.value = false
     loadData()
@@ -1833,12 +1856,27 @@ onMounted(() => {
   margin-bottom: 10px;
   flex-wrap: wrap;
 }
+.custom-item {
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px solid #f0ede8;
+  border-radius: 8px;
+}
 .custom-row {
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-bottom: 10px;
   flex-wrap: wrap;
+}
+.custom-trans {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.custom-trans .el-input {
+  flex: 1;
+  min-width: 140px;
 }
 .mt-2 {
   margin-top: 8px;

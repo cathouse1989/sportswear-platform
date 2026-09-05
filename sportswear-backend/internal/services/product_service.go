@@ -395,10 +395,11 @@ func (s *ProductService) syncProductChildren(product *models.Product, req *Produ
 		}
 		for _, cus := range req.Customizations {
 			item := models.ProductCustomization{
-				ProductID: product.ID,
-				Type:      cus.Type,
-				IsEnabled: cus.IsEnabled,
-				Note:      cus.Note,
+				ProductID:    product.ID,
+				Type:         cus.Type,
+				IsEnabled:    cus.IsEnabled,
+				Note:         cus.Note,
+				Translations: cus.Translations,
 			}
 			if err := s.db.Create(&item).Error; err != nil {
 				return err
@@ -475,9 +476,10 @@ type ProductSpecRequest struct {
 
 // ProductCustomizationRequest 产品定制能力请求
 type ProductCustomizationRequest struct {
-	Type      string `json:"type"`
-	IsEnabled bool   `json:"is_enabled"`
-	Note      string `json:"note"`
+	Type         string `json:"type"`
+	IsEnabled    bool   `json:"is_enabled"`
+	Note         string `json:"note"`
+	Translations string `json:"translations"`
 }
 
 // ProductTranslationRequest 产品翻译请求

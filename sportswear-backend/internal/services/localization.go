@@ -1,6 +1,7 @@
 ﻿package services
 
 import (
+	"encoding/json"
 	"regexp"
 	"strings"
 
@@ -73,6 +74,30 @@ func LocalizeProduct(p *models.Product, lang string) {
 				p.SizeRange = t.SizeRange
 			}
 			break
+		}
+	}
+	// 定制能力 note 按语言解析（JSONB 翻译字段，未配置时回退英文 Note）
+	localizeCustomizations(p.Customizations, lang)
+}
+
+// resolveTranslated 解析 JSONB 翻译字段（如 {"zh":"...","es":"...","fr":"..."}），返回目标语言文案。
+// 空值 / 英文 / 解析失败时返回空字符串（调用方回退主表英文源）。
+func resolveTranslated(translationsJSON string, lang string) string {
+	if translationsJSON == "" || lang == "" || lang == "en" {
+		return ""
+	}
+	var m map[string]string
+	if err := json.Unmarshal([]byte(translationsJSON), &m); err != nil {
+		return ""
+	}
+	return m[lang]
+}
+
+// localizeCustomizations 批量本地化定制能力的 note
+func localizeCustomizations(customizations []models.ProductCustomization, lang string) {
+	for i := range customizations {
+		if note := resolveTranslated(customizations[i].Translations, lang); note != "" {
+			customizations[i].Note = note
 		}
 	}
 }

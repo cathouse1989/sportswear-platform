@@ -141,6 +141,8 @@ export interface ProductCustomization {
   type: string
   is_enabled: boolean
   note?: string
+  /** JSONB 字符串：{"zh":"...","es":"...","fr":"..."} */
+  translations?: string
 }
 
 export interface Category {

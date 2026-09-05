@@ -136,6 +136,9 @@ type ProductCustomization struct {
 	Type      string    `gorm:"type:varchar(50);not null" json:"type"` // logo, color, fabric, pattern, print, embroidery, label, hangtag, packaging, size, fit, zipper, button, belt, accessory
 	IsEnabled bool      `gorm:"default:true" json:"is_enabled"`
 	Note      string    `gorm:"type:varchar(500)" json:"note"`
+	// 多语言翻译（JSONB）：{"zh":"...","es":"...","fr":"..."}，键为语言码，值为该语言的 note 文案。
+	// 英文为源（Note 字段）；其余语言按需补充，未配置时门户回退英文。
+	Translations string `gorm:"type:jsonb" json:"translations"`
 }
 
 // Fabric 面料
