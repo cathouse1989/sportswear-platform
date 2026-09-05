@@ -49,27 +49,29 @@
       </el-form>
     </el-card>
 
-    <!-- 联系方式（Contact Information） -->
+    <!-- 联系方式（Contact Information，多语言） -->
     <el-card shadow="never" class="mb-4">
       <template #header><span class="font-semibold">联系方式（Contact Information）</span></template>
-      <el-form label-width="160px" label-position="left">
-        <el-form-item label="邮箱 Email">
-          <el-input v-model="contactEmail" placeholder="info@sportswear.com" size="large" />
-        </el-form-item>
-        <el-form-item label="电话 Phone">
-          <el-input v-model="contactPhone" placeholder="+86 123 4567 8900" size="large" />
-        </el-form-item>
-        <el-form-item label="地址 Address">
-          <el-input v-model="contactAddress" placeholder="Guangzhou, China" size="large" />
-        </el-form-item>
-        <el-form-item label="工作时间 Working Hours">
-          <el-input v-model="contactHours" placeholder="Mon-Fri 9:00-18:00 (GMT+8)" size="large" />
-        </el-form-item>
-        <el-form-item>
-          <div class="mt-1 text-xs text-gray-400">保存后门户 Footer「Contact Info」区块与联系我们页「Contact Information」区块将同步更新</div>
-          <el-button type="primary" size="large" @click="handleSaveContact" :loading="savingContact">保存联系方式</el-button>
-        </el-form-item>
-      </el-form>
+      <el-tabs v-model="contactLang">
+        <el-tab-pane v-for="l in ABOUT_LANGS" :key="l" :name="l" :label="aboutLangLabels[l]">
+          <el-form label-width="120px" label-position="left">
+            <el-form-item label="邮箱 Email">
+              <el-input v-model="contactForm[l].email" placeholder="info@sportswear.com" />
+            </el-form-item>
+            <el-form-item label="电话 Phone">
+              <el-input v-model="contactForm[l].phone" placeholder="+86 123 4567 8900" />
+            </el-form-item>
+            <el-form-item label="地址 Address">
+              <el-input v-model="contactForm[l].address" placeholder="Guangzhou, China" />
+            </el-form-item>
+            <el-form-item label="工作时间 Working Hours">
+              <el-input v-model="contactForm[l].hours" placeholder="Mon-Fri 9:00-18:00 (GMT+8)" />
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+      </el-tabs>
+      <div class="mt-2 mb-3 text-xs text-gray-400">按语言分别配置，保存后门户 Footer「Contact Info」区块与联系我们页「Contact Information」区块将按语言同步更新</div>
+      <el-button type="primary" size="large" @click="handleSaveContact" :loading="savingContact">保存联系方式</el-button>
     </el-card>
 
     <!-- 原有主题配置表 -->
@@ -123,10 +125,13 @@ const ABOUT_LANGS = ['en', 'zh', 'es', 'fr']
 const aboutLangLabels: Record<string, string> = { en: 'English', zh: '中文', es: 'Español', fr: 'Français' }
 const aboutDesc = reactive<Record<string, string>>({ en: '', zh: '', es: '', fr: '' })
 const savingAbout = ref(false)
-const contactEmail = ref('')
-const contactPhone = ref('')
-const contactAddress = ref('')
-const contactHours = ref('')
+const contactLang = ref('en')
+const contactForm = reactive<Record<string, Record<ContactFieldKey, string>>>({
+  en: { email: '', phone: '', address: '', hours: '' },
+  zh: { email: '', phone: '', address: '', hours: '' },
+  es: { email: '', phone: '', address: '', hours: '' },
+  fr: { email: '', phone: '', address: '', hours: '' },
+})
 const savingContact = ref(false)
 
 // 数值型配置项：以数字输入框渲染
@@ -141,8 +146,14 @@ const isNumberKey = (key: string) => NUMBER_KEYS.includes(key)
 // 商标/Logo 相关配置仅在「商标 Logo 配置」区块维护，避免与下方「其他主题配置项」重复出现
 const LOGO_KEYS = ['logo_url', 'logo_alt', 'favicon_url', 'brand_name', 'brand_subtitle', 'admin_system_name']
 
-// 联系方式相关配置仅在「联系方式」区块维护，避免与下方「其他主题配置项」重复出现
-const CONTACT_KEYS = ['contact_email', 'contact_phone', 'contact_address', 'contact_hours']
+// 联系方式字段 → i18n 词条 key 映射（按语言维护，门户 Footer + 联系我们页按语言展示）
+type ContactFieldKey = 'email' | 'phone' | 'address' | 'hours'
+const CONTACT_FIELDS: Array<{ key: ContactFieldKey; i18n: string }> = [
+  { key: 'email', i18n: 'contact.email_value' },
+  { key: 'phone', i18n: 'contact.phone_value' },
+  { key: 'address', i18n: 'contact.address_value' },
+  { key: 'hours', i18n: 'contact.hours_value' },
+]
 
 // 主题配置值以 JSON 字符串存储（如 `"SPORTSWEAR"`），读取时解析为干净值供表单展示
 function parseThemeValue(v: any): string {
@@ -160,17 +171,13 @@ async function loadData() {
   loading.value = true
   try {
     const allItems = await themeApi.adminList()
-    items.value = allItems.filter((i: any) => !LOGO_KEYS.includes(i.key) && !CONTACT_KEYS.includes(i.key))
+    items.value = allItems.filter((i: any) => !LOGO_KEYS.includes(i.key))
     logoUrl.value = parseThemeValue(allItems.find((i: any) => i.key === 'logo_url')?.value)
     faviconUrl.value = parseThemeValue(allItems.find((i: any) => i.key === 'favicon_url')?.value)
     brandName.value = parseThemeValue(allItems.find((i: any) => i.key === 'brand_name')?.value)
     brandSubtitle.value = parseThemeValue(allItems.find((i: any) => i.key === 'brand_subtitle')?.value)
     adminSystemName.value = parseThemeValue(allItems.find((i: any) => i.key === 'admin_system_name')?.value)
     logoAlt.value = parseThemeValue(allItems.find((i: any) => i.key === 'logo_alt')?.value)
-    contactEmail.value = parseThemeValue(allItems.find((i: any) => i.key === 'contact_email')?.value)
-    contactPhone.value = parseThemeValue(allItems.find((i: any) => i.key === 'contact_phone')?.value)
-    contactAddress.value = parseThemeValue(allItems.find((i: any) => i.key === 'contact_address')?.value)
-    contactHours.value = parseThemeValue(allItems.find((i: any) => i.key === 'contact_hours')?.value)
   } finally { loading.value = false }
 }
 
@@ -221,20 +228,30 @@ async function handleSaveAbout() {
   } finally { savingAbout.value = false }
 }
 
+async function loadContact() {
+  try {
+    const r = await i18nApi.entries({ page: 1, pageSize: 200, keyword: 'contact.', language: '' })
+    for (const it of (r.items || [])) {
+      if (!ABOUT_LANGS.includes(it.language)) continue
+      const field = CONTACT_FIELDS.find((f) => f.i18n === it.key)
+      if (!field) continue
+      contactForm[it.language][field.key] = it.value || ''
+    }
+  } catch { /* ignore */ }
+}
+
 async function handleSaveContact() {
   savingContact.value = true
   try {
-    const contactKeys: Record<string, string> = {
-      contact_email: contactEmail.value,
-      contact_phone: contactPhone.value,
-      contact_address: contactAddress.value,
-      contact_hours: contactHours.value,
+    const upserts: Promise<any>[] = []
+    for (const l of ABOUT_LANGS) {
+      for (const f of CONTACT_FIELDS) {
+        const value = (contactForm[l][f.key] || '').trim()
+        // 空值不覆盖，门户回退静态语言包中的多语言默认值
+        if (value) upserts.push(i18nApi.upsert({ key: f.i18n, language: l, value, module: 'contact' }))
+      }
     }
-    await Promise.all(
-      Object.entries(contactKeys).map(([key, value]) =>
-        themeApi.update(key, value)
-      )
-    )
+    await Promise.all(upserts)
     ElMessage.success('联系方式已保存')
   } catch {
     ElMessage.error('保存失败')
@@ -246,5 +263,5 @@ async function handleSave(row: any) {
   ElMessage.success('已更新')
 }
 
-onMounted(() => { loadData(); loadAboutDesc() })
+onMounted(() => { loadData(); loadAboutDesc(); loadContact() })
 </script>

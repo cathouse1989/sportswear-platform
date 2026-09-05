@@ -63,10 +63,10 @@
         <div>
           <h3 class="font-semibold text-base md:text-lg mb-4">{{ $t('contact.info_title') }}</h3>
           <div class="space-y-4 text-gray-600 text-sm md:text-base">
-            <p><strong>{{ $t('contact.email_label') }}:</strong> {{ contactEmail || $t('contact.email_value') }}</p>
-            <p><strong>{{ $t('contact.phone_label') }}:</strong> {{ contactPhone || $t('contact.phone_value') }}</p>
-            <p><strong>{{ $t('contact.address_label') }}:</strong> {{ contactAddress || $t('contact.address_value') }}</p>
-            <p><strong>{{ $t('contact.hours_label') }}:</strong> {{ contactHours || $t('contact.hours_value') }}</p>
+            <p><strong>{{ $t('contact.email_label') }}:</strong> {{ $t('contact.email_value') }}</p>
+            <p><strong>{{ $t('contact.phone_label') }}:</strong> {{ $t('contact.phone_value') }}</p>
+            <p><strong>{{ $t('contact.address_label') }}:</strong> {{ $t('contact.address_value') }}</p>
+            <p><strong>{{ $t('contact.hours_label') }}:</strong> {{ $t('contact.hours_value') }}</p>
           </div>
         </div>
       </div>
@@ -84,12 +84,6 @@ const form = reactive({ name: '', email: '', phone: '', company: '', message: ''
 // 品牌名 / 副标题（优先主题配置，回退默认）
 const brandName = ref('SPORTSWEAR')
 const brandSubtitle = ref('Premium Mfg.')
-
-// 联系方式（主题配置「联系方式」，回退 i18n 词条）
-const contactEmail = ref('')
-const contactPhone = ref('')
-const contactAddress = ref('')
-const contactHours = ref('')
 
 // 服务亮点
 const services = [
@@ -155,10 +149,6 @@ onMounted(async () => {
     const theme = await api.getTheme()
     if (theme?.brand_name) brandName.value = theme.brand_name
     if (theme?.brand_subtitle) brandSubtitle.value = theme.brand_subtitle
-    if (theme?.contact_email) contactEmail.value = theme.contact_email
-    if (theme?.contact_phone) contactPhone.value = theme.contact_phone
-    if (theme?.contact_address) contactAddress.value = theme.contact_address
-    if (theme?.contact_hours) contactHours.value = theme.contact_hours
   } catch { /* ignore */ }
 })
 
