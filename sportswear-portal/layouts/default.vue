@@ -261,6 +261,7 @@
 <script setup lang="ts">
 const { locale, locales, setLocale, t, te } = useI18n()
 const localePath = useLocalePath()
+const switchLocalePath = useSwitchLocalePath()
 const showLang = ref(false)
 const mobileMenuOpen = ref(false)
 const newsletterEmail = ref('')
@@ -418,8 +419,15 @@ const langFlag = computed(() => {
 })
 
 function switchLocale(code: string) {
-  setLocale(code)
   showLang.value = false
+  // 跳转到对应语言前缀路由，触发页面重新渲染 + 数据按新语言重新拉取；
+  // 同时保证 URL/hreflang/SEO 与当前语言一致。
+  const target = switchLocalePath(code)
+  if (target) {
+    navigateTo(target)
+  } else {
+    setLocale(code)
+  }
 }
 
 function handleNewsletter() {

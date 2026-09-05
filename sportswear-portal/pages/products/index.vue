@@ -222,6 +222,16 @@ function clearSearch() {
   fetchProducts()
 }
 
+// 语言切换后（同一页面组件复用、不重新挂载时），显式按新语言重新拉取产品
+watch(locale, () => {
+  if (!import.meta.client) return
+  selectedCategory.value = ''
+  selectedGender.value = ''
+  selectedType.value = ''
+  searchQuery.value = ''
+  fetchProducts()
+})
+
 async function fetchProducts() {
   loading.value = true
   page.value = 1

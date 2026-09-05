@@ -68,7 +68,7 @@ useSeoHead({
 })
 
 // 首页数据（SSR 内联到 HTML）
-const { data: homeData } = await useAsyncData<any>(
+const { data: homeData, refresh: refreshHome } = await useAsyncData<any>(
   'home-' + (locale.value || 'en'),
   () => api.getHome().catch(() => null),
   {
@@ -89,6 +89,12 @@ const { data: themeData } = await useAsyncData<Record<string, any>>(
 )
 
 const products = computed<any[]>(() => homeData.value?.featured_products || [])
+
+// 语言切换后（同一页面组件复用、不重新挂载时），显式按新语言重新拉取首页聚合数据
+watch(locale, () => {
+  if (!import.meta.client) return
+  refreshHome()
+})
 
 // 精选产品卡片 hover 第二张图
 function hoverImg(p: any): string {

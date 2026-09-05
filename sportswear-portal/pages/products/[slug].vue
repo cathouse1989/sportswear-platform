@@ -7,6 +7,7 @@
           :items="[
             { name: $t('nav.home'), to: localePath('/') },
             { name: $t('product.products'), to: localePath('/products') },
+            ...(product.category?.slug ? [{ name: product.category.name || product.category.slug, to: localePath('/categories/' + product.category.slug) }] : []),
             { name: product.name || product.sku },
           ]"
         />
@@ -267,7 +268,10 @@
         <div v-if="product.series?.length" class="bg-white rounded-2xl p-6 lg:p-8 border border-[#EAE5DD]">
           <h2 class="text-xl font-bold text-[#0D1B2A] mb-4">{{ $t('product.detail.series') }}</h2>
           <div class="flex flex-wrap gap-2">
-            <span v-for="s in product.series" :key="s.id" class="px-3 py-1.5 bg-[#FBF9F6] rounded-full text-sm text-gray-700 border border-[#EAE5DD]">{{ s.name }}</span>
+            <NuxtLink v-for="s in product.series" :key="s.id" :to="localePath('/series/' + s.slug)"
+              class="px-3 py-1.5 bg-[#FBF9F6] rounded-full text-sm text-gray-700 border border-[#EAE5DD] hover:border-[#D4A853] hover:text-[#0D1B2A] transition">
+              {{ s.name }}
+            </NuxtLink>
           </div>
         </div>
         <div v-if="product.fabrics?.length" class="bg-white rounded-2xl p-6 lg:p-8 border border-[#EAE5DD]">
@@ -487,7 +491,7 @@ watch(lightboxOpen, (open) => {
 const slug = route.params.slug as string
 
 // SSR 阶段拉取产品详情 + 主题并内联进 HTML（提升 SEO + 配合 SWR HTML 缓存）
-const { data: product } = await useAsyncData<any>(
+const { data: product, refresh: refreshProduct } = await useAsyncData<any>(
   'product-' + (locale.value || 'en') + '-' + slug,
   () => api.getProduct(slug).catch(() => null),
 )
@@ -497,7 +501,7 @@ const { data: theme } = await useAsyncData<Record<string, any>>(
 )
 
 // 相关产品（同分类优先，不足则用全量补充，用于底部推荐与站内 SEO 内链）
-const { data: related } = await useAsyncData<any[]>(
+const { data: related, refresh: refreshRelated } = await useAsyncData<any[]>(
   'related-' + (locale.value || 'en') + '-' + slug,
   async () => {
     try {
@@ -527,6 +531,14 @@ const { data: related } = await useAsyncData<any[]>(
 )
 
 const loading = computed(() => product.value == null)
+
+// 语言切换后（同一页面组件复用、不重新挂载时），显式按新语言重新拉取详情 + 相关产品
+watch(locale, () => {
+  if (!import.meta.client) return
+  currentImageIndex.value = 0
+  refreshProduct()
+  refreshRelated()
+})
 
 function relatedHoverImg(r: any): string {
   return galleryImageUrls(r)[1] || ''
