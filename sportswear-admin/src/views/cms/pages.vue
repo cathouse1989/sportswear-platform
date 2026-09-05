@@ -208,19 +208,24 @@ import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { pageApi, portalApi, publicApi, navigationApi } from '@/api'
-import { useAdminPageSize } from '@/composables/useAdminPageSize'
+import { useCrud } from '@/composables/useCrud'
 import { formatDateTime } from '@/utils/format'
 import type { Page, Navigation } from '@/types'
 
 const router = useRouter()
-const pages = ref<Page[]>([])
 const navStatusMap = ref<Record<string, Navigation[]>>({})   // page_id → nav items
-const loading = ref(false)
-const total = ref(0)
-const page = ref(1)
-const pageSize = useAdminPageSize()
-const keyword = ref('')
 const status = ref('')
+
+// 列表分页/搜索复用 useCrud（服务端分页）；导航状态与弹窗/模块/版本保存逻辑保留在本视图
+const {
+  items: pages, total, loading, page, pageSize, keyword,
+  loadData: crudLoadData, handleSearch,
+} = useCrud({
+  api: pageApi,
+  emptyForm: () => ({}),
+  serverPagination: true,
+  extraParams: () => ({ status: status.value }),
+})
 
 // 模块类型（对齐需求文档 §5.5 与后端 PageModule 注释）
 const MODULE_TYPES = [
@@ -249,17 +254,6 @@ const form = reactive({ title: '', slug: '', type: 'normal', template: '', sort_
 const modules = ref<any[]>([])
 const translations = ref<any[]>([])
 
-async function loadData() {
-  loading.value = true
-  try {
-    const result = await pageApi.list({ page: page.value, pageSize: pageSize.value, keyword: keyword.value, status: status.value })
-    pages.value = (result as any).items || result || []
-    total.value = (result as any).total ?? pages.value.length
-    // 批量加载导航关联状态
-    loadNavStatus()
-  } finally { loading.value = false }
-}
-
 async function loadNavStatus() {
   try {
     const allNavs = await navigationApi.listAll()
@@ -273,7 +267,11 @@ async function loadNavStatus() {
     navStatusMap.value = map
   } catch { navStatusMap.value = {} }
 }
-function handleSearch() { page.value = 1; loadData() }
+// 包装 loadData：列表加载后同步刷新导航关联状态
+async function loadData() {
+  await crudLoadData()
+  loadNavStatus()
+}
 
 const isHome = (row: Page) => row.slug === 'home' || row.type === 'home'
 const statusTag = (s: string) => (s === 'published' ? 'success' : s === 'review' ? 'warning' : 'info')

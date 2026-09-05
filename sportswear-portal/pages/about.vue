@@ -13,28 +13,20 @@
       <div class="grid md:grid-cols-2 gap-12 items-center">
         <div>
           <h2 class="text-2xl md:text-3xl font-bold text-[#0D1B2A] mb-6">{{ $t('about.our_story') || 'Our Story' }}</h2>
-          <p class="text-gray-600 mb-4 leading-relaxed">
-            Founded in 2008, we have grown from a small workshop into a leading OEM/ODM sportswear manufacturer
-            serving global brands. Our 50,000 sqm facility houses advanced manufacturing equipment and a dedicated
-            R&D team of 30+ professionals.
-          </p>
-          <p class="text-gray-600 mb-4 leading-relaxed">
-            We specialize in producing high-performance activewear, yoga wear, running gear, team uniforms,
-            and custom sportswear solutions for brands worldwide. Our commitment to quality and innovation
-            has earned us long-term partnerships with clients in North America, Europe, and Australia.
-          </p>
+          <p class="text-gray-600 mb-4 leading-relaxed">{{ $t('about.story_1') }}</p>
+          <p class="text-gray-600 mb-4 leading-relaxed">{{ $t('about.story_2') }}</p>
           <div class="grid grid-cols-3 gap-6 mt-8">
             <div class="text-center">
               <div class="text-3xl font-bold text-[#D4A853]">15+</div>
-              <div class="text-sm text-gray-500 mt-1">Years Experience</div>
+              <div class="text-sm text-gray-500 mt-1">{{ $t('about.stat_years_label') }}</div>
             </div>
             <div class="text-center">
               <div class="text-3xl font-bold text-[#D4A853]">500+</div>
-              <div class="text-sm text-gray-500 mt-1">Global Clients</div>
+              <div class="text-sm text-gray-500 mt-1">{{ $t('about.stat_clients_label') }}</div>
             </div>
             <div class="text-center">
               <div class="text-3xl font-bold text-[#D4A853]">50K</div>
-              <div class="text-sm text-gray-500 mt-1">sqm Facility</div>
+              <div class="text-sm text-gray-500 mt-1">{{ $t('about.stat_facility_label') }}</div>
             </div>
           </div>
         </div>
@@ -56,8 +48,8 @@
           </div>
           <div v-if="!certifications?.length" v-for="i in 4" :key="i" class="bg-white rounded-xl p-6 text-center shadow-sm">
             <div class="text-4xl mb-3">🏅</div>
-            <h3 class="font-semibold text-sm">ISO 9001:2015</h3>
-            <p class="text-xs text-gray-500 mt-1">Quality Management</p>
+            <h3 class="font-semibold text-sm">{{ $t('about.cert_iso_name') }}</h3>
+            <p class="text-xs text-gray-500 mt-1">{{ $t('about.cert_iso_issuer') }}</p>
           </div>
         </div>
       </div>
@@ -78,28 +70,25 @@
 </template>
 
 <script setup lang="ts">
-// SEO - 关于我们
+// SEO - 关于我们（多语言，随语言切换）
 useSeoHead({
-  title: 'About Us - OEM/ODM Sportswear Manufacturer Since 2008',
-  description:
-    'Professional OEM/ODM sportswear manufacturer with 15+ years of experience. ISO 9001, BSCI, OEKO-TEX certified. 50,000 sqm facility serving 500+ global brands.',
-  keywords:
-    'sportswear manufacturer history, OEM factory China, ODM sportswear company, ISO certified activewear factory, garment manufacturing China',
+  title: () => t('about.seo_title'),
+  description: () => t('about.seo_description'),
+  keywords: () => t('about.seo_keywords'),
   ogImage: '/images/og-about.jpg',
 })
 
 const api = useApi()
-const localePath = useLocalePath()
-const { locale } = useI18n()
+const { locale, t } = useI18n()
 
-const factorySteps = [
-  { icon: '✂️', title: 'Cutting', desc: 'Computerized cutting machines with precision up to 0.1mm' },
-  { icon: '🧵', title: 'Sewing', desc: '500+ skilled workers operating modern sewing lines' },
-  { icon: '🖨️', title: 'Printing', desc: 'Sublimation, screen printing, and embroidery capabilities' },
-  { icon: '🔬', title: 'Quality Control', desc: 'Multi-point inspection system at every production stage' },
-  { icon: '📦', title: 'Packaging', desc: 'Professional packaging with your brand requirements' },
-  { icon: '🚢', title: 'Shipping', desc: 'Global logistics partnerships for timely delivery' },
-]
+const factorySteps = computed(() => [
+  { icon: '✂️', title: t('about.step_cutting_title'), desc: t('about.step_cutting_desc') },
+  { icon: '🧵', title: t('about.step_sewing_title'), desc: t('about.step_sewing_desc') },
+  { icon: '🖨️', title: t('about.step_printing_title'), desc: t('about.step_printing_desc') },
+  { icon: '🔬', title: t('about.step_qc_title'), desc: t('about.step_qc_desc') },
+  { icon: '📦', title: t('about.step_packaging_title'), desc: t('about.step_packaging_desc') },
+  { icon: '🚢', title: t('about.step_shipping_title'), desc: t('about.step_shipping_desc') },
+])
 
 
 

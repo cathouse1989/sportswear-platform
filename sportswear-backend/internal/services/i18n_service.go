@@ -177,6 +177,12 @@ var defaultI18nEntries = []models.I18nEntry{
 	// error
 	{Key: "error.not_found", Language: "en", Value: "Not Found", Module: "error"},
 	{Key: "error.load_failed", Language: "en", Value: "Failed to load data", Module: "error"},
+	// about
+	{Key: "about.title", Language: "en", Value: "About Us", Module: "about"},
+	{Key: "about.subtitle", Language: "en", Value: "Professional OEM/ODM sportswear manufacturer with 15+ years of experience.", Module: "about"},
+	{Key: "about.our_story", Language: "en", Value: "Our Story", Module: "about"},
+	{Key: "about.certifications", Language: "en", Value: "Our Certifications", Module: "about"},
+	{Key: "about.factory_tour", Language: "en", Value: "Factory Tour", Module: "about"},
 }
 
 // 默认中文词条
@@ -216,6 +222,12 @@ var defaultI18nEntriesZh = []models.I18nEntry{
 	{Key: "footer.copyright", Language: "zh", Value: "保留所有权利", Module: "footer"},
 	{Key: "error.not_found", Language: "zh", Value: "未找到", Module: "error"},
 	{Key: "error.load_failed", Language: "zh", Value: "数据加载失败", Module: "error"},
+	// about
+	{Key: "about.title", Language: "zh", Value: "关于我们", Module: "about"},
+	{Key: "about.subtitle", Language: "zh", Value: "拥有15年以上经验的专业OEM/ODM运动服装制造商。", Module: "about"},
+	{Key: "about.our_story", Language: "zh", Value: "我们的故事", Module: "about"},
+	{Key: "about.certifications", Language: "zh", Value: "资质认证", Module: "about"},
+	{Key: "about.factory_tour", Language: "zh", Value: "工厂参观", Module: "about"},
 }
 
 // 默认西班牙语词条
@@ -255,6 +267,12 @@ var defaultI18nEntriesEs = []models.I18nEntry{
 	{Key: "footer.copyright", Language: "es", Value: "Todos los Derechos Reservados", Module: "footer"},
 	{Key: "error.not_found", Language: "es", Value: "No Encontrado", Module: "error"},
 	{Key: "error.load_failed", Language: "es", Value: "Error al cargar datos", Module: "error"},
+	// about
+	{Key: "about.title", Language: "es", Value: "Sobre Nosotros", Module: "about"},
+	{Key: "about.subtitle", Language: "es", Value: "Fabricante profesional OEM/ODM de ropa deportiva con más de 15 años de experiencia.", Module: "about"},
+	{Key: "about.our_story", Language: "es", Value: "Nuestra Historia", Module: "about"},
+	{Key: "about.certifications", Language: "es", Value: "Certificaciones", Module: "about"},
+	{Key: "about.factory_tour", Language: "es", Value: "Visita a la Fábrica", Module: "about"},
 }
 
 // 默认法语词条
@@ -294,4 +312,10 @@ var defaultI18nEntriesFr = []models.I18nEntry{
 	{Key: "footer.copyright", Language: "fr", Value: "Tous Droits Réservés", Module: "footer"},
 	{Key: "error.not_found", Language: "fr", Value: "Non Trouvé", Module: "error"},
 	{Key: "error.load_failed", Language: "fr", Value: "Échec du chargement", Module: "error"},
+	// about
+	{Key: "about.title", Language: "fr", Value: "À Propos", Module: "about"},
+	{Key: "about.subtitle", Language: "fr", Value: "Fabricant professionnel OEM/ODM de vêtements de sport avec plus de 15 ans d'expérience.", Module: "about"},
+	{Key: "about.our_story", Language: "fr", Value: "Notre Histoire", Module: "about"},
+	{Key: "about.certifications", Language: "fr", Value: "Nos Certifications", Module: "about"},
+	{Key: "about.factory_tour", Language: "fr", Value: "Visite de l'Usine", Module: "about"},
 }
