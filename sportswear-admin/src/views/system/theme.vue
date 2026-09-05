@@ -51,27 +51,46 @@
 
     <!-- 联系方式（Contact Information，多语言） -->
     <el-card shadow="never" class="mb-4">
-      <template #header><span class="font-semibold">联系方式（Contact Information）</span></template>
-      <el-tabs v-model="contactLang">
+      <template #header>
+        <div class="card-header">
+          <span class="font-semibold">联系方式（Contact Information）</span>
+          <el-tag size="small" type="warning" round>多语言</el-tag>
+        </div>
+      </template>
+
+      <el-tabs v-model="contactLang" class="contact-tabs">
         <el-tab-pane v-for="l in ABOUT_LANGS" :key="l" :name="l" :label="aboutLangLabels[l]">
-          <el-form label-width="120px" label-position="left">
-            <el-form-item label="邮箱 Email">
-              <el-input v-model="contactForm[l].email" placeholder="info@sportswear.com" />
-            </el-form-item>
-            <el-form-item label="电话 Phone">
-              <el-input v-model="contactForm[l].phone" placeholder="+86 123 4567 8900" />
-            </el-form-item>
-            <el-form-item label="地址 Address">
-              <el-input v-model="contactForm[l].address" placeholder="Guangzhou, China" />
-            </el-form-item>
-            <el-form-item label="工作时间 Working Hours">
-              <el-input v-model="contactForm[l].hours" placeholder="Mon-Fri 9:00-18:00 (GMT+8)" />
-            </el-form-item>
-          </el-form>
+          <div class="contact-grid">
+            <div v-for="f in CONTACT_FIELDS" :key="f.key" class="contact-field-card">
+              <div class="contact-field-icon">
+                <el-icon :size="18"><component :is="f.icon" /></el-icon>
+              </div>
+              <div class="contact-field-body">
+                <div class="contact-field-label">
+                  {{ f.label }}
+                  <span class="lang">{{ aboutLangLabels[l] }}</span>
+                </div>
+                <el-input v-model="contactForm[l][f.key]" :placeholder="f.placeholder" clearable />
+              </div>
+            </div>
+          </div>
         </el-tab-pane>
       </el-tabs>
-      <div class="mt-2 mb-3 text-xs text-gray-400">按语言分别配置；未配置的语言/字段门户展示默认值（与门户多语言文案一致）。保存后门户 Footer「Contact Info」区块与联系我们页「Contact Information」区块将按语言同步更新</div>
-      <el-button type="primary" size="large" @click="handleSaveContact" :loading="savingContact">保存联系方式</el-button>
+
+      <el-alert
+        class="contact-tip"
+        type="info"
+        :closable="false"
+        show-icon
+        title="按语言分别配置；未配置的语言/字段在门户展示默认值"
+        description="保存后门户 Footer「Contact Info」区块与联系我们页「Contact Information」区块将按语言同步更新，默认值与门户多语言文案一致。"
+      />
+
+      <div class="contact-actions">
+        <el-button type="primary" size="large" :icon="Check" @click="handleSaveContact" :loading="savingContact">
+          保存联系方式
+        </el-button>
+      </div>
     </el-card>
 
     <!-- 原有主题配置表 -->
@@ -109,7 +128,9 @@
 </template>
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import type { Component } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Check, Clock, Location, Message, Phone } from '@element-plus/icons-vue'
 import { themeApi, i18nApi } from '@/api'
 import MediaPicker from '@/components/media/MediaPicker.vue'
 
@@ -156,11 +177,20 @@ const LOGO_KEYS = ['logo_url', 'logo_alt', 'favicon_url', 'brand_name', 'brand_s
 
 // 联系方式字段 → i18n 词条 key 映射（按语言维护，门户 Footer + 联系我们页按语言展示）
 type ContactFieldKey = 'email' | 'phone' | 'address' | 'hours'
-const CONTACT_FIELDS: Array<{ key: ContactFieldKey; i18n: string }> = [
-  { key: 'email', i18n: 'contact.email_value' },
-  { key: 'phone', i18n: 'contact.phone_value' },
-  { key: 'address', i18n: 'contact.address_value' },
-  { key: 'hours', i18n: 'contact.hours_value' },
+
+interface ContactField {
+  key: ContactFieldKey
+  i18n: string
+  label: string
+  placeholder: string
+  icon: Component
+}
+
+const CONTACT_FIELDS: ContactField[] = [
+  { key: 'email', i18n: 'contact.email_value', label: '邮箱', placeholder: 'info@sportswear.com', icon: Message },
+  { key: 'phone', i18n: 'contact.phone_value', label: '电话', placeholder: '+86 123 4567 8900', icon: Phone },
+  { key: 'address', i18n: 'contact.address_value', label: '地址', placeholder: 'Guangzhou, China', icon: Location },
+  { key: 'hours', i18n: 'contact.hours_value', label: '工作时间', placeholder: 'Mon-Fri 9:00-18:00 (GMT+8)', icon: Clock },
 ]
 
 // 主题配置值以 JSON 字符串存储（如 `"SPORTSWEAR"`），读取时解析为干净值供表单展示
@@ -273,3 +303,72 @@ async function handleSave(row: any) {
 
 onMounted(() => { loadData(); loadAboutDesc(); loadContact() })
 </script>
+
+<style scoped>
+/* 后台未引入 Tailwind，本地补齐模板中使用的 Tailwind 原子类，使其真正生效 */
+.font-semibold { font-weight: 600; }
+.text-xs { font-size: 12px; line-height: 1.5; }
+.text-gray-400 { color: #9ca3af; }
+.mb-4 { margin-bottom: 16px; }
+.mb-2 { margin-bottom: 8px; }
+.mb-3 { margin-bottom: 12px; }
+.mt-1 { margin-top: 4px; }
+.mt-2 { margin-top: 8px; }
+
+/* 联系方式卡片头部：标题 + 多语言标签 */
+.card-header { display: flex; align-items: center; gap: 8px; }
+
+.contact-tabs :deep(.el-tabs__header) { margin-bottom: 18px; }
+
+/* 字段卡片网格：2 列，窄屏自动单列 */
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 768px) {
+  .contact-grid { grid-template-columns: 1fr; }
+}
+
+.contact-field-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #f7f8fa;
+  border: 1px solid #e9ebee;
+  border-radius: 8px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.contact-field-card:hover {
+  border-color: #d4a853;
+  box-shadow: 0 2px 10px rgba(13, 27, 42, 0.06);
+}
+.contact-field-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #0d1b2a;
+  color: #d4a853;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.contact-field-body { flex: 1; min-width: 0; }
+.contact-field-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #4b5563;
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+.contact-field-label .lang {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 400;
+  color: #9ca3af;
+}
+.contact-tip { margin-top: 16px; }
+.contact-actions { margin-top: 16px; }
+</style>
