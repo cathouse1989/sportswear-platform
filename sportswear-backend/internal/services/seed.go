@@ -451,7 +451,8 @@ func strToUUIDPtr(s string) *uuid.UUID {
 // 与门户 Footer 社交图标共用同一数据源，保证「自媒体管理」是唯一配置入口。
 func SeedSelfMedias(db *gorm.DB) {
 	var count int64
-	db.Model(&models.SelfMedia{}).Count(&count)
+	// 用 Unscoped 统计（含软删除），避免用户删光记录后重启服务又自动补回种子数据
+	db.Unscoped().Model(&models.SelfMedia{}).Count(&count)
 	if count > 0 {
 		return
 	}

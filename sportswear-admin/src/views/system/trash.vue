@@ -45,6 +45,7 @@ const ENTITY_TYPES = [
   { label: '生产流程', value: 'production_process' },
   { label: '导航', value: 'navigation' },
   { label: '媒体', value: 'media' },
+  { label: '自媒体', value: 'self_media' },
   { label: '询盘', value: 'lead' },
   { label: '用户', value: 'user' },
 ]

@@ -1,4 +1,4 @@
-﻿package services
+package services
 
 import (
 	"errors"
@@ -22,20 +22,21 @@ func NewTrashService(db *gorm.DB) *TrashService {
 
 // 支持软删除的实体类型注册表
 var trashEntities = map[string]interface{}{
-	"product":            &models.Product{},
-	"category":           &models.Category{},
-	"series":             &models.Series{},
-	"fabric":             &models.Fabric{},
-	"page":               &models.Page{},
-	"blog":               &models.Blog{},
-	"case":               &models.Case{},
-	"faq":                &models.FAQ{},
-	"factory":            &models.Factory{},
-	"certification":      &models.Certification{},
-	"navigation":         &models.Navigation{},
-	"media":              &models.Media{},
-	"lead":               &models.Lead{},
-	"user":               &models.User{},
+	"product":       &models.Product{},
+	"category":      &models.Category{},
+	"series":        &models.Series{},
+	"fabric":        &models.Fabric{},
+	"page":          &models.Page{},
+	"blog":          &models.Blog{},
+	"case":          &models.Case{},
+	"faq":           &models.FAQ{},
+	"factory":       &models.Factory{},
+	"certification": &models.Certification{},
+	"navigation":    &models.Navigation{},
+	"media":         &models.Media{},
+	"self_media":    &models.SelfMedia{},
+	"lead":          &models.Lead{},
+	"user":          &models.User{},
 }
 
 // ListTrashItem 已删除数据条目
