@@ -50,12 +50,50 @@
         </div>
       </div>
     </section>
+
+    <!-- Blog：首页博客信息区块 -->
+    <section v-if="blogs?.length" class="py-16 md:py-20 bg-white border-t border-[#EAE5DD]">
+      <div class="max-w-7xl mx-auto px-4 lg:px-8">
+        <div class="flex justify-between items-end mb-8 md:mb-10">
+          <h2 class="text-2xl md:text-3xl font-bold text-[#0D1B2A]">{{ $t('blog.title') }}</h2>
+          <NuxtLink :to="localePath('/blog')" class="text-sm text-[#D4A853] font-medium min-h-[44px] flex items-center">{{ $t('blog.read_more') }} →</NuxtLink>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <NuxtLink
+            v-for="b in blogs.slice(0, 3)"
+            :key="b.id"
+            :to="localePath('/blog/' + b.slug)"
+            class="group bg-white rounded-2xl overflow-hidden border border-[#EAE5DD] hover:shadow-lg transition-all active:scale-[0.98]"
+          >
+            <div class="aspect-[16/9] bg-gray-100 relative overflow-hidden">
+              <img
+                v-if="b.cover_image"
+                :src="imgUrl(b.cover_image)"
+                :alt="b.title"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                loading="lazy"
+              />
+              <div v-else class="w-full h-full flex items-center justify-center text-4xl md:text-5xl">📝</div>
+            </div>
+            <div class="p-4 md:p-5">
+              <div class="flex items-center gap-2 text-[10px] md:text-xs text-gray-400 mb-2">
+                <span class="px-2 py-0.5 rounded-full bg-[#F5F0E8] text-[#9A6B1F] font-medium">{{ categoryLabel(b.category) }}</span>
+                <time>{{ formatDate(b.published_at || b.created_at) }}</time>
+              </div>
+              <h3 class="text-sm md:text-base font-semibold text-[#0D1B2A] line-clamp-2 group-hover:text-[#D4A853] transition-colors">{{ b.title }}</h3>
+              <p class="text-xs md:text-sm text-gray-500 mt-2 line-clamp-2">{{ b.summary || stripHtml(b.content) }}</p>
+            </div>
+          </NuxtLink>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 const localePath = useLocalePath()
-const { t, locale } = useI18n()
+const { t, te, locale } = useI18n()
+const api = useApi()
 
 // SEO - 首页
 useSeoHead({
@@ -89,6 +127,7 @@ const { data: themeData } = await useAsyncData<Record<string, any>>(
 )
 
 const products = computed<any[]>(() => homeData.value?.featured_products || [])
+const blogs = computed<any[]>(() => homeData.value?.blogs || [])
 
 // 语言切换后（同一页面组件复用、不重新挂载时），显式按新语言重新拉取首页聚合数据
 watch(locale, () => {
@@ -99,6 +138,30 @@ watch(locale, () => {
 // 精选产品卡片 hover 第二张图
 function hoverImg(p: any): string {
   return galleryImageUrls(p)[1] || ''
+}
+
+// 本地化博客分类标签：优先词条，回退原始值
+function categoryLabel(value?: string) {
+  if (!value) return ''
+  const key = `blog.categories.${value}`
+  return te(key) ? t(key) : value
+}
+
+// 本地化日期
+function formatDate(value?: string) {
+  if (!value) return ''
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return ''
+  try {
+    return new Intl.DateTimeFormat(locale.value || 'en', { year: 'numeric', month: 'long', day: 'numeric' }).format(d)
+  } catch {
+    return d.toISOString().slice(0, 10)
+  }
+}
+
+// 去除 HTML 标签生成摘要
+function stripHtml(html?: string) {
+  return (html || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
 // 轮播文案词条字典（来自后台「词条管理」i18n_entries，按语言翻页配置）
