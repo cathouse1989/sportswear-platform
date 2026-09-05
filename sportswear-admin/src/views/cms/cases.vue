@@ -241,24 +241,11 @@ interface TranslationForm {
   result: string
 }
 
-const saving = ref(false)
 const projectType = ref('')
 
-// 列表分页/搜索复用 useCrud（服务端分页）；弹窗与翻译/SEO 保存逻辑保留在本视图
-const {
-  items: cases, total, loading, page, pageSize, keyword,
-  loadData, handleSearch,
-} = useCrud({
-  api: caseApi,
-  emptyForm: () => ({}),
-  serverPagination: true,
-  extraParams: () => ({ project_type: projectType.value }),
-})
-
+// 弹窗表单状态（声明在前，供 beforeSave/buildPayload 闭包引用）
 const formRef = ref<FormInstance>()
-const dialogVisible = ref(false)
 const activeTab = ref('basic')
-const editingId = ref('')
 const form = reactive({
   title: '', slug: '', client_industry: '', project_type: '', products: '',
   cover_image: '', client_need: '', problem: '', solution: '', process: '', result: '',
@@ -275,6 +262,48 @@ const rules: FormRules = {
     { pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/, message: '仅允许小写字母、数字和中划线', trigger: 'blur' },
   ],
 }
+function hasText(v?: string) { return Boolean((v || '').trim()) }
+function hasHtmlContent(v?: string) { return Boolean((v || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim()) }
+function translationHasContent(t: TranslationForm) {
+  return hasText(t.title) || hasHtmlContent(t.client_need) || hasHtmlContent(t.problem) || hasHtmlContent(t.solution) || hasHtmlContent(t.process) || hasHtmlContent(t.result)
+}
+
+// 列表分页/搜索 + 保存（校验 + 翻译/SEO payload）复用 useCrud
+const {
+  items: cases, total, loading, page, pageSize, keyword,
+  loadData, handleSearch, saving, handleSave,
+  dialogVisible, editingId,
+} = useCrud({
+  api: caseApi,
+  emptyForm: () => ({}),
+  serverPagination: true,
+  extraParams: () => ({ project_type: projectType.value }),
+  beforeSave: async () => {
+    const valid = await formRef.value?.validate().catch(() => false)
+    if (!valid) return false
+    for (const t of translations.value) {
+      if (!t.language) { ElMessage.warning('翻译语言不能为空'); activeTab.value = 'translations'; return false }
+    }
+    return true
+  },
+  buildPayload: () => {
+    const validTranslations = translations.value.filter((t) => t.language && translationHasContent(t))
+    const seoHasContent = ['title', 'description', 'keywords', 'og_title', 'og_description', 'og_image'].some((f) => hasText((form.seo as any)[f]))
+    return {
+      ...form,
+      translations: validTranslations.map((t) => ({
+        language: t.language,
+        title: t.title || '',
+        client_need: t.client_need || '',
+        problem: t.problem || '',
+        solution: t.solution || '',
+        process: t.process || '',
+        result: t.result || '',
+      })),
+      seo: seoHasContent ? { ...form.seo } : null,
+    }
+  },
+})
 
 function statusTag(status: string) {
   if (status === 'published') return 'success'
@@ -353,39 +382,6 @@ function addTranslation() {
   translations.value.push({ language: lang, title: '', client_need: '', problem: '', solution: '', process: '', result: '' })
 }
 function removeTranslation(i: number) { translations.value.splice(i, 1) }
-function hasText(v?: string) { return Boolean((v || '').trim()) }
-function hasHtmlContent(v?: string) { return Boolean((v || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim()) }
-function translationHasContent(t: TranslationForm) {
-  return hasText(t.title) || hasHtmlContent(t.client_need) || hasHtmlContent(t.problem) || hasHtmlContent(t.solution) || hasHtmlContent(t.process) || hasHtmlContent(t.result)
-}
-async function handleSave() {
-  const valid = await formRef.value?.validate().catch(() => false)
-  if (!valid) return
-  for (const t of translations.value) {
-    if (!t.language) { ElMessage.warning('翻译语言不能为空'); activeTab.value = 'translations'; return }
-  }
-  // 过滤空翻译：所有字段均为空的行不提交（避免生成无效空翻译记录）
-  const validTranslations = translations.value.filter((t) => t.language && translationHasContent(t))
-  saving.value = true
-  try {
-    const seoHasContent = ['title', 'description', 'keywords', 'og_title', 'og_description', 'og_image'].some((f) => hasText((form.seo as any)[f]))
-    const payload = {
-      ...form,
-      translations: validTranslations.map((t) => ({
-        language: t.language,
-        title: t.title || '',
-        client_need: t.client_need || '',
-        problem: t.problem || '',
-        solution: t.solution || '',
-        process: t.process || '',
-        result: t.result || '',
-      })),
-      seo: seoHasContent ? { ...form.seo } : null,
-    }
-    if (editingId.value) { await caseApi.update(editingId.value, payload) } else { await caseApi.create(payload) }
-    ElMessage.success('保存成功'); dialogVisible.value = false; loadData()
-  } catch {} finally { saving.value = false }
-}
 async function handlePublish(row: Case) {
   // 发布质检门：标题/Slug/解决方案缺失时拦截并列出缺失项
   const gate = checkCaseGate({

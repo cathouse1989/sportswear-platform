@@ -26,6 +26,8 @@ export interface UseCrudOptions<T extends Record<string, any>> {
   extraParams?: () => Record<string, any>
   /** 保存前校验钩子：返回 false 则中止保存（如表单校验） */
   beforeSave?: () => Promise<boolean> | boolean
+  /** 构造提交 payload 钩子：默认直接提交 form，可扩展（如追加 translations/seo） */
+  buildPayload?: () => Record<string, any> | Promise<Record<string, any>>
 }
 
 /**
@@ -34,7 +36,7 @@ export interface UseCrudOptions<T extends Record<string, any>> {
  * 供 factories / certifications 等简单列表页复用（对齐《门户网页管理和后台多语言方案》Phase 2.3）。
  */
 export function useCrud<T extends Record<string, any>>(options: UseCrudOptions<T>) {
-  const { api, emptyForm, searchFields, nameKey = 'name', serverPagination = false, extraParams, beforeSave } = options
+  const { api, emptyForm, searchFields, nameKey = 'name', serverPagination = false, extraParams, beforeSave, buildPayload } = options
 
   const keyword = ref('')
   const page = ref(1)
@@ -107,7 +109,8 @@ export function useCrud<T extends Record<string, any>>(options: UseCrudOptions<T
     }
     saving.value = true
     try {
-      if (editingId.value) { await api.update(editingId.value, form) } else { await api.create(form) }
+      const payload = buildPayload ? await buildPayload() : form
+      if (editingId.value) { await api.update(editingId.value, payload) } else { await api.create(payload) }
       ElMessage.success('保存成功')
       dialogVisible.value = false
       loadData()

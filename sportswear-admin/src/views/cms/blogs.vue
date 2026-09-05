@@ -139,24 +139,11 @@ const TRANSLATABLE_LANGS = [
   { label: 'Français', value: 'fr' },
 ]
 
-const saving = ref(false)
 const category = ref('')
 
-// 列表分页/搜索复用 useCrud（服务端分页）；弹窗与翻译/SEO 保存逻辑保留在本视图
-const {
-  items: blogs, total, loading, page, pageSize, keyword,
-  loadData, handleSearch,
-} = useCrud({
-  api: blogApi,
-  emptyForm: () => ({}),
-  serverPagination: true,
-  extraParams: () => ({ category: category.value }),
-})
-
+// 弹窗表单状态（声明在前，供 beforeSave/buildPayload 闭包引用）
 const formRef = ref<FormInstance>()
-const dialogVisible = ref(false)
 const activeTab = ref('basic')
-const editingId = ref('')
 const form = reactive({ title: '', slug: '', category: '', author: '', tags: '', cover_image: '', content: '' })
 const translations = ref<Array<{ language: string; title: string; content: string }>>([])
 const rules: FormRules = {
@@ -170,6 +157,37 @@ const rules: FormRules = {
   ],
   category: [{ required: true, message: '请选择分类', trigger: 'change' }],
 }
+// 富文本正文是否含实质内容（去除标签后非空）
+function hasContent(html?: string) {
+  return (html || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim().length > 0
+}
+
+// 列表分页/搜索 + 保存（校验 + 翻译 payload）复用 useCrud
+const {
+  items: blogs, total, loading, page, pageSize, keyword,
+  loadData, handleSearch, saving, handleSave,
+  dialogVisible, editingId,
+} = useCrud({
+  api: blogApi,
+  emptyForm: () => ({}),
+  serverPagination: true,
+  extraParams: () => ({ category: category.value }),
+  beforeSave: async () => {
+    const valid = await formRef.value?.validate().catch(() => false)
+    if (!valid) return false
+    if (!hasContent(form.content)) { ElMessage.warning('请输入正文'); activeTab.value = 'basic'; return false }
+    for (const t of translations.value) {
+      if (!t.language) { ElMessage.warning('翻译语言不能为空'); activeTab.value = 'translations'; return false }
+    }
+    return true
+  },
+  buildPayload: () => ({
+    ...form,
+    translations: translations.value
+      .filter((t) => t.language && (t.title.trim() || hasContent(t.content)))
+      .map((t) => ({ language: t.language, title: t.title || '', content: t.content || '' })),
+  }),
+})
 
 function statusTag(status: string) {
   if (status === 'published') return 'success'
@@ -202,29 +220,6 @@ function addTranslation() {
   translations.value.push({ language: lang, title: '', content: '' })
 }
 function removeTranslation(i: number) { translations.value.splice(i, 1) }
-// 富文本正文是否含实质内容（去除标签后非空）
-function hasContent(html?: string) {
-  return (html || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim().length > 0
-}
-async function handleSave() {
-  const valid = await formRef.value?.validate().catch(() => false)
-  if (!valid) return
-  if (!hasContent(form.content)) { ElMessage.warning('请输入正文'); activeTab.value = 'basic'; return }
-  for (const t of translations.value) {
-    if (!t.language) { ElMessage.warning('翻译语言不能为空'); activeTab.value = 'translations'; return }
-  }
-  // 过滤空翻译：标题与正文都为空的行不提交（避免生成无效的空翻译记录）
-  const validTranslations = translations.value.filter((t) => t.language && (t.title.trim() || hasContent(t.content)))
-  saving.value = true
-  try {
-    const payload = {
-      ...form,
-      translations: validTranslations.map((t) => ({ language: t.language, title: t.title || '', content: t.content || '' })),
-    }
-    if (editingId.value) { await blogApi.update(editingId.value, payload) } else { await blogApi.create(payload) }
-    ElMessage.success('保存成功'); dialogVisible.value = false; loadData()
-  } catch {} finally { saving.value = false }
-}
 async function handlePublish(row: Blog) {
   // 发布质检门（P0-#2）：标题/Slug/正文缺失时拦截并列出缺失项
   const gate = checkBlogGate(row)
