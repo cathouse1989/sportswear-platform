@@ -145,17 +145,20 @@ func LocalizeCases(cases []models.Case, lang string) {
 	}
 }
 
-// 摘要提取用正则（编译一次，供列表接口复用，避免逐条重复编译）
+// 摘要提取用正则（编译一次，供列表接口复用，避免逐条重复编译）。
+// 注意：Go regexp 基于 RE2，不支持反向引用（\1），故 script/style 分别匹配。
 var (
-	excerptBlockRe = regexp.MustCompile(`(?is)<(script|style)\b[^>]*>.*?</\1>`)
-	excerptTagRe   = regexp.MustCompile(`(?s)<[^>]*>`)
-	excerptSpaceRe = regexp.MustCompile(`\s+`)
+	excerptScriptRe = regexp.MustCompile(`(?is)<script\b[^>]*>.*?</script>`)
+	excerptStyleRe  = regexp.MustCompile(`(?is)<style\b[^>]*>.*?</style>`)
+	excerptTagRe    = regexp.MustCompile(`(?s)<[^>]*>`)
+	excerptSpaceRe  = regexp.MustCompile(`\s+`)
 )
 
 // ExcerptHTML 提取 HTML 纯文本摘要：去除标签/脚本，压缩空白并按字符截断。
 // 用于列表接口瘦身——列表不下发全文 content，仅返回摘要。
 func ExcerptHTML(html string, max int) string {
-	text := excerptBlockRe.ReplaceAllString(html, "")
+	text := excerptScriptRe.ReplaceAllString(html, "")
+	text = excerptStyleRe.ReplaceAllString(text, "")
 	text = excerptTagRe.ReplaceAllString(text, " ")
 	// 解码常见 HTML 实体
 	replacer := strings.NewReplacer("&nbsp;", " ", "&amp;", "&", "&lt;", "<", "&gt;", ">", "&quot;", "\"", "&#39;", "'")
