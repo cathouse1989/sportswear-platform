@@ -86,11 +86,14 @@ const api = useApi()
 const { locale, t, te } = useI18n()
 const route = useRoute()
 // SEO - 案例列表
+const casesSeo = await useRouteSeo('cases')
 useSeoHead({
-  title: 'Case Studies - OEM/ODM Sportswear Manufacturing',
-  description:
+  title: () => casesSeo.value?.title || 'Case Studies - OEM/ODM Sportswear Manufacturing',
+  description: () =>
+    casesSeo.value?.description ||
     'Explore our successful OEM/ODM sportswear projects. See how we help global brands bring their activewear visions to life with quality manufacturing and innovative solutions.',
-  keywords:
+  keywords: () =>
+    casesSeo.value?.keywords ||
     'sportswear case studies, OEM projects, ODM manufacturing cases, activewear brand partnerships, garment factory portfolio',
 })
 

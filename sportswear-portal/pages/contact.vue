@@ -153,11 +153,14 @@ onMounted(async () => {
 })
 
 // SEO - 联系我们
+const contactSeo = await useRouteSeo('contact')
 useSeoHead({
-  title: 'Contact Us - OEM/ODM Sportswear Manufacturer',
-  description:
+  title: () => contactSeo.value?.title || 'Contact Us - OEM/ODM Sportswear Manufacturer',
+  description: () =>
+    contactSeo.value?.description ||
     'Get in touch with our OEM/ODM sportswear manufacturing team. Request a quote, ask about customization options, or discuss your activewear project. We respond within 24 hours.',
-  keywords:
+  keywords: () =>
+    contactSeo.value?.keywords ||
     'contact sportswear manufacturer, OEM inquiry, ODM quote, activewear supplier, China garment factory contact',
 })
 

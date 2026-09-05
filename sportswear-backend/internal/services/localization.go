@@ -1,4 +1,4 @@
-﻿package services
+package services
 
 import (
 	"encoding/json"
@@ -277,4 +277,110 @@ func ExcerptHTML(html string, max int) string {
 		return text
 	}
 	return strings.TrimSpace(string(runes[:max])) + "…"
+}
+
+// LocalizeFactory 按语言解析工厂翻译（目标语言翻译 → 回退英文主表）
+func LocalizeFactory(f *models.Factory, lang string) {
+	if f == nil || lang == "" || lang == "en" {
+		return
+	}
+	for _, t := range f.Translations {
+		if t.Language == lang && t.Status == models.TranslationStatusPublished {
+			if t.Name != "" {
+				f.Name = t.Name
+			}
+			if t.Description != "" {
+				f.Description = t.Description
+			}
+			if t.QualityManagement != "" {
+				f.QualityManagement = t.QualityManagement
+			}
+			if t.ProductionCapability != "" {
+				f.ProductionCapability = t.ProductionCapability
+			}
+			break
+		}
+	}
+}
+
+// LocalizeFactories 批量本地化工厂
+func LocalizeFactories(factories []models.Factory, lang string) {
+	for i := range factories {
+		LocalizeFactory(&factories[i], lang)
+	}
+}
+
+// LocalizeCertification 按语言解析认证翻译
+func LocalizeCertification(c *models.Certification, lang string) {
+	if c == nil || lang == "" || lang == "en" {
+		return
+	}
+	for _, t := range c.Translations {
+		if t.Language == lang && t.Status == models.TranslationStatusPublished {
+			if t.Name != "" {
+				c.Name = t.Name
+			}
+			if t.Description != "" {
+				c.Description = t.Description
+			}
+			break
+		}
+	}
+}
+
+// LocalizeCertifications 批量本地化认证
+func LocalizeCertifications(certs []models.Certification, lang string) {
+	for i := range certs {
+		LocalizeCertification(&certs[i], lang)
+	}
+}
+
+// LocalizeProductionProcess 按语言解析生产流程翻译
+func LocalizeProductionProcess(p *models.ProductionProcess, lang string) {
+	if p == nil || lang == "" || lang == "en" {
+		return
+	}
+	for _, t := range p.Translations {
+		if t.Language == lang && t.Status == models.TranslationStatusPublished {
+			if t.Name != "" {
+				p.Name = t.Name
+			}
+			if t.Description != "" {
+				p.Description = t.Description
+			}
+			break
+		}
+	}
+}
+
+// LocalizeProductionProcesses 批量本地化生产流程
+func LocalizeProductionProcesses(ps []models.ProductionProcess, lang string) {
+	for i := range ps {
+		LocalizeProductionProcess(&ps[i], lang)
+	}
+}
+
+// LocalizeNavigation 按语言解析导航翻译（递归子导航）
+func LocalizeNavigation(n *models.Navigation, lang string) {
+	if n == nil || lang == "" || lang == "en" {
+		return
+	}
+	for _, t := range n.Translations {
+		if t.Language == lang && t.Status == models.TranslationStatusPublished {
+			if t.Name != "" {
+				n.Name = t.Name
+			}
+			break
+		}
+	}
+	for i := range n.Children {
+		LocalizeNavigation(&n.Children[i], lang)
+	}
+}
+
+// LocalizeNavigations 批量本地化导航
+func LocalizeNavigations(navs []models.Navigation, lang string) {
+	for i := range navs {
+		LocalizeNavigation(&navs[i], lang)
+	}
 }

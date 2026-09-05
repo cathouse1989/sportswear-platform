@@ -89,9 +89,14 @@
                 <label>按钮链接</label>
                 <el-input v-model="s.button_url" placeholder="/contact" clearable />
               </div>
-              <div class="text-tip">
-                {{ idx + 1 }} 号图的标题、副标题、按钮文字请到「系统配置 → 词条管理」按语言配置（Key：home.hero_title_{{ idx + 1 }}、
-                home.hero_sub_{{ idx + 1 }}、home.get_quote），门户会根据访问语言自动切换对应翻译。
+              <div class="field">
+                <label>标题 / 副标题（多语言）</label>
+                <el-tabs v-model="textLang" class="text-tabs">
+                  <el-tab-pane v-for="l in textLangs" :key="l.value" :name="l.value" :label="l.label">
+                    <el-input v-model="heroTexts[idx].title[l.value]" placeholder="标题（留空则不在门户显示）" class="text-input" />
+                    <el-input v-model="heroTexts[idx].subtitle[l.value]" placeholder="副标题（留空则不在门户显示）" class="text-input" />
+                  </el-tab-pane>
+                </el-tabs>
               </div>
             </div>
             <div class="slide-ops">
@@ -100,6 +105,17 @@
               <el-button type="danger" plain @click="removeSlide(idx)">删除</el-button>
             </div>
           </article>
+        </div>
+
+        <div class="button-text-editor">
+          <div class="field">
+            <label>按钮文字（所有轮播图共用，多语言）</label>
+            <el-tabs v-model="textLang">
+              <el-tab-pane v-for="l in textLangs" :key="l.value" :name="l.value" :label="l.label">
+                <el-input v-model="buttonTexts[l.value]" placeholder="如 Get a Quote / 获取报价" />
+              </el-tab-pane>
+            </el-tabs>
+          </div>
         </div>
       </template>
     </div>
@@ -133,7 +149,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { pageApi, mediaApi, portalCacheApi } from '@/api'
+import { pageApi, mediaApi, portalCacheApi, i18nApi } from '@/api'
 import type { HeroSlide } from '@/types'
 
 const props = defineProps<{ pageId: string }>()
@@ -144,6 +160,33 @@ watch(() => props.pageId, (v) => { pageId.value = v; loadHero() })
 
 const heroSlides = ref<HeroSlide[]>([])
 const previewIndex = ref(0)
+
+// 轮播文案（标题/副标题/按钮文字）四语言，保存时写入 i18n_entries（home.hero_title_N / home.hero_sub_N / home.get_quote）
+const textLangs = [
+  { value: 'en', label: 'English' },
+  { value: 'zh', label: '中文' },
+  { value: 'es', label: 'Español' },
+  { value: 'fr', label: 'Français' },
+]
+const textLang = ref('en')
+const heroTexts = ref<Array<{ title: Record<string, string>; subtitle: Record<string, string> }>>([])
+const buttonTexts = ref<Record<string, string>>({ en: '', zh: '', es: '', fr: '' })
+
+async function loadHeroTexts() {
+  try {
+    const res = await i18nApi.entries({ page: 1, pageSize: 200, keyword: 'home.hero_', language: '' })
+    const dict: Record<string, Record<string, string>> = {}
+    for (const it of (res as any).items || []) {
+      if (!dict[it.key]) dict[it.key] = {}
+      dict[it.key][it.language] = it.value || ''
+    }
+    heroTexts.value = heroSlides.value.map((_, i) => ({
+      title: { en: '', zh: '', es: '', fr: '', ...(dict[`home.hero_title_${i + 1}`] || {}) },
+      subtitle: { en: '', zh: '', es: '', fr: '', ...(dict[`home.hero_sub_${i + 1}`] || {}) },
+    }))
+    buttonTexts.value = { en: '', zh: '', es: '', fr: '', ...(dict['home.get_quote'] || {}) }
+  } catch { /* 词条加载失败不阻塞轮播图编辑 */ }
+}
 
 // 展示参数固定为默认开启（自动播放/指示点/箭头/悬停暂停等不再暴露开关）
 const DEFAULT_HERO_SETTINGS = {
@@ -201,6 +244,7 @@ async function loadHero() {
     const banner = (page.modules || []).find((m: any) => m.type === 'banner')
     const parsed = banner?.config ? parseBannerConfig(banner.config) : []
     heroSlides.value = parsed.length ? parsed : defaultHeroSlides()
+    await loadHeroTexts()
     previewIndex.value = 0
   } catch {
     heroSlides.value = defaultHeroSlides()
@@ -224,18 +268,31 @@ async function saveHeroSlides() {
   if (!pageId.value) { ElMessage.warning('未找到首页页面'); return }
   const valid = heroSlides.value
     .filter(s => s.image && s.image.trim())
-    // 文本（标题/副标题/按钮文字）统一由词条管理按语言配置，保存时清空存量文本
     .map(s => ({ image: s.image, title: '', subtitle: '', button_text: '', button_url: s.button_url }))
   if (!valid.length) { ElMessage.warning('请至少为一张轮播图填写图片地址'); return }
   saving.value = true
   try {
-    // 展示参数不再逐项配置，保存时写入默认开启值
     await pageApi.updateHeroSlides(pageId.value, valid, { ...DEFAULT_HERO_SETTINGS })
-    ElMessage.success('已保存；标题/副标题/按钮文字请在「词条管理」按语言配置')
+    await saveHeroTexts()
+    ElMessage.success('已保存')
     emit('saved')
     await loadHero()
   } catch { /* handled */ }
   finally { saving.value = false }
+}
+
+async function saveHeroTexts() {
+  const ops: Array<Promise<any>> = []
+  heroTexts.value.forEach((t, i) => {
+    for (const l of textLangs) {
+      if ((t.title[l.value] ?? '').trim()) ops.push(i18nApi.upsert({ key: `home.hero_title_${i + 1}`, language: l.value, value: t.title[l.value].trim(), module: 'home' }))
+      if ((t.subtitle[l.value] ?? '').trim()) ops.push(i18nApi.upsert({ key: `home.hero_sub_${i + 1}`, language: l.value, value: t.subtitle[l.value].trim(), module: 'home' }))
+    }
+  })
+  for (const l of textLangs) {
+    if ((buttonTexts.value[l.value] ?? '').trim()) ops.push(i18nApi.upsert({ key: 'home.get_quote', language: l.value, value: buttonTexts.value[l.value].trim(), module: 'home' }))
+  }
+  if (ops.length) await Promise.all(ops)
 }
 
 // ============ 门户缓存（读缓存 / 读DB配置 / 刷新缓存） ============
@@ -472,5 +529,16 @@ onMounted(() => { loadHero(); loadCacheStatus() })
   .slide-card { grid-template-columns: 1fr; }
   .slide-ops { flex-direction: row; }
   .hero-head { flex-direction: column; }
+}
+.text-tabs :deep(.el-tabs__content) { padding: 6px 0 0; }
+.text-input { margin-bottom: 8px; }
+.text-input:last-child { margin-bottom: 0; }
+.button-text-editor {
+  margin-top: 4px;
+  border: 1px solid #eae5dd;
+  border-radius: 14px;
+  padding: 14px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(13, 27, 42, 0.04);
 }
 </style>

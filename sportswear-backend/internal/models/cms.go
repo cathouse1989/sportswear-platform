@@ -46,16 +46,17 @@ type PageModule struct {
 // Navigation 导航
 type Navigation struct {
 	BaseModel
-	Name      string       `gorm:"type:varchar(100);not null" json:"name"`
-	Type      string       `gorm:"type:varchar(20);default:header" json:"type"` // header, footer
-	URL       string       `gorm:"type:varchar(500)" json:"url"`
-	Target    string       `gorm:"type:varchar(20);default:_self" json:"target"`
-	SortOrder int          `gorm:"default:0" json:"sort_order"`
-	IsVisible bool         `gorm:"default:true" json:"is_visible"`
-	ParentID  *uuid.UUID   `gorm:"type:uuid" json:"parent_id"`
-	PageID    *uuid.UUID   `gorm:"type:uuid;index" json:"page_id,omitempty"` // 关联页面（可空外键，实现 Page↔Nav 关联）
-	Page      *Page        `gorm:"foreignKey:PageID" json:"page,omitempty"`  // 预加载关联页面信息
-	Children  []Navigation `gorm:"foreignKey:ParentID" json:"children,omitempty"`
+	Name         string                  `gorm:"type:varchar(100);not null" json:"name"`
+	Type         string                  `gorm:"type:varchar(20);default:header" json:"type"` // header, footer
+	URL          string                  `gorm:"type:varchar(500)" json:"url"`
+	Target       string                  `gorm:"type:varchar(20);default:_self" json:"target"`
+	SortOrder    int                     `gorm:"default:0" json:"sort_order"`
+	IsVisible    bool                    `gorm:"default:true" json:"is_visible"`
+	ParentID     *uuid.UUID              `gorm:"type:uuid" json:"parent_id"`
+	PageID       *uuid.UUID              `gorm:"type:uuid;index" json:"page_id,omitempty"` // 关联页面（可空外键，实现 Page↔Nav 关联）
+	Page         *Page                   `gorm:"foreignKey:PageID" json:"page,omitempty"`  // 预加载关联页面信息
+	Children     []Navigation            `gorm:"foreignKey:ParentID" json:"children,omitempty"`
+	Translations []NavigationTranslation `json:"translations,omitempty"`
 }
 
 // Blog 博客
@@ -144,47 +145,50 @@ type FAQTranslation struct {
 // Factory 工厂
 type Factory struct {
 	BaseModel
-	Name                 string        `gorm:"type:varchar(200);not null" json:"name"`
-	Status               ProductStatus `gorm:"type:varchar(20);default:draft;index" json:"status"` // 前端展示状态标识
-	Location             string        `gorm:"type:varchar(200)" json:"location"`
-	Area                 string        `gorm:"type:varchar(100)" json:"area"`
-	Employees            int           `gorm:"default:0" json:"employees"`
-	ProductionLines      int           `gorm:"default:0" json:"production_lines"`
-	Equipment            string        `gorm:"type:text" json:"equipment"`
-	MonthlyCapacity      string        `gorm:"type:varchar(100)" json:"monthly_capacity"`
-	AnnualCapacity       string        `gorm:"type:varchar(100)" json:"annual_capacity"`
-	Warehouse            string        `gorm:"type:varchar(200)" json:"warehouse"`
-	QualityManagement    string        `gorm:"type:text" json:"quality_management"`
-	ProductionCapability string        `gorm:"type:text" json:"production_capability"`
-	Description          string        `gorm:"type:text" json:"description"`
-	Image                string        `gorm:"type:varchar(500)" json:"image"`
-	IsActive             bool          `gorm:"default:true" json:"is_active"`
+	Name                 string               `gorm:"type:varchar(200);not null" json:"name"`
+	Status               ProductStatus        `gorm:"type:varchar(20);default:draft;index" json:"status"` // 前端展示状态标识
+	Location             string               `gorm:"type:varchar(200)" json:"location"`
+	Area                 string               `gorm:"type:varchar(100)" json:"area"`
+	Employees            int                  `gorm:"default:0" json:"employees"`
+	ProductionLines      int                  `gorm:"default:0" json:"production_lines"`
+	Equipment            string               `gorm:"type:text" json:"equipment"`
+	MonthlyCapacity      string               `gorm:"type:varchar(100)" json:"monthly_capacity"`
+	AnnualCapacity       string               `gorm:"type:varchar(100)" json:"annual_capacity"`
+	Warehouse            string               `gorm:"type:varchar(200)" json:"warehouse"`
+	QualityManagement    string               `gorm:"type:text" json:"quality_management"`
+	ProductionCapability string               `gorm:"type:text" json:"production_capability"`
+	Description          string               `gorm:"type:text" json:"description"`
+	Image                string               `gorm:"type:varchar(500)" json:"image"`
+	IsActive             bool                 `gorm:"default:true" json:"is_active"`
+	Translations         []FactoryTranslation `json:"translations,omitempty"`
 }
 
 // Certification 认证
 type Certification struct {
 	BaseModel
-	Name        string        `gorm:"type:varchar(200);not null" json:"name"`
-	Status      ProductStatus `gorm:"type:varchar(20);default:draft;index" json:"status"` // 前端展示状态标识
-	Code        string        `gorm:"type:varchar(100)" json:"code"`
-	IssueDate   string        `gorm:"type:varchar(50)" json:"issue_date"`
-	ExpiryDate  string        `gorm:"type:varchar(50)" json:"expiry_date"`
-	Image       string        `gorm:"type:varchar(500)" json:"image"`
-	PDF         string        `gorm:"type:varchar(500)" json:"pdf"`
-	Description string        `gorm:"type:text" json:"description"`
-	IsActive    bool          `gorm:"default:true" json:"is_active"`
+	Name         string                     `gorm:"type:varchar(200);not null" json:"name"`
+	Status       ProductStatus              `gorm:"type:varchar(20);default:draft;index" json:"status"` // 前端展示状态标识
+	Code         string                     `gorm:"type:varchar(100)" json:"code"`
+	IssueDate    string                     `gorm:"type:varchar(50)" json:"issue_date"`
+	ExpiryDate   string                     `gorm:"type:varchar(50)" json:"expiry_date"`
+	Image        string                     `gorm:"type:varchar(500)" json:"image"`
+	PDF          string                     `gorm:"type:varchar(500)" json:"pdf"`
+	Description  string                     `gorm:"type:text" json:"description"`
+	IsActive     bool                       `gorm:"default:true" json:"is_active"`
+	Translations []CertificationTranslation `json:"translations,omitempty"`
 }
 
 // ProductionProcess 生产流程
 type ProductionProcess struct {
 	BaseModel
-	Name        string        `gorm:"type:varchar(200);not null" json:"name"`
-	Status      ProductStatus `gorm:"type:varchar(20);default:draft;index" json:"status"` // 前端展示状态标识
-	Description string        `gorm:"type:text" json:"description"`
-	Image       string        `gorm:"type:varchar(500)" json:"image"`
-	Video       string        `gorm:"type:varchar(500)" json:"video"`
-	SortOrder   int           `gorm:"default:0" json:"sort_order"`
-	IsActive    bool          `gorm:"default:true" json:"is_active"`
+	Name         string                         `gorm:"type:varchar(200);not null" json:"name"`
+	Status       ProductStatus                  `gorm:"type:varchar(20);default:draft;index" json:"status"` // 前端展示状态标识
+	Description  string                         `gorm:"type:text" json:"description"`
+	Image        string                         `gorm:"type:varchar(500)" json:"image"`
+	Video        string                         `gorm:"type:varchar(500)" json:"video"`
+	SortOrder    int                            `gorm:"default:0" json:"sort_order"`
+	IsActive     bool                           `gorm:"default:true" json:"is_active"`
+	Translations []ProductionProcessTranslation `json:"translations,omitempty"`
 }
 
 // SelfMedia 自媒体账号（门户「自媒体」区块展示）
@@ -226,4 +230,45 @@ func (m *SelfMedia) EffectiveURL() string {
 		return u
 	}
 	return PlatformBaseURLs[m.Platform]
+}
+
+// FactoryTranslation 工厂翻译
+type FactoryTranslation struct {
+	BaseModel
+	FactoryID            uuid.UUID         `gorm:"type:uuid;index;not null" json:"factory_id"`
+	Language             string            `gorm:"type:varchar(10);index;not null" json:"language"`
+	Name                 string            `gorm:"type:varchar(200)" json:"name"`
+	Description          string            `gorm:"type:text" json:"description"`
+	QualityManagement    string            `gorm:"type:text" json:"quality_management"`
+	ProductionCapability string            `gorm:"type:text" json:"production_capability"`
+	Status               TranslationStatus `gorm:"type:varchar(20);default:untranslated" json:"status"`
+}
+
+// CertificationTranslation 认证翻译
+type CertificationTranslation struct {
+	BaseModel
+	CertificationID uuid.UUID         `gorm:"type:uuid;index;not null" json:"certification_id"`
+	Language        string            `gorm:"type:varchar(10);index;not null" json:"language"`
+	Name            string            `gorm:"type:varchar(200)" json:"name"`
+	Description     string            `gorm:"type:text" json:"description"`
+	Status          TranslationStatus `gorm:"type:varchar(20);default:untranslated" json:"status"`
+}
+
+// ProductionProcessTranslation 生产流程翻译
+type ProductionProcessTranslation struct {
+	BaseModel
+	ProcessID   uuid.UUID         `gorm:"type:uuid;index;not null" json:"process_id"`
+	Language    string            `gorm:"type:varchar(10);index;not null" json:"language"`
+	Name        string            `gorm:"type:varchar(200)" json:"name"`
+	Description string            `gorm:"type:text" json:"description"`
+	Status      TranslationStatus `gorm:"type:varchar(20);default:untranslated" json:"status"`
+}
+
+// NavigationTranslation 导航翻译
+type NavigationTranslation struct {
+	BaseModel
+	NavigationID uuid.UUID         `gorm:"type:uuid;index;not null" json:"navigation_id"`
+	Language     string            `gorm:"type:varchar(10);index;not null" json:"language"`
+	Name         string            `gorm:"type:varchar(200)" json:"name"`
+	Status       TranslationStatus `gorm:"type:varchar(20);default:untranslated" json:"status"`
 }

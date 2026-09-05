@@ -1,4 +1,4 @@
-﻿package handlers
+package handlers
 
 import (
 	"strconv"
@@ -184,4 +184,57 @@ func (h *LocalizationHandler) ConvertWeight(c *gin.Context) {
 		"to":     to,
 		"result": result,
 	})
+}
+
+// ==================== 路由 SEO（列表页/落地页） ====================
+
+// GetRouteSEO 获取指定路由的 SEO（公开接口，门户列表页/落地页使用）
+// GET /api/v1/public/seo?route=products&lang=en
+func (h *LocalizationHandler) GetRouteSEO(c *gin.Context) {
+	route := c.Query("route")
+	if route == "" {
+		utils.BadRequest(c, "缺少 route 参数")
+		return
+	}
+	lang := middleware.GetLang(c)
+	seo, err := h.seoService.GetRouteSEO(route, lang)
+	if err != nil {
+		utils.Success(c, gin.H{"route": route, "language": lang, "seo": nil})
+		return
+	}
+	utils.Success(c, gin.H{"route": route, "language": lang, "seo": seo})
+}
+
+// UpsertRoutesSEO 批量保存路由 SEO（后台「SEO 管理」页，按路由 × 语言矩阵）
+func (h *LocalizationHandler) UpsertRoutesSEO(c *gin.Context) {
+	var req struct {
+		Route   string                      `json:"route" binding:"required"`
+		Entries []services.RouteSEOEntryReq `json:"entries" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, "参数错误: "+err.Error())
+		return
+	}
+	for _, e := range req.Entries {
+		if _, err := h.seoService.UpsertRouteSEO(req.Route, &e); err != nil {
+			utils.BadRequest(c, err.Error())
+			return
+		}
+	}
+	utils.Success(c, gin.H{"route": req.Route, "saved": len(req.Entries)})
+}
+
+// ListRouteSEO 获取指定路由的全部语言 SEO（后台 SEO 管理页）
+func (h *LocalizationHandler) ListRouteSEO(c *gin.Context) {
+	route := c.Query("route")
+	if route == "" {
+		utils.BadRequest(c, "缺少 route 参数")
+		return
+	}
+	seos, err := h.seoService.ListRouteSEO(route)
+	if err != nil {
+		utils.InternalError(c, "获取路由 SEO 失败")
+		return
+	}
+	utils.Success(c, gin.H{"route": route, "items": seos})
 }

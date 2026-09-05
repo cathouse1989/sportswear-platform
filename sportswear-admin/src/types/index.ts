@@ -133,6 +133,7 @@ export interface ProductSpec {
   name: string
   value: string
   sort_order: number
+  translations?: string
 }
 
 export interface ProductCustomization {
@@ -389,6 +390,7 @@ export interface Navigation {
   page_id?: string
   page?: Page
   page_status?: string  // 关联页面的状态（用于显示页面发布状态）
+  translations?: any[]
   children?: Navigation[]
 }
 

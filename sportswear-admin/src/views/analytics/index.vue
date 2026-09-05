@@ -179,6 +179,7 @@ import * as echarts from 'echarts/core'
 import { BarChart, LineChart, PieChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
+import { formatDateTime } from '@/utils/format'
 
 echarts.use([BarChart, LineChart, PieChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
 
@@ -207,6 +208,7 @@ const cards = ref([
 const trendRef = ref(); const sourceRef = ref(); const pagesRef = ref(); const productsRef = ref(); const countryRef = ref(); const deviceRef = ref()
 const charts: echarts.ECharts[] = []
 const fmt = (v: any, def: number = 0): number => (v ? Number(v) : def)
+const formatTime = (iso?: string | null) => formatDateTime(iso)
 const initChart = (el: any, option: any): echarts.ECharts => { const ch = echarts.init(el); ch.setOption(option); charts.push(ch); return ch }
 const getChart = (el: any): echarts.ECharts | null => (el ? (echarts.getInstanceByDom(el) as echarts.ECharts) : null)
 

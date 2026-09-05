@@ -245,3 +245,18 @@ export function buildBreadcrumbSchema(
     })),
   }
 }
+
+/**
+ * 获取路由（列表页/落地页）SEO 配置，供页面 useSeoHead 使用。
+ * 后台「SEO 管理」按 route × 四语言维护（seo 表 entity_type=route），
+ * 未配置时返回 null，由页面默认值兜底。
+ */
+export async function useRouteSeo(route: string) {
+  const { locale } = useI18n()
+  const api = useApi()
+  const { data } = await useAsyncData<{ seo: any } | null>(
+    `route-seo-${route}-${locale.value}`,
+    () => api.getRouteSeo(route).catch(() => null),
+  )
+  return computed(() => data.value?.seo || null)
+}

@@ -172,6 +172,7 @@ export const useApi = () => {
     getNavigations: (type: string = 'header') => unwrap<any>('/public/navigations', { params: withPreview({ type }) }),
     getTheme: () => unwrap<any>('/public/theme', { params: withPreview() }),
     getI18n: () => unwrap<any>('/public/i18n', { params: withPreview({ lang: getLang() }) }),
+    getRouteSeo: (route: string) => unwrap<any>('/public/seo', { params: withPreview({ route, lang: getLang() }) }),
     getCurrencies: () => unwrap<any>('/public/currencies', { params: withPreview() }),
     getLanguages: () => unwrap<any>('/public/languages', { params: withPreview() }),
     getGeo: (country?: string) => unwrap<any>('/public/geo', { params: withPreview({ country }) }),

@@ -159,6 +159,8 @@ export const MENU_CONFIG: MenuItem[] = [
     children: [
       { key: 'theme', label: '主题配置', index: '/theme', sort_order: 10, permission: 'setting:manage' },
       { key: 'i18n', label: '词条管理', index: '/i18n', sort_order: 20, permission: 'language:manage' },
+      { key: 'seo', label: 'SEO 管理', index: '/seo', sort_order: 25, permission: 'seo:manage' },
+      { key: 'translation-coverage', label: '翻译完成度', index: '/translation-coverage', sort_order: 26, permission: ['language:manage', 'page:view'] },
       { key: 'storage-sources', label: '存储源配置', index: '/storage-sources', sort_order: 30, permission: 'setting:manage' },
       { key: 'portal-cache', label: '门户缓存', index: '/portal-cache', sort_order: 40, permission: 'setting:manage' },
       { key: 'trash', label: '回收站', index: '/trash', sort_order: 50, permission: 'setting:manage' },

@@ -120,11 +120,14 @@
 <script setup lang="ts">
 const localePath = useLocalePath()
 // SEO - 产品列表页
+const productsSeo = await useRouteSeo('products')
 useSeoHead({
-  title: 'Custom Sportswear Products - OEM/ODM Activewear Collection',
-  description:
+  title: () => productsSeo.value?.title || 'Custom Sportswear Products - OEM/ODM Activewear Collection',
+  description: () =>
+    productsSeo.value?.description ||
     'Browse our extensive catalog of custom sportswear products. OEM/ODM activewear, yoga wear, running gear, sports bras, leggings, and team uniforms for global brands.',
-  keywords:
+  keywords: () =>
+    productsSeo.value?.keywords ||
     'custom sportswear, OEM activewear, ODM products, sports bra manufacturer, custom leggings, yoga wear wholesale, athletic apparel catalog',
 })
 

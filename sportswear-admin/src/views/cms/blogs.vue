@@ -75,29 +75,13 @@
           </el-form>
         </el-tab-pane>
         <el-tab-pane label="多语言翻译" name="translations">
-          <el-alert
-            type="info"
-            show-icon
-            :closable="false"
-            class="trans-tip"
-            title="默认语言（English）内容请在「基础信息」编辑；此处仅为其他语种配置翻译，未配置的语言将自动回退默认语言。"
+          <TransEditor
+            v-model="translations"
+            :fields="TRANS_FIELDS"
+            :source="{ title: form.title, content: form.content }"
+            :langs="TRANSLATABLE_LANGS"
+            source-label="English"
           />
-          <div class="trans-toolbar">
-            <el-button size="small" type="primary" @click="addTranslation">添加翻译</el-button>
-            <span class="trans-tip">切换门户语言后按对应语种展示，未翻译则回退默认语言（YouTube 式）</span>
-          </div>
-          <div v-for="(t, i) in translations" :key="i" class="translation-item">
-            <div class="translation-head">
-              <el-select v-model="t.language" size="small" style="width: 160px" placeholder="语言">
-                <el-option v-for="l in TRANSLATABLE_LANGS" :key="l.value" :label="l.label" :value="l.value" />
-              </el-select>
-              <div class="spacer" />
-              <el-button size="small" type="danger" @click="removeTranslation(i)">删除</el-button>
-            </div>
-            <el-input v-model="t.title" size="small" placeholder="翻译标题（留空则沿用默认语言标题）" class="trans-title" />
-            <RichTextEditor v-model="t.content" placeholder="翻译正文（留空则沿用默认语言正文）" min-height="120px" class="trans-content" />
-          </div>
-          <el-empty v-if="!translations.length" description="暂无翻译，点击「添加翻译」配置多语言内容" :image-size="60" />
         </el-tab-pane>
       </el-tabs>
       <template #footer>
@@ -116,6 +100,7 @@ import { blogApi } from '@/api'
 import { useCrud } from '@/composables/useCrud'
 import MediaPicker from '@/components/media/MediaPicker.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
+import TransEditor from '@/components/cms/TransEditor.vue'
 import type { Blog } from '@/types'
 import { checkBlogGate, gateAlertMessage } from '@/utils/publish-gate'
 
@@ -145,7 +130,24 @@ const category = ref('')
 const formRef = ref<FormInstance>()
 const activeTab = ref('basic')
 const form = reactive({ title: '', slug: '', category: '', author: '', tags: '', cover_image: '', content: '' })
-const translations = ref<Array<{ language: string; title: string; content: string }>>([])
+const translations = ref<Record<string, Record<string, string>>>({})
+const TRANS_FIELDS = [
+  { key: 'title', label: '标题' },
+  { key: 'content', label: '正文', type: 'richtext' as const, minHeight: '120px' },
+]
+function emptyTranslations(): Record<string, Record<string, string>> {
+  return { zh: { title: '', content: '' }, es: { title: '', content: '' }, fr: { title: '', content: '' } }
+}
+function translationsToRecord(list: Array<{ language: string; title?: string; content?: string }>) {
+  const next = emptyTranslations()
+  for (const t of list || []) {
+    const lang = t.language
+    if (lang && lang !== 'en' && next[lang]) {
+      next[lang] = { title: t.title || '', content: t.content || '' }
+    }
+  }
+  return next
+}
 const rules: FormRules = {
   title: [
     { required: true, message: '请输入标题', trigger: 'blur' },
@@ -176,16 +178,13 @@ const {
     const valid = await formRef.value?.validate().catch(() => false)
     if (!valid) return false
     if (!hasContent(form.content)) { ElMessage.warning('请输入正文'); activeTab.value = 'basic'; return false }
-    for (const t of translations.value) {
-      if (!t.language) { ElMessage.warning('翻译语言不能为空'); activeTab.value = 'translations'; return false }
-    }
     return true
   },
   buildPayload: () => ({
     ...form,
-    translations: translations.value
-      .filter((t) => t.language && (t.title.trim() || hasContent(t.content)))
-      .map((t) => ({ language: t.language, title: t.title || '', content: t.content || '' })),
+    translations: Object.entries(translations.value)
+      .filter(([, t]) => (t.title || '').trim() || hasContent(t.content))
+      .map(([language, t]) => ({ language, title: t.title || '', content: t.content || '' })),
   }),
 })
 
@@ -199,27 +198,22 @@ function statusLabel(status: string) {
   return map[status] || status
 }
 function resetForm() { Object.assign(form, { title: '', slug: '', category: '', author: '', tags: '', cover_image: '', content: '' }) }
-function openCreateDialog() { editingId.value = ''; activeTab.value = 'basic'; resetForm(); translations.value = []; dialogVisible.value = true }
+function openCreateDialog() { editingId.value = ''; activeTab.value = 'basic'; resetForm(); translations.value = emptyTranslations(); dialogVisible.value = true }
 async function openEditDialog(row: Blog) {
   editingId.value = row.id
   activeTab.value = 'basic'
   Object.assign(form, { title: row.title, slug: row.slug, category: row.category, author: row.author || '', tags: row.tags || '', cover_image: row.cover_image || '', content: row.content || '' })
   // 优先用列表已预加载的翻译；为空时回拉详情确保完整回填
-  translations.value = (row.translations || []).map((t: any) => ({ language: t.language, title: t.title || '', content: t.content || '' }))
-  if (!translations.value.length) {
+  translations.value = translationsToRecord(row.translations || [])
+  if (!(row.translations || []).length) {
     try {
       const detail = await blogApi.get(row.id)
-      translations.value = (detail.translations || []).map((t: any) => ({ language: t.language, title: t.title || '', content: t.content || '' }))
+      translations.value = translationsToRecord(detail.translations || [])
     } catch { /* 忽略：翻译为空也不影响主表编辑 */ }
   }
   dialogVisible.value = true
 }
-function addTranslation() {
-  const used = new Set(translations.value.map((t) => t.language))
-  const lang = TRANSLATABLE_LANGS.find((l) => !used.has(l.value))?.value || ''
-  translations.value.push({ language: lang, title: '', content: '' })
-}
-function removeTranslation(i: number) { translations.value.splice(i, 1) }
+
 async function handlePublish(row: Blog) {
   // 发布质检门（P0-#2）：标题/Slug/正文缺失时拦截并列出缺失项
   const gate = checkBlogGate(row)

@@ -97,11 +97,14 @@ const { localizedEnum } = useLocalized()
 const api = useApi()
 
 // SEO - 首页
+const homeSeo = await useRouteSeo('home')
 useSeoHead({
   title: '', // 首页不需要额外 title，composable 会自动用 SITE_NAME
-  description:
+  description: () =>
+    homeSeo.value?.description ||
     'Leading OEM/ODM sportswear manufacturer specializing in custom activewear, athletic apparel, and team uniforms. 15+ years of experience serving global brands with ISO-certified quality.',
-  keywords:
+  keywords: () =>
+    homeSeo.value?.keywords ||
     'sportswear manufacturer, OEM sportswear, ODM activewear, custom athletic apparel, China sportswear factory, private label activewear',
   ogImage: '/images/og-home.jpg',
 })

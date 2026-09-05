@@ -508,7 +508,7 @@ func (s *CMSService) ListNavigations(navType string) ([]models.Navigation, error
 	if navType != "" {
 		query = query.Where("type = ?", navType)
 	}
-	err := query.Preload("Children").Preload("Page").Order("sort_order ASC").Find(&navigations).Error
+	err := query.Preload("Children").Preload("Page").Preload("Translations").Preload("Children.Translations").Order("sort_order ASC").Find(&navigations).Error
 	return navigations, err
 }
 
@@ -532,14 +532,15 @@ func (s *CMSService) CreateNavigation(req *NavigationRequest) (*models.Navigatio
 
 // NavigationRequest 导航请求
 type NavigationRequest struct {
-	Name      string  `json:"name" binding:"required"`
-	Type      string  `json:"type"`
-	URL       string  `json:"url"`
-	Target    string  `json:"target"`
-	SortOrder int     `json:"sort_order"`
-	IsVisible bool    `json:"is_visible"`
-	ParentID  *string `json:"parent_id"`
-	PageID    *string `json:"page_id"` // 关联页面 ID
+	Name         string             `json:"name" binding:"required"`
+	Type         string             `json:"type"`
+	URL          string             `json:"url"`
+	Target       string             `json:"target"`
+	SortOrder    int                `json:"sort_order"`
+	IsVisible    bool               `json:"is_visible"`
+	ParentID     *string            `json:"parent_id"`
+	PageID       *string            `json:"page_id"` // 关联页面 ID
+	Translations []TranslationInput `json:"translations"`
 }
 
 // UpdateNavigation 更新导航
@@ -563,6 +564,11 @@ func (s *CMSService) UpdateNavigation(id string, req *NavigationRequest) (*model
 	// page_id always present: frontend sends string or null; null clears the association
 	updates["page_id"] = utils.StringPtrToUUIDPtr(req.PageID)
 	if err := s.db.Model(&nav).Updates(updates).Error; err != nil {
+		return nil, err
+	}
+	if err := s.db.Transaction(func(tx *gorm.DB) error {
+		return s.saveNavigationTranslations(tx, nav.ID, req.Translations)
+	}); err != nil {
 		return nil, err
 	}
 	return &nav, nil
@@ -1323,7 +1329,7 @@ func (s *CMSService) ListFactories(page, pageSize int, keyword string) ([]models
 
 	query.Count(&total)
 	err := query.Order("name ASC").
-		Offset((page - 1) * pageSize).Limit(pageSize).Find(&factories).Error
+		Offset((page - 1) * pageSize).Limit(pageSize).Preload("Translations").Find(&factories).Error
 
 	return factories, total, err
 }
@@ -1332,7 +1338,7 @@ func (s *CMSService) ListFactories(page, pageSize int, keyword string) ([]models
 func (s *CMSService) ListPublishedFactories() ([]models.Factory, error) {
 	var factories []models.Factory
 	err := s.db.Where("status = ?", models.ProductStatusPublished).
-		Order("name ASC").Find(&factories).Error
+		Order("name ASC").Preload("Translations").Find(&factories).Error
 	return factories, err
 }
 
@@ -1390,6 +1396,7 @@ type FactoryRequest struct {
 	Image                string               `json:"image"`
 	Status               models.ProductStatus `json:"status"`
 	IsActive             bool                 `json:"is_active"`
+	Translations         []TranslationInput   `json:"translations"`
 }
 
 // UpdateFactory 更新工厂
@@ -1418,6 +1425,11 @@ func (s *CMSService) UpdateFactory(id string, req *FactoryRequest) (*models.Fact
 	if err := s.db.Model(&factory).Updates(updates).Error; err != nil {
 		return nil, err
 	}
+	if err := s.db.Transaction(func(tx *gorm.DB) error {
+		return s.saveFactoryTranslations(tx, factory.ID, req.Translations)
+	}); err != nil {
+		return nil, err
+	}
 	return &factory, nil
 }
 
@@ -1440,7 +1452,7 @@ func (s *CMSService) ListCertifications(page, pageSize int, keyword string) ([]m
 
 	query.Count(&total)
 	err := query.Order("name ASC").
-		Offset((page - 1) * pageSize).Limit(pageSize).Find(&certifications).Error
+		Offset((page - 1) * pageSize).Limit(pageSize).Preload("Translations").Find(&certifications).Error
 
 	return certifications, total, err
 }
@@ -1449,7 +1461,7 @@ func (s *CMSService) ListCertifications(page, pageSize int, keyword string) ([]m
 func (s *CMSService) ListPublishedCertifications() ([]models.Certification, error) {
 	var certifications []models.Certification
 	err := s.db.Where("status = ?", models.ProductStatusPublished).
-		Order("name ASC").Find(&certifications).Error
+		Order("name ASC").Preload("Translations").Find(&certifications).Error
 	return certifications, err
 }
 
@@ -1486,15 +1498,16 @@ func (s *CMSService) CreateCertification(req *CertificationRequest) (*models.Cer
 
 // CertificationRequest 认证请求
 type CertificationRequest struct {
-	Name        string               `json:"name" binding:"required"`
-	Code        string               `json:"code"`
-	IssueDate   string               `json:"issue_date"`
-	ExpiryDate  string               `json:"expiry_date"`
-	Image       string               `json:"image"`
-	PDF         string               `json:"pdf"`
-	Description string               `json:"description"`
-	Status      models.ProductStatus `json:"status"`
-	IsActive    bool                 `json:"is_active"`
+	Name         string               `json:"name" binding:"required"`
+	Code         string               `json:"code"`
+	IssueDate    string               `json:"issue_date"`
+	ExpiryDate   string               `json:"expiry_date"`
+	Image        string               `json:"image"`
+	PDF          string               `json:"pdf"`
+	Description  string               `json:"description"`
+	Status       models.ProductStatus `json:"status"`
+	IsActive     bool                 `json:"is_active"`
+	Translations []TranslationInput   `json:"translations"`
 }
 
 // UpdateCertification 更新认证
@@ -1515,6 +1528,11 @@ func (s *CMSService) UpdateCertification(id string, req *CertificationRequest) (
 		"is_active":   req.IsActive,
 	}
 	if err := s.db.Model(&cert).Updates(updates).Error; err != nil {
+		return nil, err
+	}
+	if err := s.db.Transaction(func(tx *gorm.DB) error {
+		return s.saveCertificationTranslations(tx, cert.ID, req.Translations)
+	}); err != nil {
 		return nil, err
 	}
 	return &cert, nil
@@ -1539,7 +1557,7 @@ func (s *CMSService) ListProductionProcesses(page, pageSize int, keyword string)
 
 	query.Count(&total)
 	err := query.Order("sort_order ASC").
-		Offset((page - 1) * pageSize).Limit(pageSize).Find(&processes).Error
+		Offset((page - 1) * pageSize).Limit(pageSize).Preload("Translations").Find(&processes).Error
 
 	return processes, total, err
 }
@@ -1548,7 +1566,7 @@ func (s *CMSService) ListProductionProcesses(page, pageSize int, keyword string)
 func (s *CMSService) ListPublishedProductionProcesses() ([]models.ProductionProcess, error) {
 	var processes []models.ProductionProcess
 	err := s.db.Where("status = ?", models.ProductStatusPublished).
-		Order("sort_order ASC").Find(&processes).Error
+		Order("sort_order ASC").Preload("Translations").Find(&processes).Error
 	return processes, err
 }
 
@@ -1583,13 +1601,14 @@ func (s *CMSService) CreateProductionProcess(req *ProductionProcessRequest) (*mo
 
 // ProductionProcessRequest 生产流程请求
 type ProductionProcessRequest struct {
-	Name        string               `json:"name" binding:"required"`
-	Description string               `json:"description"`
-	Image       string               `json:"image"`
-	Video       string               `json:"video"`
-	SortOrder   int                  `json:"sort_order"`
-	Status      models.ProductStatus `json:"status"`
-	IsActive    bool                 `json:"is_active"`
+	Name         string               `json:"name" binding:"required"`
+	Description  string               `json:"description"`
+	Image        string               `json:"image"`
+	Video        string               `json:"video"`
+	SortOrder    int                  `json:"sort_order"`
+	Status       models.ProductStatus `json:"status"`
+	IsActive     bool                 `json:"is_active"`
+	Translations []TranslationInput   `json:"translations"`
 }
 
 // UpdateProductionProcess 更新生产流程
@@ -1608,6 +1627,11 @@ func (s *CMSService) UpdateProductionProcess(id string, req *ProductionProcessRe
 		"is_active":   req.IsActive,
 	}
 	if err := s.db.Model(&p).Updates(updates).Error; err != nil {
+		return nil, err
+	}
+	if err := s.db.Transaction(func(tx *gorm.DB) error {
+		return s.saveProcessTranslations(tx, p.ID, req.Translations)
+	}); err != nil {
 		return nil, err
 	}
 	return &p, nil
@@ -1762,4 +1786,85 @@ func (s *CMSService) UpdateSelfMedia(id string, req *SelfMediaRequest) (*models.
 // DeleteSelfMedia 删除自媒体
 func (s *CMSService) DeleteSelfMedia(id string) error {
 	return s.db.Delete(&models.SelfMedia{}, "id = ?", id).Error
+}
+
+// TranslationInput 翻译输入（通用：各实体按需使用字段）
+type TranslationInput struct {
+	Language             string `json:"language"`
+	Name                 string `json:"name"`
+	Description          string `json:"description"`
+	QualityManagement    string `json:"quality_management"`
+	ProductionCapability string `json:"production_capability"`
+}
+
+func (s *CMSService) saveFactoryTranslations(tx *gorm.DB, id uuid.UUID, items []TranslationInput) error {
+	if err := tx.Where("factory_id = ?", id).Delete(&models.FactoryTranslation{}).Error; err != nil {
+		return err
+	}
+	for _, it := range items {
+		if it.Language == "" || it.Language == "en" {
+			continue
+		}
+		if it.Name == "" && it.Description == "" && it.QualityManagement == "" && it.ProductionCapability == "" {
+			continue
+		}
+		if err := tx.Create(&models.FactoryTranslation{FactoryID: id, Language: it.Language, Name: it.Name, Description: it.Description, QualityManagement: it.QualityManagement, ProductionCapability: it.ProductionCapability, Status: models.TranslationStatusPublished}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *CMSService) saveCertificationTranslations(tx *gorm.DB, id uuid.UUID, items []TranslationInput) error {
+	if err := tx.Where("certification_id = ?", id).Delete(&models.CertificationTranslation{}).Error; err != nil {
+		return err
+	}
+	for _, it := range items {
+		if it.Language == "" || it.Language == "en" {
+			continue
+		}
+		if it.Name == "" && it.Description == "" {
+			continue
+		}
+		if err := tx.Create(&models.CertificationTranslation{CertificationID: id, Language: it.Language, Name: it.Name, Description: it.Description, Status: models.TranslationStatusPublished}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *CMSService) saveProcessTranslations(tx *gorm.DB, id uuid.UUID, items []TranslationInput) error {
+	if err := tx.Where("process_id = ?", id).Delete(&models.ProductionProcessTranslation{}).Error; err != nil {
+		return err
+	}
+	for _, it := range items {
+		if it.Language == "" || it.Language == "en" {
+			continue
+		}
+		if it.Name == "" && it.Description == "" {
+			continue
+		}
+		if err := tx.Create(&models.ProductionProcessTranslation{ProcessID: id, Language: it.Language, Name: it.Name, Description: it.Description, Status: models.TranslationStatusPublished}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *CMSService) saveNavigationTranslations(tx *gorm.DB, id uuid.UUID, items []TranslationInput) error {
+	if err := tx.Where("navigation_id = ?", id).Delete(&models.NavigationTranslation{}).Error; err != nil {
+		return err
+	}
+	for _, it := range items {
+		if it.Language == "" || it.Language == "en" {
+			continue
+		}
+		if it.Name == "" {
+			continue
+		}
+		if err := tx.Create(&models.NavigationTranslation{NavigationID: id, Language: it.Language, Name: it.Name, Status: models.TranslationStatusPublished}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }

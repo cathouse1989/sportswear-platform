@@ -124,6 +124,7 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 		public.GET("/currencies/convert", localizationHandler.ConvertCurrency) // 货币转换
 		public.GET("/locale", localizationHandler.GetLocaleInfo)               // 本地化信息（语言+货币+时区）
 		public.GET("/geo", localizationHandler.GetGeolocation)                 // 地理定位（IP→国家→语言/货币/时区）
+		public.GET("/seo", localizationHandler.GetRouteSEO)                    // 路由 SEO（门户列表页/落地页）
 		public.GET("/languages", localizationHandler.GetLanguages)             // 启用语言列表
 		public.GET("/media/:id", mediaHandler.GetMedia)                        // 媒体公开访问（通过 ID 获取媒体信息）
 		public.GET("/units/sizes", localizationHandler.GetSizeChart)           // 尺寸对照表
@@ -490,6 +491,8 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 			// ---------- SEO 管理（多语言） ----------
 			auth.POST("/seo",
 				middleware.RequirePermission("seo:manage"), localizationHandler.UpsertSEO)
+			auth.POST("/seo/routes", middleware.RequirePermission("seo:manage"), localizationHandler.UpsertRoutesSEO)
+			auth.GET("/seo/routes", middleware.RequirePermission("seo:manage"), localizationHandler.ListRouteSEO)
 
 			// ---------- 存储源管理 ----------
 			auth.GET("/storage-sources",

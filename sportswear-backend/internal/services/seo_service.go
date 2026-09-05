@@ -1,4 +1,4 @@
-﻿package services
+package services
 
 import (
 	"fmt"
@@ -120,4 +120,70 @@ func BuildSitemapEntry(baseURL, lang, path string, lastmod string) string {
 		lastmodPart = fmt.Sprintf("\n    <lastmod>%s</lastmod>", lastmod)
 	}
 	return fmt.Sprintf("  <url>\n    <loc>%s</loc>%s\n  </url>", loc, lastmodPart)
+}
+
+// ==================== 路由（列表页/落地页）SEO ====================
+
+// RouteSEOID 为路由生成确定性的实体 ID（UUID v5），使路由 SEO 复用 seo 表
+// 的 entity_type='route' 维度，无需新增表。同一路由每次生成相同 ID。
+func RouteSEOID(route string) uuid.UUID {
+	return uuid.NewSHA1(uuid.NameSpaceURL, []byte("route:"+route))
+}
+
+// RouteSEOEntryReq 路由 SEO 单语言请求（路由 + 语言矩阵，后台 SEO 管理页使用）
+type RouteSEOEntryReq struct {
+	Language      string `json:"language" binding:"required"`
+	Title         string `json:"title"`
+	Description   string `json:"description"`
+	Keywords      string `json:"keywords"`
+	OGTitle       string `json:"og_title"`
+	OGDescription string `json:"og_description"`
+	OGImage       string `json:"og_image"`
+}
+
+// GetRouteSEO 获取指定路由的 SEO 配置（按语言，无则回退英文）
+func (s *SEOService) GetRouteSEO(route, lang string) (*models.SEO, error) {
+	return s.GetSEO("route", RouteSEOID(route), lang)
+}
+
+// UpsertRouteSEO 创建或更新路由 SEO（按 route + language 唯一）
+func (s *SEOService) UpsertRouteSEO(route string, req *RouteSEOEntryReq) (*models.SEO, error) {
+	eid := RouteSEOID(route)
+	var seo models.SEO
+	err := s.db.Where("entity_type = ? AND entity_id = ? AND language = ?", "route", eid, req.Language).First(&seo).Error
+	if err == nil {
+		seo.Title = req.Title
+		seo.Description = req.Description
+		seo.Keywords = req.Keywords
+		seo.OGTitle = req.OGTitle
+		seo.OGDescription = req.OGDescription
+		seo.OGImage = req.OGImage
+		if err := s.db.Save(&seo).Error; err != nil {
+			return nil, err
+		}
+		return &seo, nil
+	}
+
+	seo = models.SEO{
+		EntityType:    "route",
+		EntityID:      eid,
+		Language:      req.Language,
+		Title:         req.Title,
+		Description:   req.Description,
+		Keywords:      req.Keywords,
+		OGTitle:       req.OGTitle,
+		OGDescription: req.OGDescription,
+		OGImage:       req.OGImage,
+	}
+	if err := s.db.Create(&seo).Error; err != nil {
+		return nil, err
+	}
+	return &seo, nil
+}
+
+// ListRouteSEO 获取指定路由的全部语言 SEO 配置（后台管理）
+func (s *SEOService) ListRouteSEO(route string) ([]models.SEO, error) {
+	var seos []models.SEO
+	err := s.db.Where("entity_type = ? AND entity_id = ?", "route", RouteSEOID(route)).Find(&seos).Error
+	return seos, err
 }

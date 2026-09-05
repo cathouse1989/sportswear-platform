@@ -88,11 +88,14 @@ const { locale, t, te } = useI18n()
 const route = useRoute()
 
 // SEO - 博客列表页
+const blogSeo = await useRouteSeo('blog')
 useSeoHead({
-  title: 'Sportswear Manufacturing Blog - Industry Insights & Tips',
-  description:
+  title: () => blogSeo.value?.title || 'Sportswear Manufacturing Blog - Industry Insights & Tips',
+  description: () =>
+    blogSeo.value?.description ||
     'Expert insights on sportswear manufacturing, OEM/ODM processes, fabric technology, and industry trends. Learn how to choose the right manufacturer for your activewear brand.',
-  keywords:
+  keywords: () =>
+    blogSeo.value?.keywords ||
     'sportswear blog, OEM manufacturing insights, activewear industry, garment factory, sportswear manufacturing tips',
 })
 

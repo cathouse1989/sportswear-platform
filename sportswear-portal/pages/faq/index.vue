@@ -65,11 +65,14 @@ function toggle(id: string) { openId.value = openId.value === id ? null : id }
 // FAQ 分类（与后台一致）
 const FAQ_CATEGORIES = ['moq', 'oem', 'odm', 'sample', 'payment', 'production', 'logistics', 'fabric', 'quality', 'certification']
 // SEO - FAQ
+const faqSeo = await useRouteSeo('faq')
 useSeoHead({
-  title: 'FAQ - Sportswear OEM/ODM Manufacturing',
-  description:
+  title: () => faqSeo.value?.title || 'FAQ - Sportswear OEM/ODM Manufacturing',
+  description: () =>
+    faqSeo.value?.description ||
     'Find answers to frequently asked questions about OEM/ODM sportswear manufacturing, MOQ, customization processes, pricing, shipping, and quality control.',
-  keywords:
+  keywords: () =>
+    faqSeo.value?.keywords ||
     'sportswear FAQ, OEM questions, ODM manufacturing, MOQ sportswear, custom activewear process, garment manufacturing FAQ',
 })
 

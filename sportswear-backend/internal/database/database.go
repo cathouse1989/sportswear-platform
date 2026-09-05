@@ -103,6 +103,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.PageTranslation{},
 		&models.PageModule{},
 		&models.Navigation{},
+		&models.NavigationTranslation{},
 		// 产品
 		&models.Product{},
 		&models.ProductTranslation{},
@@ -121,8 +122,11 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.FAQ{},
 		&models.FAQTranslation{},
 		&models.Factory{},
+		&models.FactoryTranslation{},
 		&models.Certification{},
+		&models.CertificationTranslation{},
 		&models.ProductionProcess{},
+		&models.ProductionProcessTranslation{},
 		&models.SelfMedia{},
 
 		// SEO

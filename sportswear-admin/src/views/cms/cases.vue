@@ -115,51 +115,13 @@
           </el-form>
         </el-tab-pane>
         <el-tab-pane label="多语言翻译" name="translations">
-          <el-alert
-            type="info"
-            show-icon
-            :closable="false"
-            class="trans-tip"
-            title="默认语言（English）内容请在「基础信息」编辑；此处仅为其他语种配置翻译，未配置的语言将自动回退默认语言。"
+          <TransEditor
+            v-model="translations"
+            :fields="TRANS_FIELDS"
+            :source="{ title: form.title, client_need: form.client_need, problem: form.problem, solution: form.solution, process: form.process, result: form.result }"
+            :langs="TRANSLATABLE_LANGS"
+            source-label="English"
           />
-          <div class="trans-toolbar">
-            <el-button size="small" type="primary" @click="addTranslation">添加翻译</el-button>
-            <span class="trans-tip">切换门户语言后按对应语种展示，未翻译则回退默认语言</span>
-          </div>
-          <div v-for="(t, i) in translations" :key="i" class="translation-item">
-            <div class="translation-head">
-              <el-select v-model="t.language" size="small" style="width: 160px" placeholder="语言">
-                <el-option v-for="l in TRANSLATABLE_LANGS" :key="l.value" :label="l.label" :value="l.value" />
-              </el-select>
-              <span v-if="t.language" class="lang-badge" :class="`lang-${t.language}`">{{ langTag(t.language).label }}</span>
-              <div class="spacer" />
-              <el-button size="small" type="danger" text @click="removeTranslation(i)">删除</el-button>
-            </div>
-            <el-input v-model="t.title" size="small" placeholder="翻译标题（留空则沿用默认语言标题）" class="trans-field" />
-            <el-row :gutter="12">
-              <el-col :span="12">
-                <div class="trans-label">客户需求</div>
-                <RichTextEditor v-model="t.client_need" placeholder="留空则沿用默认语言" min-height="90px" />
-              </el-col>
-              <el-col :span="12">
-                <div class="trans-label">问题挑战</div>
-                <RichTextEditor v-model="t.problem" placeholder="留空则沿用默认语言" min-height="90px" />
-              </el-col>
-              <el-col :span="12">
-                <div class="trans-label">解决方案</div>
-                <RichTextEditor v-model="t.solution" placeholder="留空则沿用默认语言" min-height="90px" />
-              </el-col>
-              <el-col :span="12">
-                <div class="trans-label">实施过程</div>
-                <RichTextEditor v-model="t.process" placeholder="留空则沿用默认语言" min-height="90px" />
-              </el-col>
-              <el-col :span="24">
-                <div class="trans-label">项目成果</div>
-                <RichTextEditor v-model="t.result" placeholder="留空则沿用默认语言" min-height="90px" />
-              </el-col>
-            </el-row>
-          </div>
-          <el-empty v-if="!translations.length" description="暂无翻译，点击「添加翻译」配置多语言内容" :image-size="60" />
         </el-tab-pane>
         <el-tab-pane label="SEO" name="seo">
           <el-form label-width="110px">
@@ -201,6 +163,7 @@ import { caseApi } from '@/api'
 import { useCrud } from '@/composables/useCrud'
 import MediaPicker from '@/components/media/MediaPicker.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
+import TransEditor from '@/components/cms/TransEditor.vue'
 import type { Case } from '@/types'
 import { checkCaseGate, gateAlertMessage } from '@/utils/publish-gate'
 
@@ -231,15 +194,7 @@ function langTag(language: string) {
   return LANG_META[language] || { label: language, type: 'info' as const }
 }
 
-interface TranslationForm {
-  language: string
-  title: string
-  client_need: string
-  problem: string
-  solution: string
-  process: string
-  result: string
-}
+
 
 const projectType = ref('')
 
@@ -251,7 +206,29 @@ const form = reactive({
   cover_image: '', client_need: '', problem: '', solution: '', process: '', result: '',
   seo: { language: 'en', title: '', description: '', keywords: '', og_title: '', og_description: '', og_image: '' },
 })
-const translations = ref<TranslationForm[]>([])
+const translations = ref<Record<string, Record<string, string>>>({})
+const TRANS_FIELDS = [
+  { key: 'title', label: '标题' },
+  { key: 'client_need', label: '客户需求', type: 'richtext' as const, minHeight: '90px' },
+  { key: 'problem', label: '问题挑战', type: 'richtext' as const, minHeight: '90px' },
+  { key: 'solution', label: '解决方案', type: 'richtext' as const, minHeight: '90px' },
+  { key: 'process', label: '实施过程', type: 'richtext' as const, minHeight: '90px' },
+  { key: 'result', label: '项目成果', type: 'richtext' as const, minHeight: '90px' },
+]
+function emptyTranslations(): Record<string, Record<string, string>> {
+  const blank = { title: '', client_need: '', problem: '', solution: '', process: '', result: '' }
+  return { zh: { ...blank }, es: { ...blank }, fr: { ...blank } }
+}
+function translationsToRecord(list: Array<any>) {
+  const next = emptyTranslations()
+  for (const t of list || []) {
+    const lang = t.language
+    if (lang && lang !== 'en' && next[lang]) {
+      next[lang] = { title: t.title || '', client_need: t.client_need || '', problem: t.problem || '', solution: t.solution || '', process: t.process || '', result: t.result || '' }
+    }
+  }
+  return next
+}
 const rules: FormRules = {
   title: [
     { required: true, message: '请输入标题', trigger: 'blur' },
@@ -264,7 +241,7 @@ const rules: FormRules = {
 }
 function hasText(v?: string) { return Boolean((v || '').trim()) }
 function hasHtmlContent(v?: string) { return Boolean((v || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim()) }
-function translationHasContent(t: TranslationForm) {
+function translationHasContent(t: Record<string, string>) {
   return hasText(t.title) || hasHtmlContent(t.client_need) || hasHtmlContent(t.problem) || hasHtmlContent(t.solution) || hasHtmlContent(t.process) || hasHtmlContent(t.result)
 }
 
@@ -281,25 +258,15 @@ const {
   beforeSave: async () => {
     const valid = await formRef.value?.validate().catch(() => false)
     if (!valid) return false
-    for (const t of translations.value) {
-      if (!t.language) { ElMessage.warning('翻译语言不能为空'); activeTab.value = 'translations'; return false }
-    }
     return true
   },
   buildPayload: () => {
-    const validTranslations = translations.value.filter((t) => t.language && translationHasContent(t))
     const seoHasContent = ['title', 'description', 'keywords', 'og_title', 'og_description', 'og_image'].some((f) => hasText((form.seo as any)[f]))
     return {
       ...form,
-      translations: validTranslations.map((t) => ({
-        language: t.language,
-        title: t.title || '',
-        client_need: t.client_need || '',
-        problem: t.problem || '',
-        solution: t.solution || '',
-        process: t.process || '',
-        result: t.result || '',
-      })),
+      translations: Object.entries(translations.value)
+        .filter(([, t]) => translationHasContent(t))
+        .map(([language, t]) => ({ language, ...t })),
       seo: seoHasContent ? { ...form.seo } : null,
     }
   },
@@ -325,7 +292,7 @@ function openCreateDialog() {
   editingId.value = ''
   activeTab.value = 'basic'
   resetForm()
-  translations.value = []
+  translations.value = emptyTranslations()
   dialogVisible.value = true
 }
 async function openEditDialog(row: Case) {
@@ -344,26 +311,10 @@ async function openEditDialog(row: Case) {
     result: row.result || '',
   })
   // 翻译先用列表预加载值，随后用详情覆盖（同时回填 SEO）
-  translations.value = (row.translations || []).map((t: any) => ({
-    language: t.language,
-    title: t.title || '',
-    client_need: t.client_need || '',
-    problem: t.problem || '',
-    solution: t.solution || '',
-    process: t.process || '',
-    result: t.result || '',
-  }))
+  translations.value = translationsToRecord(row.translations || [])
   try {
     const detail = await caseApi.get(row.id)
-    translations.value = (detail.translations || []).map((t: any) => ({
-      language: t.language,
-      title: t.title || '',
-      client_need: t.client_need || '',
-      problem: t.problem || '',
-      solution: t.solution || '',
-      process: t.process || '',
-      result: t.result || '',
-    }))
+    translations.value = translationsToRecord(detail.translations || [])
     Object.assign(form.seo, {
       language: detail.seo?.language || 'en',
       title: detail.seo?.title || '',
@@ -376,12 +327,7 @@ async function openEditDialog(row: Case) {
   } catch { /* 详情回填失败不影响编辑主表 */ }
   dialogVisible.value = true
 }
-function addTranslation() {
-  const used = new Set(translations.value.map((t) => t.language))
-  const lang = TRANSLATABLE_LANGS.find((l) => !used.has(l.value))?.value || ''
-  translations.value.push({ language: lang, title: '', client_need: '', problem: '', solution: '', process: '', result: '' })
-}
-function removeTranslation(i: number) { translations.value.splice(i, 1) }
+
 async function handlePublish(row: Case) {
   // 发布质检门：标题/Slug/解决方案缺失时拦截并列出缺失项
   const gate = checkCaseGate({

@@ -790,7 +790,7 @@ const form = reactive({
   production_moq: 300,
   color_moq: 100,
   size_moq: 100,
-  translations: [] as Array<{ language: string; name: string; brief: string; description: string; features: string; usage: string; sort_order: number }>,
+  translations: [] as Array<{ language: string; name: string; brief: string; description: string; features: string; usage: string; material: string; composition: string; weight: string; elasticity: string; fit: string; support_level: string; season: string; size_range: string; sort_order: number }>,
   seo: { title: '', description: '', keywords: '', og_title: '', og_description: '', og_image: '' },
   series_ids: [] as string[],
   fabric_ids: [] as string[],
@@ -829,7 +829,7 @@ const videoTypeOptions = [
 // 定制管理
 const customDialogVisible = ref(false)
 const customProductId = ref('')
-const customizations = ref<Array<{ type: string; is_enabled: boolean; note: string }>>([])
+const customizations = ref<Array<{ type: string; is_enabled: boolean; note: string; note_zh?: string; note_es?: string; note_fr?: string }>>([])
 const customDetail = ref<any>(null)
 const savingCustom = ref(false)
 const customTypeOptions = [

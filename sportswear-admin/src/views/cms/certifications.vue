@@ -14,6 +14,12 @@
         </template>
       </el-table-column>
       <el-table-column prop="name" label="名称" min-width="180" />
+      <el-table-column label="翻译" min-width="120">
+        <template #default="{ row }">
+          <el-tag v-for="t in row.translations || []" :key="t.id || t.language" size="small" type="info" class="lang-tag">{{ t.language }}</el-tag>
+          <span v-if="!(row.translations || []).length" class="muted">—</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="code" label="编号" width="140" />
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }"><el-tag :type="row.status === 'published' ? 'success' : 'info'" size="small">{{ row.status }}</el-tag></template>
@@ -28,31 +34,70 @@
       </el-table-column>
     </el-table>
     <el-pagination class="pagination" v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, sizes, prev, pager, next, jumper" :page-sizes="[10, 20, 50, 100]" @current-change="loadData" @size-change="handleSearch" />
-    <ProFormDialog v-model="dialogVisible" :title="editingId ? '编辑认证' : '新建认证'" :form="form" :rules="rules" @submit="handleSave">
+    <ProFormDialog v-model="dialogVisible" :title="editingId ? '编辑认证' : '新建认证'" :form="form" :rules="rules" @submit="handleSave" width="720px">
       <el-form-item label="名称" prop="name"><el-input v-model="form.name" /></el-form-item>
       <el-form-item label="编号"><el-input v-model="form.code" /></el-form-item>
       <el-form-item label="证书图"><MediaPicker v-model="form.image" /></el-form-item>
       <el-form-item label="PDF"><el-input v-model="form.pdf" placeholder="证书 PDF 文件 URL（可选）" /></el-form-item>
       <el-form-item label="描述"><el-input v-model="form.description" type="textarea" /></el-form-item>
+      <el-divider content-position="left">多语言翻译（未填写回退英文）</el-divider>
+      <TransEditor v-model="translations" :fields="TRANS_FIELDS" :source="{ name: form.name, description: form.description }" :langs="TRANS_LANGS" source-label="English" />
     </ProFormDialog>
   </el-card>
 </template>
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import type { FormRules } from 'element-plus'
 import { certificationApi } from '@/api'
 import MediaPicker from '@/components/media/MediaPicker.vue'
 import ProFormDialog from '@/components/pro/ProFormDialog.vue'
+import TransEditor from '@/components/cms/TransEditor.vue'
 import { useCrud } from '@/composables/useCrud'
 
+const TRANS_LANGS = [
+  { value: 'zh', label: '中文' },
+  { value: 'es', label: 'Español' },
+  { value: 'fr', label: 'Français' },
+]
+const TRANS_FIELDS = [
+  { key: 'name', label: '名称' },
+  { key: 'description', label: '描述', type: 'textarea' as const, rows: 2 },
+]
 const emptyForm = () => ({ name: '', code: '', image: '', pdf: '', description: '' })
+const translations = ref<Record<string, Record<string, string>>>({})
+function emptyTranslations(): Record<string, Record<string, string>> {
+  return { zh: { name: '', description: '' }, es: { name: '', description: '' }, fr: { name: '', description: '' } }
+}
+function translationsToRecord(list: any[]) {
+  const next = emptyTranslations()
+  for (const t of list || []) {
+    const lang = t.language
+    if (lang && lang !== 'en' && next[lang]) {
+      next[lang] = { name: t.name || '', description: t.description || '' }
+    }
+  }
+  return next
+}
+
 const {
   items, total, loading, page, pageSize, keyword,
   loadData, handleSearch,
   dialogVisible, editingId, form,
-  openCreateDialog, openEditDialog, handleSave,
-  handlePublish, handleUnpublish, handleDelete,
-} = useCrud({ api: certificationApi, emptyForm, serverPagination: true })
+  handleSave, handlePublish, handleUnpublish, handleDelete,
+  openCreateDialog: crudCreate, openEditDialog: crudEdit,
+} = useCrud({
+  api: certificationApi,
+  emptyForm,
+  serverPagination: true,
+  buildPayload: (): Record<string, any> => ({
+    ...(form as any),
+    translations: Object.entries(translations.value)
+      .filter(([, t]) => (t.name || '').trim() || (t.description || '').trim())
+      .map(([language, t]) => ({ language, name: t.name || '', description: t.description || '' })),
+  }),
+})
+function openCreateDialog() { crudCreate(); translations.value = emptyTranslations() }
+function openEditDialog(row: any) { crudEdit(row); translations.value = translationsToRecord(row.translations || []) }
 const rules: FormRules = { name: [{ required: true, message: '请输入名称', trigger: 'blur' }] }
 onMounted(loadData)
 </script>
@@ -62,4 +107,6 @@ onMounted(loadData)
 .pagination { margin-top: 16px; justify-content: flex-end; }
 .cover-thumb { width: 44px; height: 44px; border-radius: 4px; }
 .cover-placeholder { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #c0c4cc; background: #f5f7fa; border-radius: 4px; }
+.lang-tag { margin-right: 4px; }
+.muted { color: #c0c4cc; }
 </style>

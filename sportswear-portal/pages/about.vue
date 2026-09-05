@@ -74,10 +74,11 @@ const api = useApi()
 const { locale, t } = useI18n()
 
 // SEO - 关于我们（多语言，随语言切换）
+const aboutSeo = await useRouteSeo('about')
 useSeoHead({
-  title: () => t('about.seo_title'),
-  description: () => t('about.seo_description'),
-  keywords: () => t('about.seo_keywords'),
+  title: () => aboutSeo.value?.title || t('about.seo_title'),
+  description: () => aboutSeo.value?.description || t('about.seo_description'),
+  keywords: () => aboutSeo.value?.keywords || t('about.seo_keywords'),
   ogImage: '/images/og-about.jpg',
 })
 

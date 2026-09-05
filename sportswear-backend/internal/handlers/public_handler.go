@@ -120,6 +120,8 @@ func (h *PublicHandler) GetHome(c *gin.Context) {
 		services.LocalizeProducts(products, lang)
 		services.LocalizeBlogs(blogs, lang)
 		services.LocalizeCases(cases, lang)
+		services.LocalizeCertifications(certifications, lang)
+		services.LocalizeFactories(factories, lang)
 
 		return gin.H{
 			"page":              page,
@@ -526,6 +528,7 @@ func (h *PublicHandler) ListFactories(c *gin.Context) {
 		utils.InternalError(c, "获取工厂列表失败")
 		return
 	}
+	services.LocalizeFactories(factories, lang)
 	utils.Success(c, factories)
 }
 
@@ -541,6 +544,7 @@ func (h *PublicHandler) ListCertifications(c *gin.Context) {
 		utils.InternalError(c, "获取认证列表失败")
 		return
 	}
+	services.LocalizeCertifications(certifications, lang)
 	utils.Success(c, certifications)
 }
 
@@ -556,6 +560,7 @@ func (h *PublicHandler) ListProductionProcesses(c *gin.Context) {
 		utils.InternalError(c, "获取生产流程列表失败")
 		return
 	}
+	services.LocalizeProductionProcesses(processes, lang)
 	utils.Success(c, processes)
 }
 
@@ -588,6 +593,7 @@ func (h *PublicHandler) ListSelfMedias(c *gin.Context) {
 // ListNavigations 导航列表（Redis 缓存，长 TTL）
 func (h *PublicHandler) ListNavigations(c *gin.Context) {
 	navType := c.DefaultQuery("type", "header")
+	lang := middleware.GetLang(c)
 	key := "cache:navigations:" + navType
 
 	navigations, err := cached[[]models.Navigation](h, key, services.CacheTTLLong, !h.previewMode(c), func() ([]models.Navigation, error) {
@@ -597,6 +603,7 @@ func (h *PublicHandler) ListNavigations(c *gin.Context) {
 		utils.InternalError(c, "获取导航列表失败")
 		return
 	}
+	services.LocalizeNavigations(navigations, lang)
 	utils.Success(c, navigations)
 }
 

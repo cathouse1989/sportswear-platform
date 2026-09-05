@@ -1,4 +1,4 @@
-﻿import { http } from './client'
+import { http } from './client'
 import type {
   DashboardStats,
   Lead,
@@ -354,6 +354,8 @@ export const portalApi = {
 // ============ SEO ============
 export const seoApi = {
   upsert: (data: any) => http.post<any>('/admin/seo', data),
+  listRoutes: (route: string) => http.get<any>('/admin/seo/routes', { route }),
+  saveRoutes: (route: string, entries: any[]) => http.post<any>('/admin/seo/routes', { route, entries }),
 }
 
 // ============ 璐у竵 ============
