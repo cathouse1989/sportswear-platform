@@ -47,6 +47,31 @@ func LocalizeProduct(p *models.Product, lang string) {
 			if t.Usage != "" {
 				p.Usage = t.Usage
 			}
+			// 规格类字段按语言覆盖（无翻译时回退主表英文源）
+			if t.Material != "" {
+				p.Material = t.Material
+			}
+			if t.Composition != "" {
+				p.Composition = t.Composition
+			}
+			if t.Weight != "" {
+				p.Weight = t.Weight
+			}
+			if t.Elasticity != "" {
+				p.Elasticity = t.Elasticity
+			}
+			if t.Fit != "" {
+				p.Fit = t.Fit
+			}
+			if t.SupportLevel != "" {
+				p.SupportLevel = t.SupportLevel
+			}
+			if t.Season != "" {
+				p.Season = t.Season
+			}
+			if t.SizeRange != "" {
+				p.SizeRange = t.SizeRange
+			}
 			break
 		}
 	}

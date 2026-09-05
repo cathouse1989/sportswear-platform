@@ -90,6 +90,52 @@
       "pro-training-line": "Ligne Pro Training",
       "team-pro-series": "Série Team Pro",
       "custom-atelier": "Atelier Personnalisé"
+    },
+    "type_options": {
+      "oem": "OEM",
+      "odm": "ODM",
+      "both": "OEM/ODM"
+    },
+    "gender_options": {
+      "unisex": "Unisexe",
+      "male": "Homme",
+      "female": "Femme",
+      "kids": "Enfants"
+    },
+    "customization_options": {
+      "logo": "Logo",
+      "color": "Couleur",
+      "fabric": "Tissu",
+      "pattern": "Motif",
+      "print": "Impression",
+      "embroidery": "Broderie",
+      "label": "Étiquette",
+      "hangtag": "Étiquette volante",
+      "packaging": "Emballage",
+      "size": "Taille",
+      "fit": "Ajustement",
+      "zipper": "Fermeture éclair",
+      "button": "Bouton",
+      "belt": "Ceinture",
+      "accessory": "Accessoire"
+    },
+    "spec_options": {
+      "fabric": "Tissu",
+      "moq": "MOQ",
+      "fit": "Ajustement",
+      "composition": "Composition",
+      "size range": "Gamme de Tailles",
+      "weight": "Poids"
+    },
+    "fabric_tags": {
+      "weight": "Poids",
+      "elasticity": "Élasticité",
+      "breathability": "Respirabilité",
+      "moisture wicking": "Évacuation de l'Humidité",
+      "softness": "Douceur",
+      "compression": "Compression",
+      "uv protection": "Protection UV",
+      "eco friendly": "Écologique"
     }
   },
   "about": {

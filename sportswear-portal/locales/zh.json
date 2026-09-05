@@ -90,6 +90,52 @@
       "pro-training-line": "专业训练系列",
       "team-pro-series": "团队专业系列",
       "custom-atelier": "定制工坊"
+    },
+    "type_options": {
+      "oem": "OEM",
+      "odm": "ODM",
+      "both": "OEM/ODM"
+    },
+    "gender_options": {
+      "unisex": "男女皆宜",
+      "male": "男款",
+      "female": "女款",
+      "kids": "儿童"
+    },
+    "customization_options": {
+      "logo": "Logo",
+      "color": "颜色",
+      "fabric": "面料",
+      "pattern": "图案",
+      "print": "印花",
+      "embroidery": "刺绣",
+      "label": "标签",
+      "hangtag": "吊牌",
+      "packaging": "包装",
+      "size": "尺码",
+      "fit": "版型",
+      "zipper": "拉链",
+      "button": "纽扣",
+      "belt": "腰带",
+      "accessory": "配饰"
+    },
+    "spec_options": {
+      "fabric": "面料",
+      "moq": "起订量",
+      "fit": "合身度",
+      "composition": "成分",
+      "size range": "尺码范围",
+      "weight": "重量"
+    },
+    "fabric_tags": {
+      "weight": "重量",
+      "elasticity": "弹性",
+      "breathability": "透气性",
+      "moisture wicking": "吸湿排汗",
+      "softness": "柔软度",
+      "compression": "压缩性",
+      "uv protection": "防紫外线",
+      "eco friendly": "环保"
     }
   },
   "about": {

@@ -253,15 +253,23 @@ func (s *ProductService) CreateProduct(req *ProductRequest) (*models.Product, er
 	if len(req.Translations) > 0 {
 		for _, t := range req.Translations {
 			translation := models.ProductTranslation{
-				ProductID:   product.ID,
-				Language:    t.Language,
-				Name:        t.Name,
-				Brief:       t.Brief,
-				Description: t.Description,
-				Features:    t.Features,
-				Usage:       t.Usage,
-				SortOrder:   t.SortOrder,
-				Status:      models.TranslationStatusPublished,
+				ProductID:    product.ID,
+				Language:     t.Language,
+				Name:         t.Name,
+				Brief:        t.Brief,
+				Description:  t.Description,
+				Features:     t.Features,
+				Usage:        t.Usage,
+				Material:     t.Material,
+				Composition:  t.Composition,
+				Weight:       t.Weight,
+				Elasticity:   t.Elasticity,
+				Fit:          t.Fit,
+				SupportLevel: t.SupportLevel,
+				Season:       t.Season,
+				SizeRange:    t.SizeRange,
+				SortOrder:    t.SortOrder,
+				Status:       models.TranslationStatusPublished,
 			}
 			s.db.Create(&translation)
 		}
@@ -480,6 +488,15 @@ type ProductTranslationRequest struct {
 	Description string `json:"description"`
 	Features    string `json:"features"`
 	Usage       string `json:"usage"`
+	// 规格类字段翻译（主表存英文源，此处按语言覆盖）
+	Material     string `json:"material"`
+	Composition  string `json:"composition"`
+	Weight       string `json:"weight"`
+	Elasticity   string `json:"elasticity"`
+	Fit          string `json:"fit"`
+	SupportLevel string `json:"support_level"`
+	Season       string `json:"season"`
+	SizeRange    string `json:"size_range"`
 	// SortOrder 语言维度的展示排序权重（0 = 跟随全局排序）
 	SortOrder int `json:"sort_order"`
 }
@@ -545,25 +562,41 @@ func (s *ProductService) UpdateProduct(id string, req *ProductRequest) (*models.
 			err := s.db.Where("product_id = ? AND language = ?", product.ID, t.Language).First(&translation).Error
 			if err != nil {
 				s.db.Create(&models.ProductTranslation{
-					ProductID:   product.ID,
-					Language:    t.Language,
-					Name:        t.Name,
-					Brief:       t.Brief,
-					Description: t.Description,
-					Features:    t.Features,
-					Usage:       t.Usage,
-					SortOrder:   t.SortOrder,
-					Status:      models.TranslationStatusPublished,
+					ProductID:    product.ID,
+					Language:     t.Language,
+					Name:         t.Name,
+					Brief:        t.Brief,
+					Description:  t.Description,
+					Features:     t.Features,
+					Usage:        t.Usage,
+					Material:     t.Material,
+					Composition:  t.Composition,
+					Weight:       t.Weight,
+					Elasticity:   t.Elasticity,
+					Fit:          t.Fit,
+					SupportLevel: t.SupportLevel,
+					Season:       t.Season,
+					SizeRange:    t.SizeRange,
+					SortOrder:    t.SortOrder,
+					Status:       models.TranslationStatusPublished,
 				})
 			} else {
 				s.db.Model(&translation).Updates(map[string]interface{}{
-					"name":        t.Name,
-					"brief":       t.Brief,
-					"description": t.Description,
-					"features":    t.Features,
-					"usage":       t.Usage,
-					"sort_order":  t.SortOrder,
-					"status":      models.TranslationStatusPublished,
+					"name":          t.Name,
+					"brief":         t.Brief,
+					"description":   t.Description,
+					"features":      t.Features,
+					"usage":         t.Usage,
+					"material":      t.Material,
+					"composition":   t.Composition,
+					"weight":        t.Weight,
+					"elasticity":    t.Elasticity,
+					"fit":           t.Fit,
+					"support_level": t.SupportLevel,
+					"season":        t.Season,
+					"size_range":    t.SizeRange,
+					"sort_order":    t.SortOrder,
+					"status":        models.TranslationStatusPublished,
 				})
 			}
 		}

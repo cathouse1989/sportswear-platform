@@ -90,6 +90,52 @@
       "pro-training-line": "Pro Training Line",
       "team-pro-series": "Team Pro Series",
       "custom-atelier": "Custom Atelier"
+    },
+    "type_options": {
+      "oem": "OEM",
+      "odm": "ODM",
+      "both": "OEM/ODM"
+    },
+    "gender_options": {
+      "unisex": "Unisex",
+      "male": "Male",
+      "female": "Female",
+      "kids": "Kids"
+    },
+    "customization_options": {
+      "logo": "Logo",
+      "color": "Color",
+      "fabric": "Fabric",
+      "pattern": "Pattern",
+      "print": "Print",
+      "embroidery": "Embroidery",
+      "label": "Label",
+      "hangtag": "Hangtag",
+      "packaging": "Packaging",
+      "size": "Size",
+      "fit": "Fit",
+      "zipper": "Zipper",
+      "button": "Button",
+      "belt": "Belt",
+      "accessory": "Accessory"
+    },
+    "spec_options": {
+      "fabric": "Fabric",
+      "moq": "MOQ",
+      "fit": "Fit",
+      "composition": "Composition",
+      "size range": "Size Range",
+      "weight": "Weight"
+    },
+    "fabric_tags": {
+      "weight": "Weight",
+      "elasticity": "Elasticity",
+      "breathability": "Breathability",
+      "moisture wicking": "Moisture Wicking",
+      "softness": "Softness",
+      "compression": "Compression",
+      "uv protection": "UV Protection",
+      "eco friendly": "Eco Friendly"
     }
   },
   "about": {

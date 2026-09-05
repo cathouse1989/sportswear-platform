@@ -94,6 +94,14 @@ export interface ProductTranslation {
   description: string
   features?: string
   usage?: string
+  material?: string
+  composition?: string
+  weight?: string
+  elasticity?: string
+  fit?: string
+  support_level?: string
+  season?: string
+  size_range?: string
   /** 语言维度展示排序权重（0 = 跟随全局排序） */
   sort_order?: number
   status: string

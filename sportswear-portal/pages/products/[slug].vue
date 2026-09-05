@@ -112,11 +112,11 @@
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
             <div v-if="product.type" class="bg-white rounded-xl p-4 border border-[#EAE5DD]">
               <div class="text-[10px] uppercase tracking-wider text-gray-400 mb-1">{{ $t('product.detail.type') }}</div>
-              <div class="font-semibold text-sm text-[#0D1B2A]">{{ product.type }}</div>
+              <div class="font-semibold text-sm text-[#0D1B2A]">{{ localizedEnum('product.type_options', product.type) }}</div>
             </div>
             <div v-if="product.gender" class="bg-white rounded-xl p-4 border border-[#EAE5DD]">
               <div class="text-[10px] uppercase tracking-wider text-gray-400 mb-1">{{ $t('product.detail.gender') }}</div>
-              <div class="font-semibold text-sm text-[#0D1B2A]">{{ product.gender }}</div>
+              <div class="font-semibold text-sm text-[#0D1B2A]">{{ localizedEnum('product.gender_options', product.gender) }}</div>
             </div>
             <div v-if="product.material" class="bg-white rounded-xl p-4 border border-[#EAE5DD]">
               <div class="text-[10px] uppercase tracking-wider text-gray-400 mb-1">{{ $t('product.detail.material') }}</div>
@@ -255,7 +255,7 @@
               <svg class="w-5 h-5 text-[#D4A853]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
             </div>
             <div>
-              <div class="font-semibold text-sm text-[#0D1B2A] capitalize">{{ c.type }}</div>
+              <div class="font-semibold text-sm text-[#0D1B2A] capitalize">{{ localizedEnum('product.customization_options', c.type) }}</div>
               <div v-if="c.note" class="text-xs text-gray-500 mt-1">{{ c.note }}</div>
               <div v-if="c.is_enabled" class="text-xs text-green-600 mt-1 font-medium">✓ Available</div>
             </div>
@@ -270,7 +270,7 @@
           <div class="flex flex-wrap gap-2">
             <NuxtLink v-for="s in product.series" :key="s.id" :to="localePath('/series/' + s.slug)"
               class="px-3 py-1.5 bg-[#FBF9F6] rounded-full text-sm text-gray-700 border border-[#EAE5DD] hover:border-[#D4A853] hover:text-[#0D1B2A] transition">
-              {{ s.name }}
+              {{ localizedSeries(s.name, s.slug) }}
             </NuxtLink>
           </div>
         </div>
@@ -446,7 +446,7 @@ const route = useRoute()
 const localePath = useLocalePath()
 const api = useApi()
 const { locale } = useI18n()
-const { localizedCategory } = useLocalized()
+const { localizedCategory, localizedSeries, localizedEnum } = useLocalized()
 
 const currentImageIndex = ref(0)
 const copied = ref(false)
@@ -636,7 +636,7 @@ const staticSpecs = computed(() => {
     const key = `${name}::${raw}`
     if (seen.has(key)) continue
     seen.add(key)
-    rows.push({ name, value: raw })
+    rows.push({ name: localizedEnum('product.spec_options', name), value: raw })
   }
   return rows
 })
@@ -713,7 +713,7 @@ function fabricTags(f: any): Array<{ label: string; value: string }> {
     ['UV Protection', f?.uv_protection],
     ['Eco Friendly', f?.eco_friendly],
   ]
-  return map.filter(([, v]) => v).map(([label, v]) => ({ label, value: String(v) }))
+  return map.filter(([, v]) => v).map(([label, v]) => ({ label: localizedEnum('product.fabric_tags', label), value: String(v) }))
 }
 
 const waNumber = computed(() => theme.value?.whatsapp_number || '8612345678900')

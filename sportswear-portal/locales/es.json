@@ -90,6 +90,52 @@
       "pro-training-line": "Línea Pro Training",
       "team-pro-series": "Serie Team Pro",
       "custom-atelier": "Atelier Personalizado"
+    },
+    "type_options": {
+      "oem": "OEM",
+      "odm": "ODM",
+      "both": "OEM/ODM"
+    },
+    "gender_options": {
+      "unisex": "Unisex",
+      "male": "Hombre",
+      "female": "Mujer",
+      "kids": "Niños"
+    },
+    "customization_options": {
+      "logo": "Logo",
+      "color": "Color",
+      "fabric": "Tela",
+      "pattern": "Patrón",
+      "print": "Estampado",
+      "embroidery": "Bordado",
+      "label": "Etiqueta",
+      "hangtag": "Etiqueta colgante",
+      "packaging": "Embalaje",
+      "size": "Talla",
+      "fit": "Ajuste",
+      "zipper": "Cremallera",
+      "button": "Botón",
+      "belt": "Cinturón",
+      "accessory": "Accesorio"
+    },
+    "spec_options": {
+      "fabric": "Tela",
+      "moq": "MOQ",
+      "fit": "Ajuste",
+      "composition": "Composición",
+      "size range": "Rango de Tallas",
+      "weight": "Peso"
+    },
+    "fabric_tags": {
+      "weight": "Peso",
+      "elasticity": "Elasticidad",
+      "breathability": "Transpirabilidad",
+      "moisture wicking": "Absorción de Humedad",
+      "softness": "Suavidad",
+      "compression": "Compresión",
+      "uv protection": "Protección UV",
+      "eco friendly": "Ecológico"
     }
   },
   "about": {

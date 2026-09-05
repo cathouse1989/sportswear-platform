@@ -385,6 +385,55 @@
                 <el-form-item :label="'用途'">
                   <el-input v-model="t.usage" type="textarea" :rows="2" />
                 </el-form-item>
+                <div class="section-subtitle">规格字段（面料/成分/重量等）</div>
+                <el-row :gutter="12">
+                  <el-col :span="12">
+                    <el-form-item :label="'面料'">
+                      <el-input v-model="t.material" />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item :label="'成分'">
+                      <el-input v-model="t.composition" />
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="12">
+                  <el-col :span="12">
+                    <el-form-item :label="'重量'">
+                      <el-input v-model="t.weight" />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item :label="'弹性'">
+                      <el-input v-model="t.elasticity" />
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="12">
+                  <el-col :span="12">
+                    <el-form-item :label="'合身度'">
+                      <el-input v-model="t.fit" />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item :label="'支撑等级'">
+                      <el-input v-model="t.support_level" />
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="12">
+                  <el-col :span="12">
+                    <el-form-item :label="'季节'">
+                      <el-input v-model="t.season" />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item :label="'尺码范围'">
+                      <el-input v-model="t.size_range" />
+                    </el-form-item>
+                  </el-col>
+                </el-row>
                 <el-divider v-if="idx < form.translations.length - 1" />
               </div>
               <el-button size="small" @click="addTranslation" class="add-translation-btn">+ 添加语言翻译</el-button>
@@ -917,6 +966,14 @@ async function openEditDialog(row: Product) {
         description: t.description || '',
         features: t.features || '',
         usage: t.usage || '',
+        material: t.material || '',
+        composition: t.composition || '',
+        weight: t.weight || '',
+        elasticity: t.elasticity || '',
+        fit: t.fit || '',
+        support_level: t.support_level || '',
+        season: t.season || '',
+        size_range: t.size_range || '',
         sort_order: t.sort_order || 0,
       })),
       series_ids: (detail.series || []).map((s: any) => s.id),
@@ -964,6 +1021,14 @@ async function handleSave() {
         description: form.description || '',
         features: form.features || '',
         usage: form.usage || '',
+        material: form.material || '',
+        composition: form.composition || '',
+        weight: form.weight || '',
+        elasticity: form.elasticity || '',
+        fit: form.fit || '',
+        support_level: form.support_level || '',
+        season: form.season || '',
+        size_range: form.size_range || '',
         // en 为源语言，语言维度排序 0 = 跟随全局 sort_order
         sort_order: 0,
       }
@@ -1011,6 +1076,14 @@ function addTranslation() {
     description: form.description,
     features: form.features,
     usage: form.usage,
+    material: form.material,
+    composition: form.composition,
+    weight: form.weight,
+    elasticity: form.elasticity,
+    fit: form.fit,
+    support_level: form.support_level,
+    season: form.season,
+    size_range: form.size_range,
     sort_order: 0,
   })
 }
@@ -1024,6 +1097,14 @@ function syncTranslationFromEn(idx: number) {
   t.description = form.description
   t.features = form.features
   t.usage = form.usage
+  t.material = form.material
+  t.composition = form.composition
+  t.weight = form.weight
+  t.elasticity = form.elasticity
+  t.fit = form.fit
+  t.support_level = form.support_level
+  t.season = form.season
+  t.size_range = form.size_range
   ElMessage.success('已同步英文内容，可在此基础上修改')
 }
 

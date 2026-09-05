@@ -58,6 +58,15 @@ type ProductTranslation struct {
 	Description string            `gorm:"type:text" json:"description"`
 	Features    string            `gorm:"type:text" json:"features"`
 	Usage       string            `gorm:"type:text" json:"usage"`
+	// 规格类字段的多语言翻译（主表存英文源，此处按语言覆盖）
+	Material     string `gorm:"type:varchar(200)" json:"material"`
+	Composition  string `gorm:"type:varchar(200)" json:"composition"`
+	Weight       string `gorm:"type:varchar(50)" json:"weight"`
+	Elasticity   string `gorm:"type:varchar(50)" json:"elasticity"`
+	Fit          string `gorm:"type:varchar(50)" json:"fit"`
+	SupportLevel string `gorm:"type:varchar(50)" json:"support_level"`
+	Season       string `gorm:"type:varchar(50)" json:"season"`
+	SizeRange    string `gorm:"type:varchar(100)" json:"size_range"`
 	// SortOrder 语言维度的展示排序权重（0 = 跟随产品全局 sort_order）。
 	// 场景：不同地区/语种市场有各自的特色运动与运动服装，
 	// 各语言站点可配置不同的产品展示顺序（越小越靠前）。
