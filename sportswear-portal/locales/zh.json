@@ -190,7 +190,22 @@
   },
   "case": {
     "title": "案例展示",
-    "view_case": "查看案例"
+    "view_case": "查看案例",
+    "back_to_list": "返回案例",
+    "not_found": "未找到该案例。",
+    "client_industry": "客户行业",
+    "project_type": "项目类型",
+    "products": "产品",
+    "client_need": "客户需求",
+    "problem": "问题挑战",
+    "solution": "解决方案",
+    "process": "实施过程",
+    "result": "项目成果",
+    "project_type_options": {
+      "oem": "OEM",
+      "odm": "ODM",
+      "private_label": "自有品牌"
+    }
   },
   "floating": {
     "whatsapp": "WhatsApp",

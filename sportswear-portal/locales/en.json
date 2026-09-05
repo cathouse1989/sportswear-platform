@@ -190,7 +190,22 @@
   },
   "case": {
     "title": "Cases",
-    "view_case": "View Case"
+    "view_case": "View Case",
+    "back_to_list": "Back to Cases",
+    "not_found": "This case study could not be found.",
+    "client_industry": "Client Industry",
+    "project_type": "Project Type",
+    "products": "Products",
+    "client_need": "Client Need",
+    "problem": "The Challenge",
+    "solution": "Our Solution",
+    "process": "The Process",
+    "result": "The Result",
+    "project_type_options": {
+      "oem": "OEM",
+      "odm": "ODM",
+      "private_label": "Private Label"
+    }
   },
   "floating": {
     "whatsapp": "WhatsApp",

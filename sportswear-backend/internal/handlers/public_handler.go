@@ -430,6 +430,29 @@ func (h *PublicHandler) ListCases(c *gin.Context) {
 	utils.SuccessPage(c, result.Items, page, pageSize, result.Total)
 }
 
+// GetCase 获取案例详情（Redis 缓存）
+func (h *PublicHandler) GetCase(c *gin.Context) {
+	lang := middleware.GetLang(c)
+	key := "cache:case:" + c.Param("slug") + ":" + lang
+
+	caseItem, err := cached[*models.Case](h, key, services.CacheTTLShort, !h.previewMode(c), func() (*models.Case, error) {
+		item, err := h.cmsService.GetCaseBySlug(c.Param("slug"))
+		if err != nil {
+			return nil, err
+		}
+		services.LocalizeCase(item, lang)
+		return item, nil
+	})
+	if err != nil {
+		utils.NotFound(c, "案例不存在")
+		return
+	}
+	// 供流量中间件记录实体信息
+	c.Set("visit_entity_id", caseItem.ID.String())
+	c.Set("visit_entity_name", caseItem.Title)
+	utils.Success(c, caseItem)
+}
+
 // ListFAQs FAQ 列表（Redis 缓存）
 func (h *PublicHandler) ListFAQs(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))

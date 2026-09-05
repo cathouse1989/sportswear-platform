@@ -99,6 +99,7 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 		public.GET("/blogs", publicHandler.ListBlogs)
 		public.GET("/blogs/:slug", publicHandler.GetBlog)
 		public.GET("/cases", publicHandler.ListCases)
+		public.GET("/cases/:slug", publicHandler.GetCase)
 		public.GET("/faqs", publicHandler.ListFAQs)
 		public.GET("/fabrics", publicHandler.ListFabrics)
 		public.GET("/factories", publicHandler.ListFactories)
@@ -287,6 +288,10 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 				middleware.RequirePermission("case:manage"), cmsHandler.UpdateCase)
 			auth.DELETE("/cases/:id",
 				middleware.RequirePermission("case:manage"), cmsHandler.DeleteCase)
+			auth.POST("/cases/:id/publish",
+				middleware.RequirePermission("case:manage"), cmsHandler.PublishCase)
+			auth.POST("/cases/:id/unpublish",
+				middleware.RequirePermission("case:manage"), cmsHandler.UnpublishCase)
 
 			// FAQ 管理
 			auth.GET("/faqs",

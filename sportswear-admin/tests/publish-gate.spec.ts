@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { checkProductGate, checkBlogGate, gateAlertMessage } from '@/utils/publish-gate'
+import { checkProductGate, checkBlogGate, checkCaseGate, gateAlertMessage } from '@/utils/publish-gate'
 
 describe('checkProductGate（P0-#2 发布质检门）', () => {
   const complete = {
@@ -61,6 +61,33 @@ describe('checkBlogGate', () => {
     const gate = checkBlogGate({ ...complete, cover_image: '' })
     expect(gate.ok).toBe(true)
     expect(gate.warnings).toContain('封面图')
+  })
+})
+
+describe('checkCaseGate', () => {
+  const complete = {
+    title: 'Yoga Brand OEM',
+    slug: 'yoga-brand-oem',
+    solution: 'Full turnkey OEM solution',
+    cover_image: 'https://cdn/a.jpg',
+    client_industry: 'Fitness Brand',
+  }
+
+  it('完整案例：ok=true', () => {
+    expect(checkCaseGate(complete).ok).toBe(true)
+  })
+
+  it('缺解决方案：阻断', () => {
+    const gate = checkCaseGate({ ...complete, solution: '' })
+    expect(gate.ok).toBe(false)
+    expect(gate.errors).toContain('解决方案')
+  })
+
+  it('缺封面图/客户行业：仅警告不阻断', () => {
+    const gate = checkCaseGate({ ...complete, cover_image: '', client_industry: '  ' })
+    expect(gate.ok).toBe(true)
+    expect(gate.warnings).toContain('封面图')
+    expect(gate.warnings).toContain('客户行业')
   })
 })
 

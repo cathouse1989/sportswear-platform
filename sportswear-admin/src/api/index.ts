@@ -151,6 +151,8 @@ export const caseApi = {
   create: (data: any) => http.post<Case>('/admin/cases', data),
   update: (id: string, data: any) => http.put<Case>(`/admin/cases/${id}`, data),
   delete: (id: string) => http.delete(`/admin/cases/${id}`),
+  publish: (id: string) => http.post(`/admin/cases/${id}/publish`),
+  unpublish: (id: string) => http.post(`/admin/cases/${id}/unpublish`),
 }
 
 // ============ FAQ ============

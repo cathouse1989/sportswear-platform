@@ -160,6 +160,7 @@ export const useApi = () => {
     getBlogs: (params?: any) => unwrap<any>('/public/blogs', { params: withPreview({ lang: getLang(), ...params }) }),
     getBlog: (slug: string) => unwrap<any>(`/public/blogs/${slug}`, { params: withPreview({ lang: getLang() }) }),
     getCases: (params?: any) => unwrap<any>('/public/cases', { params: withPreview({ lang: getLang(), ...params }) }),
+    getCase: (slug: string) => unwrap<any>(`/public/cases/${slug}`, { params: withPreview({ lang: getLang() }) }),
     getFaqs: (params?: any) => unwrap<any>('/public/faqs', { params: withPreview({ lang: getLang(), ...params }) }),
     getCategories: () => unwrap<any>('/public/categories', { params: withPreview() }),
     getSeries: () => unwrap<any>('/public/series', { params: withPreview() }),

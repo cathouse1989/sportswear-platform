@@ -190,7 +190,22 @@
   },
   "case": {
     "title": "Casos",
-    "view_case": "Ver Caso"
+    "view_case": "Ver Caso",
+    "back_to_list": "Volver a Casos",
+    "not_found": "No se encontró este caso.",
+    "client_industry": "Industria del cliente",
+    "project_type": "Tipo de proyecto",
+    "products": "Productos",
+    "client_need": "Necesidad del cliente",
+    "problem": "El desafío",
+    "solution": "Nuestra solución",
+    "process": "El proceso",
+    "result": "El resultado",
+    "project_type_options": {
+      "oem": "OEM",
+      "odm": "ODM",
+      "private_label": "Marca propia"
+    }
   },
   "floating": {
     "whatsapp": "WhatsApp",

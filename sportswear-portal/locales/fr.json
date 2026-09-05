@@ -190,7 +190,22 @@
   },
   "case": {
     "title": "Cas",
-    "view_case": "Voir le Cas"
+    "view_case": "Voir le Cas",
+    "back_to_list": "Retour aux cas",
+    "not_found": "Cette étude de cas est introuvable.",
+    "client_industry": "Secteur du client",
+    "project_type": "Type de projet",
+    "products": "Produits",
+    "client_need": "Besoin du client",
+    "problem": "Le défi",
+    "solution": "Notre solution",
+    "process": "Le processus",
+    "result": "Le résultat",
+    "project_type_options": {
+      "oem": "OEM",
+      "odm": "ODM",
+      "private_label": "Marque propre"
+    }
   },
   "floating": {
     "whatsapp": "WhatsApp",

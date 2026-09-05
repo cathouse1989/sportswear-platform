@@ -810,6 +810,7 @@ func (s *CMSService) UpdateBlog(id string, req *BlogRequest) (*models.Blog, erro
 		return nil, errors.New("博客不存在")
 	}
 
+	// status 为空时不覆盖（编辑保存只传基础字段，避免清空发布状态；对齐 UpdatePage 语义）
 	updates := map[string]interface{}{
 		"title":       req.Title,
 		"slug":        req.Slug,
@@ -818,7 +819,9 @@ func (s *CMSService) UpdateBlog(id string, req *BlogRequest) (*models.Blog, erro
 		"author":      req.Author,
 		"cover_image": req.CoverImage,
 		"content":     req.Content,
-		"status":      req.Status,
+	}
+	if req.Status != "" {
+		updates["status"] = req.Status
 	}
 	if err := s.db.Model(&blog).Updates(updates).Error; err != nil {
 		return nil, err
@@ -957,6 +960,17 @@ func (s *CMSService) GetCase(id string) (*models.Case, error) {
 	return &caseItem, nil
 }
 
+// GetCaseBySlug 通过 Slug 获取已发布案例（前台公开接口专用）
+func (s *CMSService) GetCaseBySlug(slug string) (*models.Case, error) {
+	var caseItem models.Case
+	err := s.db.Preload("Translations").
+		First(&caseItem, "slug = ? AND status = ?", slug, models.ContentStatusPublished).Error
+	if err != nil {
+		return nil, errors.New("案例不存在")
+	}
+	return &caseItem, nil
+}
+
 // CreateCase 创建案例
 func (s *CMSService) CreateCase(req *CaseRequest) (*models.Case, error) {
 	caseItem := models.Case{
@@ -1052,6 +1066,7 @@ func (s *CMSService) UpdateCase(id string, req *CaseRequest) (*models.Case, erro
 		return nil, errors.New("案例不存在")
 	}
 
+	// status 为空时不覆盖（编辑保存只传基础字段，避免清空发布状态；对齐 UpdatePage 语义）
 	updates := map[string]interface{}{
 		"title":           req.Title,
 		"slug":            req.Slug,
@@ -1064,41 +1079,33 @@ func (s *CMSService) UpdateCase(id string, req *CaseRequest) (*models.Case, erro
 		"process":         req.Process,
 		"result":          req.Result,
 		"cover_image":     req.CoverImage,
-		"status":          req.Status,
+	}
+	if req.Status != "" {
+		updates["status"] = req.Status
 	}
 	if err := s.db.Model(&caseItem).Updates(updates).Error; err != nil {
 		return nil, err
 	}
 
-	// 更新翻译
-	if len(req.Translations) > 0 {
-		for _, t := range req.Translations {
-			var translation models.CaseTranslation
-			err := s.db.Where("case_id = ? AND language = ?", caseItem.ID, t.Language).First(&translation).Error
-			if err != nil {
-				s.db.Create(&models.CaseTranslation{
-					CaseID:     caseItem.ID,
-					Language:   t.Language,
-					Title:      t.Title,
-					ClientNeed: t.ClientNeed,
-					Problem:    t.Problem,
-					Solution:   t.Solution,
-					Process:    t.Process,
-					Result:     t.Result,
-					Status:     models.TranslationStatusPublished,
-				})
-			} else {
-				s.db.Model(&translation).Updates(map[string]interface{}{
-					"title":       t.Title,
-					"client_need": t.ClientNeed,
-					"problem":     t.Problem,
-					"solution":    t.Solution,
-					"process":     t.Process,
-					"result":      t.Result,
-					"status":      models.TranslationStatusPublished,
-				})
-			}
+	// 更新翻译：先删后建（对齐 Page 模块重建语义），保证被移除/清空的语种彻底删除
+	if err := s.db.Where("case_id = ?", caseItem.ID).Delete(&models.CaseTranslation{}).Error; err != nil {
+		return nil, err
+	}
+	for _, t := range req.Translations {
+		if t.Language == "" {
+			continue
 		}
+		s.db.Create(&models.CaseTranslation{
+			CaseID:     caseItem.ID,
+			Language:   t.Language,
+			Title:      t.Title,
+			ClientNeed: t.ClientNeed,
+			Problem:    t.Problem,
+			Solution:   t.Solution,
+			Process:    t.Process,
+			Result:     t.Result,
+			Status:     models.TranslationStatusPublished,
+		})
 	}
 
 	// 更新 SEO
@@ -1147,6 +1154,20 @@ func (s *CMSService) DeleteCase(id string) error {
 		}
 		return tx.Delete(&models.Case{}, "id = ?", id).Error
 	})
+}
+
+// PublishCase 发布案例
+func (s *CMSService) PublishCase(id string) error {
+	now := time.Now()
+	return s.db.Model(&models.Case{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"status":       models.ContentStatusPublished,
+		"published_at": now,
+	}).Error
+}
+
+// UnpublishCase 下线案例（前台不可见）
+func (s *CMSService) UnpublishCase(id string) error {
+	return s.db.Model(&models.Case{}).Where("id = ?", id).Update("status", models.ContentStatusOffline).Error
 }
 
 // ==================== FAQ 管理 ====================

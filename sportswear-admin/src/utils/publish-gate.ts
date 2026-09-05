@@ -74,6 +74,23 @@ export function checkBlogGate(b: {
   ])
 }
 
+/** 案例发布门：标题/Slug/解决方案缺失阻断；封面图/客户行业缺失仅警告（案例无封面也可发布）。 */
+export function checkCaseGate(c: {
+  title?: string | null
+  slug?: string | null
+  solution?: string | null
+  cover_image?: string | null
+  client_industry?: string | null
+}): PublishGate {
+  return buildGate([
+    hasText(c.title) ? passItem('标题') : errorItem('标题'),
+    hasText(c.slug) ? passItem('Slug') : errorItem('Slug'),
+    hasText(c.solution) ? passItem('解决方案') : errorItem('解决方案'),
+    hasText(c.client_industry) ? passItem('客户行业') : warnItem('客户行业'),
+    hasText(c.cover_image) ? passItem('封面图') : warnItem('封面图'),
+  ])
+}
+
 /** 生成发布拦截提示文案（供 ElMessageBox.alert 使用） */
 export function gateAlertMessage(gate: PublishGate): string {
   const lines: string[] = []

@@ -406,6 +406,26 @@ func (h *CMSHandler) DeleteCase(c *gin.Context) {
 	utils.Success(c, gin.H{"deleted": true})
 }
 
+// PublishCase 发布案例
+func (h *CMSHandler) PublishCase(c *gin.Context) {
+	if err := h.cmsService.PublishCase(c.Param("id")); err != nil {
+		utils.BadRequest(c, "发布案例失败")
+		return
+	}
+	h.invalidateCache("case", "")
+	utils.Success(c, gin.H{"published": true})
+}
+
+// UnpublishCase 下线案例
+func (h *CMSHandler) UnpublishCase(c *gin.Context) {
+	if err := h.cmsService.UnpublishCase(c.Param("id")); err != nil {
+		utils.BadRequest(c, "下线案例失败")
+		return
+	}
+	h.invalidateCache("case", "")
+	utils.Success(c, gin.H{"unpublished": true})
+}
+
 // ==================== FAQ ====================
 
 // ListFAQs FAQ 列表
