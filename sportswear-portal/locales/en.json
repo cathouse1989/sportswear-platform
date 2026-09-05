@@ -70,7 +70,10 @@
       "no_specs": "No specifications available",
       "no_customizations": "No customization options listed",
       "color_moq": "Color MOQ",
-      "size_moq": "Size MOQ"
+      "size_moq": "Size MOQ",
+      "select_options": "Select Options",
+      "your_selection": "Your Selection",
+      "clear": "Clear"
     }
   },
   "about": {

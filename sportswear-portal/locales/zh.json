@@ -70,7 +70,10 @@
       "no_specs": "暂无规格参数",
       "no_customizations": "暂无定制选项",
       "color_moq": "颜色起订量",
-      "size_moq": "尺码起订量"
+      "size_moq": "尺码起订量",
+      "select_options": "选择规格",
+      "your_selection": "已选规格",
+      "clear": "清空"
     }
   },
   "about": {

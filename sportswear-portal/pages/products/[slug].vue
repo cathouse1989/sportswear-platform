@@ -75,6 +75,38 @@
           <!-- Brief -->
           <p v-if="product.brief" class="text-gray-600 mb-6 leading-relaxed">{{ product.brief }}</p>
 
+          <!-- Selectable Options（颜色/尺码/面料等可点选规格） -->
+          <div v-if="optionGroups.length" class="bg-white rounded-2xl p-5 lg:p-6 border border-[#EAE5DD] mb-8">
+            <h3 class="text-sm font-semibold text-[#0D1B2A] mb-4 flex items-center gap-2">
+              <svg class="w-4 h-4 text-[#D4A853]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+              {{ $t('product.detail.select_options') }}
+            </h3>
+            <div v-for="group in optionGroups" :key="group.name" class="mb-5 last:mb-0">
+              <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2.5">
+                {{ group.name }}
+                <span v-if="selectedOptions[group.name]" class="normal-case tracking-normal text-[#D4A853] font-semibold">· {{ selectedOptions[group.name] }}</span>
+              </div>
+              <div class="flex flex-wrap gap-2.5">
+                <button
+                  v-for="opt in group.options"
+                  :key="opt"
+                  type="button"
+                  @click="selectOption(group.name, opt)"
+                  class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border text-sm font-medium transition min-h-[40px]"
+                  :class="selectedOptions[group.name] === opt ? 'border-[#0D1B2A] bg-[#0D1B2A] text-white' : 'border-[#EAE5DD] bg-white text-gray-700 hover:border-gray-400'"
+                  :aria-pressed="selectedOptions[group.name] === opt"
+                >
+                  <span v-if="group.isColor" class="w-4 h-4 rounded-full border border-black/10 shrink-0" :style="{ backgroundColor: colorHex(opt) }"></span>
+                  {{ opt }}
+                </button>
+              </div>
+            </div>
+            <div v-if="hasSelection" class="mt-5 pt-4 border-t border-[#EAE5DD] flex items-center justify-between gap-3 flex-wrap">
+              <span class="text-sm text-gray-600">{{ $t('product.detail.your_selection') }}: <span class="font-semibold text-[#0D1B2A]">{{ selectionSummary }}</span></span>
+              <button @click="clearSelection" class="text-xs text-gray-400 hover:text-gray-600 underline">{{ $t('product.detail.clear') }}</button>
+            </div>
+          </div>
+
           <!-- Key Specs Grid -->
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
             <div v-if="product.type" class="bg-white rounded-xl p-4 border border-[#EAE5DD]">
@@ -145,7 +177,7 @@
           <!-- Action Buttons -->
           <div class="flex flex-col sm:flex-row gap-3 mb-8">
             <NuxtLink
-              :to="localePath('/contact') + '?product=' + encodeURIComponent(product.sku)"
+              :to="localePath('/contact') + '?product=' + encodeURIComponent(product.sku) + (selectionSummary ? '&specs=' + encodeURIComponent(selectionSummary) : '')"
               class="flex-1 inline-flex items-center justify-center gap-2 bg-[#D4A853] text-white px-8 py-3.5 rounded-xl font-semibold hover:bg-[#C49A3F] transition text-sm min-h-[48px]"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
@@ -181,12 +213,12 @@
       </div>
 
       <!-- Specs Table -->
-      <div v-if="product.specs?.length" class="mt-8 lg:mt-12">
+      <div v-if="staticSpecs.length" class="mt-8 lg:mt-12">
         <h2 class="text-xl font-bold text-[#0D1B2A] mb-6">{{ $t('product.detail.specifications') }}</h2>
         <div class="bg-white rounded-2xl border border-[#EAE5DD] overflow-hidden">
           <table class="w-full">
             <tbody>
-              <tr v-for="(spec, i) in product.specs" :key="spec.id || i" class="border-b border-[#EAE5DD] last:border-b-0">
+              <tr v-for="(spec, i) in staticSpecs" :key="spec.name + i" class="border-b border-[#EAE5DD] last:border-b-0">
                 <td class="px-6 py-4 text-sm font-medium text-gray-500 bg-[#FBF9F6] w-1/3">{{ spec.name }}</td>
                 <td class="px-6 py-4 text-sm text-[#0D1B2A]">{{ spec.value }}</td>
               </tr>
@@ -427,11 +459,139 @@ const allImages = computed(() => {
 
 const currentImage = computed(() => allImages.value[currentImageIndex.value] || null)
 
+// ==================== 可点选规格（颜色/尺码/面料等选项） ====================
+// 规格值支持用逗号 / 斜杠 / 竖线分隔多个可选项，门户据此渲染为可点选的选择器，
+// 采购人员可快速点选规格，选择结果会带入「复制信息 / WhatsApp / 询盘链接」。
+const COLOR_HEX: Record<string, string> = {
+  black: '#1f2937',
+  white: '#ffffff',
+  red: '#dc2626',
+  blue: '#2563eb',
+  navy: '#1e3a8a',
+  'navy blue': '#1e3a8a',
+  green: '#16a34a',
+  yellow: '#eab308',
+  orange: '#f97316',
+  pink: '#ec4899',
+  purple: '#8b5cf6',
+  gray: '#6b7280',
+  grey: '#6b7280',
+  brown: '#92400e',
+  beige: '#e7d8c9',
+  tan: '#d2b48c',
+  maroon: '#7f1d1d',
+  gold: '#d4a853',
+  silver: '#c0c0c0',
+  charcoal: '#374151',
+  'light blue': '#93c5fd',
+  'dark green': '#14532d',
+  olive: '#708238',
+  cream: '#fdf6e3',
+  khaki: '#bdb76b',
+  camel: '#c19a6b',
+  burgundy: '#800020',
+  teal: '#0d9488',
+  lavender: '#c4b5fd',
+}
+
+function isColorGroup(name: string): boolean {
+  return /color|colour|颜色|色/i.test(name)
+}
+
+function colorHex(name: string): string {
+  const key = String(name || '').trim().toLowerCase()
+  return COLOR_HEX[key] || '#e5e7eb'
+}
+
+// 解析 product.specs：同一「规格名」下拥有多个可选项时，视为可点选规格组
+const optionGroups = computed<Array<{ name: string; options: string[]; isColor: boolean }>>(() => {
+  const map = new Map<string, { name: string; options: string[]; isColor: boolean }>()
+  for (const spec of product.value?.specs || []) {
+    const name = String(spec.name || '').trim()
+    const raw = String(spec.value || '').trim()
+    if (!name || !raw) continue
+    const options = raw.split(/[,，/／、|;；]+/).map((s: string) => s.trim()).filter(Boolean)
+    const key = name.toLowerCase()
+    if (!map.has(key)) map.set(key, { name, options: [], isColor: isColorGroup(name) })
+    const group = map.get(key)!
+    for (const o of options) if (!group.options.includes(o)) group.options.push(o)
+  }
+  return [...map.values()].filter(g => g.options.length > 1)
+})
+
+// 不可点选的单一值规格 → 继续在下方规格表格中展示
+const staticSpecs = computed(() => {
+  const selectable = new Set(optionGroups.value.map(g => g.name.toLowerCase()))
+  const rows: Array<{ name: string; value: string }> = []
+  const seen = new Set<string>()
+  for (const spec of product.value?.specs || []) {
+    const name = String(spec.name || '').trim()
+    const raw = String(spec.value || '').trim()
+    if (!name || !raw) continue
+    if (selectable.has(name.toLowerCase())) continue
+    const key = `${name}::${raw}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    rows.push({ name, value: raw })
+  }
+  return rows
+})
+
+const selectedOptions = reactive<Record<string, string>>({})
+const hasSelection = computed(() => Object.keys(selectedOptions).length > 0)
+const selectionSummary = computed(() =>
+  Object.entries(selectedOptions).map(([k, v]) => `${k}: ${v}`).join('; ')
+)
+
+function selectOption(groupName: string, value: string) {
+  if (selectedOptions[groupName] === value) {
+    delete selectedOptions[groupName]
+    // 取消选择后回到封面图
+    currentImageIndex.value = 0
+  } else {
+    selectedOptions[groupName] = value
+    // 若该选项在图集中有对应图片（alt / 文件名匹配），则联动切换主图
+    const idx = imageIndexForOption(value)
+    if (idx >= 0) currentImageIndex.value = idx
+  }
+}
+
+// 根据选项值在图集中查找对应图片（优先 alt 匹配，其次 URL 文件名匹配）
+function imageIndexForOption(opt: string): number {
+  const q = String(opt || '').trim().toLowerCase()
+  if (!q) return -1
+  const images = product.value?.images || []
+  // 1) alt 精确 / 包含匹配（后台图片管理可在 alt 中填写颜色名）
+  for (const img of images) {
+    const alt = String(img.alt || '').trim().toLowerCase()
+    if (alt && (alt === q || alt.includes(q) || q.includes(alt))) {
+      const idx = allImages.value.indexOf(img.url)
+      if (idx >= 0) return idx
+    }
+  }
+  // 2) URL 文件名包含匹配（如 .../black.jpg）
+  for (const img of images) {
+    try {
+      const file = String(img.url || '').split('/').pop()?.toLowerCase() || ''
+      if (file && file.includes(q.replace(/\s+/g, '-'))) {
+        const idx = allImages.value.indexOf(img.url)
+        if (idx >= 0) return idx
+      }
+    } catch { /* ignore */ }
+  }
+  return -1
+}
+
+function clearSelection() {
+  Object.keys(selectedOptions).forEach(k => delete selectedOptions[k])
+}
+
 const waNumber = computed(() => theme.value?.whatsapp_number || '8612345678900')
 const waMessage = computed(() => {
   const p = product.value
   if (!p) return 'Hello! I am interested in your sportswear products.'
-  return `Hello! I am interested in your product: ${p.name || p.sku} (SKU: ${p.sku}). Please send me more information.`
+  const selection = selectionSummary.value ? `\nSelected options: ${selectionSummary.value}` : ''
+  return `Hello! I am interested in your product: ${p.name || p.sku} (SKU: ${p.sku}).${selection}\nPlease send me more information.`
 })
 
 const videoEmbedUrl = computed(() => {
@@ -504,6 +664,7 @@ async function copyProductInfo() {
     `Color MOQ: ${p.color_moq || 100}`,
     `Size MOQ: ${p.size_moq || 100}`,
     p.specs?.length ? `\nSpecifications:\n${p.specs.map((s: any) => `  ${s.name}: ${s.value}`).join('\n')}` : '',
+    selectionSummary.value ? `\nSelected Options: ${selectionSummary.value}` : '',
     p.customizations?.length ? `\nCustomization Options:\n${p.customizations.map((c: any) => `  ${c.type}: ${c.note || 'Available'}`).join('\n')}` : '',
     `\nURL: ${window.location.href}`,
   ].filter(Boolean).join('\n')

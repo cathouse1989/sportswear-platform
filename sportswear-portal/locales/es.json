@@ -70,7 +70,10 @@
       "no_specs": "Sin especificaciones disponibles",
       "no_customizations": "Sin opciones de personalización",
       "color_moq": "CM de Color",
-      "size_moq": "CM de Talla"
+      "size_moq": "CM de Talla",
+      "select_options": "Seleccionar Opciones",
+      "your_selection": "Tu Selección",
+      "clear": "Limpiar"
     }
   },
   "about": {

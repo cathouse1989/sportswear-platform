@@ -70,7 +70,10 @@
       "no_specs": "Aucune spécification disponible",
       "no_customizations": "Aucune option de personnalisation",
       "color_moq": "QM Couleur",
-      "size_moq": "QM Taille"
+      "size_moq": "QM Taille",
+      "select_options": "Sélectionner les Options",
+      "your_selection": "Votre Sélection",
+      "clear": "Effacer"
     }
   },
   "about": {

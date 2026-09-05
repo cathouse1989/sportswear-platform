@@ -508,7 +508,7 @@
                 </div>
                 <div v-if="img.url === imageCoverUrl" class="image-cover-badge">封面</div>
               </div>
-              <el-input v-model="img.alt" size="small" placeholder="alt 描述（SEO / 无障碍）" class="image-alt-input" />
+              <el-input v-model="img.alt" size="small" placeholder="alt 描述（SEO / 无障碍），填颜色名可联动颜色选择器" class="image-alt-input" />
             </div>
             <el-upload class="image-upload-box" :show-file-list="false" :before-upload="beforeImageUpload" accept="image/*" multiple>
               <div class="upload-trigger">
@@ -532,10 +532,23 @@
     <!-- 规格管理对话框 -->
     <el-dialog v-model="specDialogVisible" title="产品规格管理" width="580px" class="spec-dialog" destroy-on-close>
       <template v-if="specProductId">
+        <el-alert type="info" :closable="false" show-icon style="margin-bottom:12px;" title="规格值支持用逗号 / 斜杠分隔多个可选项（如 Color: Black, White, Navy），门户会渲染为可点选的颜色/尺码选择器；单一值则展示在规格表格中。" />
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+          <span style="font-size:13px; color:#6b7280;">快速添加：</span>
+          <el-button size="small" @click="addSpecPreset('Color', 'Black, White, Navy, Red')">颜色 Color</el-button>
+          <el-button size="small" @click="addSpecPreset('Size', 'XS, S, M, L, XL, XXL')">尺码 Size</el-button>
+          <el-button size="small" @click="addSpecPreset('Fabric', 'Polyester, Cotton, Nylon')">面料 Fabric</el-button>
+        </div>
         <div class="spec-list">
           <div v-for="(spec, idx) in specs" :key="idx" class="spec-row">
-            <el-input v-model="spec.name" placeholder="规格名称，如：面料" style="width: 200px" />
-            <el-input v-model="spec.value" placeholder="规格值，如：涤纶" style="width: 250px" />
+            <el-input v-model="spec.name" placeholder="规格名称，如：面料" style="width: 180px" />
+            <el-input v-model="spec.value" placeholder="规格值，如：涤纶 / 多选项用逗号分隔" style="width: 220px" />
+            <el-button size="small" circle @click="moveSpec(idx, -1)" :disabled="idx === 0" title="上移">
+              <template #icon><el-icon><ArrowUp /></el-icon></template>
+            </el-button>
+            <el-button size="small" circle @click="moveSpec(idx, 1)" :disabled="idx === specs.length - 1" title="下移">
+              <template #icon><el-icon><ArrowDown /></el-icon></template>
+            </el-button>
             <el-button type="danger" size="small" @click="removeSpec(idx)" circle>
               <template #icon><el-icon><Delete /></el-icon></template>
             </el-button>
@@ -1220,8 +1233,21 @@ function addSpec() {
   specs.value.push({ name: '', value: '' })
 }
 
+function addSpecPreset(name: string, value: string) {
+  specs.value.push({ name, value })
+}
+
 function removeSpec(idx: number) {
   specs.value.splice(idx, 1)
+}
+
+// 规格排序：dir -1 上移 / 1 下移，保存时按数组顺序持久化 sort_order
+function moveSpec(idx: number, dir: number) {
+  const target = idx + dir
+  if (target < 0 || target >= specs.value.length) return
+  const list = specs.value
+  const [item] = list.splice(idx, 1)
+  list.splice(target, 0, item)
 }
 
 async function saveSpecs() {

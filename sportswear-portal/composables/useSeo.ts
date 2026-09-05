@@ -158,13 +158,18 @@ const alternates = computed(() => {
  * 生成产品页 Product Schema
  */
 export function buildProductSchema(product: any): Record<string, any> {
+  const images: string[] = []
+  if (product.cover_image) images.push(product.cover_image)
+  for (const img of product.images || []) {
+    if (img.url && !images.includes(img.url)) images.push(img.url)
+  }
   return {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name || product.sku,
     description: product.brief || product.description || '',
     sku: product.sku,
-    image: product.cover_image || undefined,
+    image: images.length ? images : undefined,
     category: product.type || undefined,
     brand: {
       '@type': 'Brand',
