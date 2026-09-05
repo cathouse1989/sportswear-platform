@@ -774,8 +774,9 @@ func (s *AuthService) InitDefaultData() error {
 			{Name: "Manufacturing", Type: "header", URL: "/factory", SortOrder: 5, IsVisible: true},
 			{Name: "Cases", Type: "header", URL: "/cases", SortOrder: 6, IsVisible: true},
 			{Name: "Blog", Type: "header", URL: "/blog", SortOrder: 7, IsVisible: true},
-			{Name: "About Us", Type: "header", URL: "/about", SortOrder: 8, IsVisible: true},
-			{Name: "Contact Us", Type: "header", URL: "/contact", SortOrder: 9, IsVisible: true},
+			{Name: "FAQ", Type: "header", URL: "/faq", SortOrder: 8, IsVisible: true},
+			{Name: "About Us", Type: "header", URL: "/about", SortOrder: 9, IsVisible: true},
+			{Name: "Contact Us", Type: "header", URL: "/contact", SortOrder: 10, IsVisible: true},
 		}
 		s.db.Create(&navigations)
 	}
