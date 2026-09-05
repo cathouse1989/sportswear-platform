@@ -54,17 +54,17 @@
 
         <select v-model="selectedGender" @change="fetchProducts" class="px-4 py-2.5 rounded-full text-sm font-medium border border-gray-200 bg-white text-gray-600 focus:outline-none focus:border-black transition min-h-[40px]">
           <option value="">{{ $t('product.detail.gender') }}: {{ $t('product.all_categories') }}</option>
-          <option value="unisex">Unisex</option>
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-          <option value="kids">Kids</option>
+          <option value="unisex">{{ localizedEnum('product.gender_options', 'unisex') }}</option>
+          <option value="male">{{ localizedEnum('product.gender_options', 'male') }}</option>
+          <option value="female">{{ localizedEnum('product.gender_options', 'female') }}</option>
+          <option value="kids">{{ localizedEnum('product.gender_options', 'kids') }}</option>
         </select>
 
         <select v-model="selectedType" @change="fetchProducts" class="px-4 py-2.5 rounded-full text-sm font-medium border border-gray-200 bg-white text-gray-600 focus:outline-none focus:border-black transition min-h-[40px]">
           <option value="">{{ $t('product.detail.type') }}: {{ $t('product.all_categories') }}</option>
-          <option value="oem">OEM</option>
-          <option value="odm">ODM</option>
-          <option value="both">Both</option>
+          <option value="oem">{{ localizedEnum('product.type_options', 'oem') }}</option>
+          <option value="odm">{{ localizedEnum('product.type_options', 'odm') }}</option>
+          <option value="both">{{ localizedEnum('product.type_options', 'both') }}</option>
         </select>
       </div>
 
@@ -131,7 +131,7 @@ useSeoHead({
 const api = useApi()
 const route = useRoute()
 const { locale } = useI18n()
-const { localizedCategory } = useLocalized()
+const { localizedCategory, localizedEnum } = useLocalized()
 const products = ref<any[]>([])
 const categories = ref<any[]>([])
 const selectedCategory = ref('')

@@ -37,7 +37,7 @@
               class="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300" loading="lazy" />
             <div v-if="!p.cover_image" class="w-full h-full flex items-center justify-center text-5xl opacity-30">🏋️</div>
             <div class="absolute bottom-3 left-3">
-              <span class="px-2.5 py-1 bg-white/95 rounded-full text-[10px] font-semibold">{{ p.type }}</span>
+              <span class="px-2.5 py-1 bg-white/95 rounded-full text-[10px] font-semibold">{{ localizedEnum('product.type_options', p.type) }}</span>
             </div>
           </div>
           <div class="p-3">
@@ -59,7 +59,7 @@ const route = useRoute()
 const localePath = useLocalePath()
 const api = useApi()
 const { locale } = useI18n()
-const { localizedSeries } = useLocalized()
+const { localizedSeries, localizedEnum } = useLocalized()
 
 const slug = route.params.slug as string
 

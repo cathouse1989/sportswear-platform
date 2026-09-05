@@ -38,7 +38,7 @@
               />
               <div v-if="!p.cover_image" class="w-full h-full flex items-center justify-center text-4xl md:text-6xl">🏋️</div>
               <div class="absolute bottom-3 left-3 md:bottom-4 md:left-4">
-                <span class="px-2.5 md:px-3 py-1 bg-white/95 rounded-full text-[10px] md:text-xs font-semibold">{{ p.type }}</span>
+                <span class="px-2.5 md:px-3 py-1 bg-white/95 rounded-full text-[10px] md:text-xs font-semibold">{{ localizedEnum('product.type_options', p.type) }}</span>
               </div>
             </div>
             <div class="p-3 md:p-5">
@@ -93,6 +93,7 @@
 <script setup lang="ts">
 const localePath = useLocalePath()
 const { t, te, locale } = useI18n()
+const { localizedEnum } = useLocalized()
 const api = useApi()
 
 // SEO - 首页
