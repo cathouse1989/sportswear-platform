@@ -351,12 +351,13 @@ func (s *ProductService) syncProductChildren(product *models.Product, req *Produ
 		}
 		for _, video := range req.Videos {
 			item := models.ProductVideo{
-				ProductID: product.ID,
-				Type:      video.Type,
-				URL:       video.URL,
-				Cover:     video.Cover,
-				Title:     video.Title,
-				SortOrder: video.SortOrder,
+				ProductID:    product.ID,
+				Type:         video.Type,
+				URL:          video.URL,
+				Cover:        video.Cover,
+				Title:        video.Title,
+				Translations: video.Translations,
+				SortOrder:    video.SortOrder,
 			}
 			if item.Type == "" {
 				item.Type = "product"
@@ -461,11 +462,12 @@ type ProductImageRequest struct {
 
 // ProductVideoRequest 产品视频请求
 type ProductVideoRequest struct {
-	Type      string `json:"type"`
-	URL       string `json:"url"`
-	Cover     string `json:"cover"`
-	Title     string `json:"title"`
-	SortOrder int    `json:"sort_order"`
+	Type         string `json:"type"`
+	URL          string `json:"url"`
+	Cover        string `json:"cover"`
+	Title        string `json:"title"`
+	Translations string `json:"translations"`
+	SortOrder    int    `json:"sort_order"`
 }
 
 // ProductSpecRequest 产品规格请求
@@ -899,6 +901,7 @@ func (s *ProductService) CreateFabric(req *FabricRequest) (*models.Fabric, error
 		UVProtection:    req.UVProtection,
 		EcoFriendly:     req.EcoFriendly,
 		Description:     req.Description,
+		Translations:    req.Translations,
 		IsActive:        req.IsActive,
 	}
 	if err := s.db.Create(&fabric).Error; err != nil {
@@ -921,6 +924,7 @@ type FabricRequest struct {
 	UVProtection    string               `json:"uv_protection"`
 	EcoFriendly     string               `json:"eco_friendly"`
 	Description     string               `json:"description"`
+	Translations    string               `json:"translations"`
 	Status          models.ProductStatus `json:"status"`
 	IsActive        bool                 `json:"is_active"`
 }

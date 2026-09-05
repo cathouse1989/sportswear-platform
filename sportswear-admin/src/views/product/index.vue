@@ -625,16 +625,23 @@
     <el-dialog v-model="videoDialogVisible" title="产品视频管理" width="680px" class="video-dialog" destroy-on-close>
       <template v-if="videoProductId">
         <div class="video-list">
-          <div v-for="(v, idx) in videos" :key="idx" class="video-row">
-            <el-select v-model="v.type" placeholder="类型" style="width: 120px">
-              <el-option v-for="opt in videoTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-            </el-select>
-            <el-input v-model="v.title" placeholder="标题" style="width: 140px" />
-            <el-input v-model="v.url" placeholder="视频 URL（支持 YouTube 链接）" style="width: 220px" />
-            <el-input v-model="v.cover" placeholder="封面 URL" style="width: 140px" />
-            <el-button type="danger" size="small" @click="removeVideo(idx)" circle>
-              <template #icon><el-icon><Delete /></el-icon></template>
-            </el-button>
+          <div v-for="(v, idx) in videos" :key="idx" class="video-item">
+            <div class="video-row">
+              <el-select v-model="v.type" placeholder="类型" style="width: 120px">
+                <el-option v-for="opt in videoTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+              </el-select>
+              <el-input v-model="v.title" placeholder="标题 (英文)" style="width: 140px" />
+              <el-input v-model="v.url" placeholder="视频 URL（支持 YouTube 链接）" style="width: 220px" />
+              <el-input v-model="v.cover" placeholder="封面 URL" style="width: 140px" />
+              <el-button type="danger" size="small" @click="removeVideo(idx)" circle>
+                <template #icon><el-icon><Delete /></el-icon></template>
+              </el-button>
+            </div>
+            <div class="video-trans">
+              <el-input v-model="v.title_zh" placeholder="标题 (中文)" />
+              <el-input v-model="v.title_es" placeholder="标题 (西语)" />
+              <el-input v-model="v.title_fr" placeholder="标题 (法语)" />
+            </div>
           </div>
         </div>
         <el-button size="small" @click="addVideo" class="mt-2">
@@ -809,7 +816,7 @@ const savingSpecs = ref(false)
 // 视频管理
 const videoDialogVisible = ref(false)
 const videoProductId = ref('')
-const videos = ref<Array<{ type: string; title: string; url: string; cover: string }>>([])
+const videos = ref<Array<{ type: string; title: string; url: string; cover: string; title_zh?: string; title_es?: string; title_fr?: string }>>([])
 const videoDetail = ref<any>(null)
 const savingVideos = ref(false)
 const videoTypeOptions = [
@@ -1380,18 +1387,25 @@ async function openVideoDialog(row: Product) {
     const detail = await productApi.get(row.id)
     videoDetail.value = detail
     if (detail.videos?.length) {
-      videos.value = detail.videos.map((v: any) => ({
-        type: v.type || 'product',
-        title: v.title || '',
-        url: v.url || '',
-        cover: v.cover || '',
-      }))
+      videos.value = detail.videos.map((v: any) => {
+        let t: Record<string, string> = {}
+        try { t = v.translations ? JSON.parse(v.translations) : {} } catch { t = {} }
+        return {
+          type: v.type || 'product',
+          title: v.title || '',
+          url: v.url || '',
+          cover: v.cover || '',
+          title_zh: t.zh || '',
+          title_es: t.es || '',
+          title_fr: t.fr || '',
+        }
+      })
     }
   } catch {}
 }
 
 function addVideo() {
-  videos.value.push({ type: 'product', title: '', url: '', cover: '' })
+  videos.value.push({ type: 'product', title: '', url: '', cover: '', title_zh: '', title_es: '', title_fr: '' })
 }
 
 function removeVideo(idx: number) {
@@ -1408,7 +1422,14 @@ async function saveVideos() {
   try {
     await productApi.update(videoProductId.value, {
       ...productPayload(videoDetail.value),
-      videos: videos.value.map((v, i) => ({ type: v.type, url: v.url, cover: v.cover, title: v.title, sort_order: i })),
+      videos: videos.value.map((v: any, i) => {
+        const { title_zh, title_es, title_fr, ...rest } = v
+        const translations: Record<string, string> = {}
+        if (title_zh) translations.zh = title_zh
+        if (title_es) translations.es = title_es
+        if (title_fr) translations.fr = title_fr
+        return { ...rest, sort_order: i, translations: JSON.stringify(translations) }
+      }),
     })
     ElMessage.success('视频保存成功')
     videoDialogVisible.value = false
@@ -1880,6 +1901,22 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 .spec-trans .el-input {
+  flex: 1;
+  min-width: 140px;
+}
+.video-item {
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px solid #f0ede8;
+  border-radius: 8px;
+}
+.video-trans {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.video-trans .el-input {
   flex: 1;
   min-width: 140px;
 }

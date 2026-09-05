@@ -80,6 +80,10 @@ func LocalizeProduct(p *models.Product, lang string) {
 	localizeCustomizations(p.Customizations, lang)
 	// 规格参数 value 按语言解析（JSONB 翻译字段，未配置时回退英文 Value）
 	localizeSpecs(p.Specs, lang)
+	// 视频标题按语言解析（JSONB 翻译字段，未配置时回退英文 Title）
+	localizeVideos(p.Videos, lang)
+	// 关联面料按语言解析（嵌套 JSONB，未配置时回退英文）
+	LocalizeFabrics(p.Fabrics, lang)
 }
 
 // resolveTranslated 解析 JSONB 翻译字段（如 {"zh":"...","es":"...","fr":"..."}），返回目标语言文案。
@@ -110,6 +114,47 @@ func localizeSpecs(specs []models.ProductSpec, lang string) {
 		if value := resolveTranslated(specs[i].Translations, lang); value != "" {
 			specs[i].Value = value
 		}
+	}
+}
+
+// localizeVideos 批量本地化产品视频标题
+func localizeVideos(videos []models.ProductVideo, lang string) {
+	for i := range videos {
+		if title := resolveTranslated(videos[i].Translations, lang); title != "" {
+			videos[i].Title = title
+		}
+	}
+}
+
+// LocalizeFabric 按语言解析面料翻译（嵌套 JSONB：{"zh":{"name":"","composition":"","description":""}}）。
+// 英文为源（Name/Composition/Description），其余语言按需覆盖，未配置时回退英文。
+func LocalizeFabric(f *models.Fabric, lang string) {
+	if f == nil || lang == "" || lang == "en" {
+		return
+	}
+	var m map[string]map[string]string
+	if err := json.Unmarshal([]byte(f.Translations), &m); err != nil {
+		return
+	}
+	t, ok := m[lang]
+	if !ok {
+		return
+	}
+	if t["name"] != "" {
+		f.Name = t["name"]
+	}
+	if t["composition"] != "" {
+		f.Composition = t["composition"]
+	}
+	if t["description"] != "" {
+		f.Description = t["description"]
+	}
+}
+
+// LocalizeFabrics 批量本地化面料
+func LocalizeFabrics(fabrics []models.Fabric, lang string) {
+	for i := range fabrics {
+		LocalizeFabric(&fabrics[i], lang)
 	}
 }
 

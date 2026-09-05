@@ -484,7 +484,12 @@ func (h *PublicHandler) ListFabrics(c *gin.Context) {
 	key := "cache:fabrics:" + lang
 
 	fabrics, err := cached[[]models.Fabric](h, key, services.CacheTTLMedium, !h.previewMode(c), func() ([]models.Fabric, error) {
-		return h.productService.ListPublishedFabrics()
+		fabrics, err := h.productService.ListPublishedFabrics()
+		if err != nil {
+			return nil, err
+		}
+		services.LocalizeFabrics(fabrics, lang)
+		return fabrics, nil
 	})
 	if err != nil {
 		utils.InternalError(c, "获取面料列表失败")

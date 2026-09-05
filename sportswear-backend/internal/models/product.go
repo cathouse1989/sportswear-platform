@@ -117,6 +117,8 @@ type ProductVideo struct {
 	URL       string    `gorm:"type:varchar(500);not null" json:"url"`
 	Cover     string    `gorm:"type:varchar(500)" json:"cover"`
 	Title     string    `gorm:"type:varchar(200)" json:"title"`
+	// 多语言翻译（JSONB）：{"zh":"...","es":"...","fr":"..."}，键为语言码，值为该语言的 title 文案
+	Translations string `gorm:"type:jsonb" json:"translations"`
 	SortOrder int       `gorm:"default:0" json:"sort_order"`
 }
 
@@ -160,6 +162,9 @@ type Fabric struct {
 	UVProtection    string        `gorm:"type:varchar(50)" json:"uv_protection"`
 	EcoFriendly     string        `gorm:"type:varchar(50)" json:"eco_friendly"`
 	Description     string        `gorm:"type:text" json:"description"`
+	// 多语言翻译（JSONB）：{"zh":{"name":"...","composition":"...","description":"..."},...}
+	// 英文为源（Name/Composition/Description 字段）；其余语言按需补充，未配置时门户回退英文。
+	Translations    string        `gorm:"type:jsonb" json:"translations"`
 	IsActive        bool          `gorm:"default:true" json:"is_active"`
 	Products        []Product     `gorm:"many2many:product_fabrics;" json:"-"`
 }
