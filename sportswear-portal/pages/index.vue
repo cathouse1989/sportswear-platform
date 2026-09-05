@@ -29,14 +29,22 @@
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 loading="lazy"
               />
-              <div v-else class="w-full h-full flex items-center justify-center text-4xl md:text-6xl">🏋️</div>
+              <img
+                v-if="hoverImg(p)"
+                :src="hoverImg(p)"
+                :alt="`${p.sku} - detail`"
+                class="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                loading="lazy"
+              />
+              <div v-if="!p.cover_image" class="w-full h-full flex items-center justify-center text-4xl md:text-6xl">🏋️</div>
               <div class="absolute bottom-3 left-3 md:bottom-4 md:left-4">
                 <span class="px-2.5 md:px-3 py-1 bg-white/95 rounded-full text-[10px] md:text-xs font-semibold">{{ p.type }}</span>
               </div>
             </div>
             <div class="p-3 md:p-5">
-              <h3 class="text-xs md:text-sm font-semibold text-[#0D1B2A]">{{ p.name || p.sku }}</h3>
-              <p class="text-[10px] md:text-sm text-gray-500 mt-0.5 md:mt-1">{{ p.brief?.slice(0, 60) }}</p>
+              <h3 class="text-xs md:text-sm font-semibold text-[#0D1B2A] line-clamp-1">{{ p.name || p.sku }}</h3>
+              <p class="text-[10px] md:text-sm text-gray-500 mt-0.5 md:mt-1 line-clamp-2">{{ p.brief?.slice(0, 60) }}</p>
+              <p class="text-[10px] md:text-xs text-gray-400 mt-1 md:mt-2">MOQ {{ p.production_moq || 300 }}</p>
             </div>
           </NuxtLink>
         </div>
@@ -81,6 +89,11 @@ const { data: themeData } = await useAsyncData<Record<string, any>>(
 )
 
 const products = computed<any[]>(() => homeData.value?.featured_products || [])
+
+// 精选产品卡片 hover 第二张图
+function hoverImg(p: any): string {
+  return galleryImageUrls(p)[1] || ''
+}
 
 // 轮播文案词条字典（来自后台「词条管理」i18n_entries，按语言翻页配置）
 // Key：home.hero_title_1..N / home.hero_sub_1..N / home.get_quote

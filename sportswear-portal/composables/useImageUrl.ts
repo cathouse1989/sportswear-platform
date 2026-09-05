@@ -66,3 +66,20 @@ export function normalizeImages(images: Array<{ url?: string; [key: string]: any
 export function imgUrl(url: string | null | undefined): string {
   return normalizeImageUrl(url)
 }
+
+/**
+ * 取产品展示用图片 URL 列表（封面 + 图集，归一化 + 去重）。
+ * 用于产品卡片 hover 切换第二张图、图集数量徽章等。
+ */
+export function galleryImageUrls(product: any): string[] {
+  const list: string[] = []
+  if (product?.cover_image) {
+    const u = normalizeImageUrl(product.cover_image)
+    if (u) list.push(u)
+  }
+  for (const img of product?.images || []) {
+    const u = normalizeImageUrl(img?.url || '')
+    if (u && !list.includes(u)) list.push(u)
+  }
+  return list
+}

@@ -88,10 +88,17 @@
             <img v-if="p.cover_image" :src="imgUrl(p.cover_image)" :alt="p.sku"
               class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
               loading="lazy" />
-            <div v-else class="absolute inset-0 flex items-center justify-center text-6xl opacity-30 group-hover:scale-110 transition-transform duration-500">🏋️</div>
+            <img v-if="hoverImg(p)" :src="hoverImg(p)" :alt="`${p.sku} - detail`"
+              class="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              loading="lazy" />
+            <div v-if="!p.cover_image" class="absolute inset-0 flex items-center justify-center text-6xl opacity-30 group-hover:scale-110 transition-transform duration-500">🏋️</div>
             <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
-            <div class="absolute bottom-4 left-4 right-4">
+            <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2">
               <span class="inline-block px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium text-gray-700">{{ p.type || p.category }}</span>
+              <span v-if="galleryImgCount(p) > 1" class="inline-flex items-center gap-1 px-2 py-1 bg-black/60 text-white rounded-full text-[10px] font-medium">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                {{ galleryImgCount(p) }}
+              </span>
             </div>
           </div>
           <div class="p-3 md:p-4">
@@ -102,6 +109,7 @@
             <p class="text-[10px] md:text-xs text-gray-500 line-clamp-2">{{ p.brief?.slice(0, 60) || p.description?.slice(0, 60) }}</p>
             <div class="mt-2 md:mt-3 flex items-center gap-2 text-[10px] md:text-xs text-gray-400">
               <span v-if="p.material">🧵 {{ p.material }}</span>
+              <span class="ml-auto font-medium text-gray-500">MOQ {{ p.production_moq || 300 }}</span>
             </div>
           </div>
         </NuxtLink>
@@ -150,6 +158,14 @@ const pageSize = ref(Number(route.query._pageSize) || 20)
 const hasMore = ref(true)
 const total = ref(0)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
+
+// 产品卡片 hover 第二张图 / 图集数量（复用 useImageUrl 的 galleryImageUrls）
+function hoverImg(p: any): string {
+  return galleryImageUrls(p)[1] || ''
+}
+function galleryImgCount(p: any): number {
+  return galleryImageUrls(p).length
+}
 
 // SSR 首屏加载产品数据（内联到 HTML）
 const { data: ssrData } = await useAsyncData<any>(

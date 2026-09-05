@@ -287,6 +287,34 @@
           </div>
         </div>
       </div>
+
+      <!-- Related Products -->
+      <div v-if="related?.length" class="mt-8 lg:mt-12">
+        <h2 class="text-xl font-bold text-[#0D1B2A] mb-6">{{ $t('product.detail.related_products') }}</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
+          <NuxtLink
+            v-for="r in related"
+            :key="r.id"
+            :to="localePath('/products/' + r.slug)"
+            class="group bg-white rounded-2xl overflow-hidden border border-[#EAE5DD] hover:shadow-lg transition-all active:scale-[0.98]"
+          >
+            <div class="aspect-[4/5] bg-gray-100 relative overflow-hidden">
+              <img v-if="r.cover_image" :src="imgUrl(r.cover_image)" :alt="r.sku"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" />
+              <img v-if="relatedHoverImg(r)" :src="relatedHoverImg(r)" :alt="`${r.sku} - detail`"
+                class="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300" loading="lazy" />
+              <div v-if="!r.cover_image" class="w-full h-full flex items-center justify-center text-5xl opacity-30">🏋️</div>
+              <div class="absolute bottom-3 left-3">
+                <span class="px-2.5 py-1 bg-white/95 rounded-full text-[10px] font-semibold">{{ r.type }}</span>
+              </div>
+            </div>
+            <div class="p-3">
+              <h3 class="text-xs font-semibold text-[#0D1B2A] line-clamp-1">{{ r.name || r.sku }}</h3>
+              <p class="text-[10px] text-gray-500 mt-1">MOQ {{ r.production_moq || 300 }}</p>
+            </div>
+          </NuxtLink>
+        </div>
+      </div>
     </div>
 
     <!-- Video Modal -->
@@ -439,7 +467,42 @@ const { data: theme } = await useAsyncData<Record<string, any>>(
   'theme-' + (locale.value || 'en'),
   () => api.getTheme().catch(() => ({})),
 )
+
+// 相关产品（同分类优先，不足则用全量补充，用于底部推荐与站内 SEO 内链）
+const { data: related } = await useAsyncData<any[]>(
+  'related-' + (locale.value || 'en') + '-' + slug,
+  async () => {
+    try {
+      const catId = product.value?.category_id
+      const params: Record<string, any> = { page: 1, pageSize: 8 }
+      if (catId) params.category_id = catId
+      const res = await api.getProducts(params)
+      let items = Array.isArray(res) ? res : (res?.items || [])
+      items = items.filter((r: any) => r.slug !== slug)
+      if (items.length < 4 && catId) {
+        const all = await api.getProducts({ page: 1, pageSize: 12 })
+        const allItems = Array.isArray(all) ? all : (all?.items || [])
+        const seen = new Set(items.map((x: any) => x.id))
+        for (const it of allItems) {
+          if (it.slug !== slug && !seen.has(it.id)) {
+            items.push(it)
+            seen.add(it.id)
+          }
+          if (items.length >= 4) break
+        }
+      }
+      return items.slice(0, 4)
+    } catch {
+      return []
+    }
+  },
+)
+
 const loading = computed(() => product.value == null)
+
+function relatedHoverImg(r: any): string {
+  return galleryImageUrls(r)[1] || ''
+}
 
 // All images for gallery (cover + gallery images)
 const allImages = computed(() => {
