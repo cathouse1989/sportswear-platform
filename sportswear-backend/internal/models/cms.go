@@ -1,6 +1,7 @@
 package models
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -200,4 +201,29 @@ type SelfMedia struct {
 	SortOrder   int           `gorm:"default:0" json:"sort_order"`                        // 排序（越小越靠前）
 	Status      ProductStatus `gorm:"type:varchar(20);default:draft;index" json:"status"` // 展示状态：published=展示，draft/offline=不展示
 	IsActive    bool          `gorm:"default:true" json:"is_active"`
+}
+
+// PlatformBaseURLs 各平台主页地址：账号未配置时跳转到平台主页
+var PlatformBaseURLs = map[string]string{
+	"wechat":      "https://weixin.qq.com",
+	"weibo":       "https://weibo.com",
+	"douyin":      "https://www.douyin.com",
+	"xiaohongshu": "https://www.xiaohongshu.com",
+	"video":       "",
+	"bilibili":    "https://www.bilibili.com",
+	"youtube":     "https://www.youtube.com",
+	"instagram":   "https://www.instagram.com",
+	"facebook":    "https://www.facebook.com",
+	"twitter":     "https://twitter.com",
+	"linkedin":    "https://www.linkedin.com",
+	"tiktok":      "https://www.tiktok.com",
+	"other":       "",
+}
+
+// EffectiveURL 计算前台跳转链接：配置了完整链接则跳转到该账号，否则跳转到对应平台主页。
+func (m *SelfMedia) EffectiveURL() string {
+	if u := strings.TrimSpace(m.URL); u != "" {
+		return u
+	}
+	return PlatformBaseURLs[m.Platform]
 }

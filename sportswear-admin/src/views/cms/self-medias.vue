@@ -50,8 +50,13 @@
           <el-option v-for="p in PLATFORMS" :key="p.value" :label="p.label" :value="p.value" />
         </el-select>
       </el-form-item>
-      <el-form-item label="账号"><el-input v-model="form.account" placeholder="账号 ID / 昵称（可选）" /></el-form-item>
-      <el-form-item label="链接"><el-input v-model="form.url" placeholder="跳转链接（可选）" /></el-form-item>
+      <el-form-item label="账号">
+        <el-input v-model="form.account" placeholder="账号 ID / 昵称，如 @sportswear（可选，展示用）" />
+      </el-form-item>
+      <el-form-item label="跳转链接">
+        <el-input v-model="form.url" placeholder="完整链接，如 https://youtube.com/@sportswear（可选）" />
+        <div class="mt-1 text-xs text-gray-400">配置后点击跳转到该账号；留空则跳转到对应平台主页</div>
+      </el-form-item>
       <el-form-item label="二维码/头像"><MediaPicker v-model="form.image" /></el-form-item>
       <el-form-item label="排序"><el-input-number v-model="form.sort_order" :min="0" /></el-form-item>
       <el-form-item label="简介"><el-input v-model="form.description" type="textarea" /></el-form-item>

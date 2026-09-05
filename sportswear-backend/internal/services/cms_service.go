@@ -1682,8 +1682,14 @@ func (s *CMSService) ListPublishedSelfMedias(limit int) ([]models.SelfMedia, err
 	if limit > 0 {
 		q = q.Limit(limit)
 	}
-	err := q.Find(&items).Error
-	return items, err
+	if err := q.Find(&items).Error; err != nil {
+		return nil, err
+	}
+	// 计算前台跳转链接：自定义 URL > 平台主页 + 账号 > 平台主页（账号未配置时跳平台主页）
+	for i := range items {
+		items[i].URL = items[i].EffectiveURL()
+	}
+	return items, nil
 }
 
 // PublishSelfMedia 发布自媒体（前端可见）
