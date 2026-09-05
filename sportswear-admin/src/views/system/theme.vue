@@ -70,7 +70,7 @@
           </el-form>
         </el-tab-pane>
       </el-tabs>
-      <div class="mt-2 mb-3 text-xs text-gray-400">按语言分别配置，保存后门户 Footer「Contact Info」区块与联系我们页「Contact Information」区块将按语言同步更新</div>
+      <div class="mt-2 mb-3 text-xs text-gray-400">按语言分别配置；未配置的语言/字段门户展示默认值（与门户多语言文案一致）。保存后门户 Footer「Contact Info」区块与联系我们页「Contact Information」区块将按语言同步更新</div>
       <el-button type="primary" size="large" @click="handleSaveContact" :loading="savingContact">保存联系方式</el-button>
     </el-card>
 
@@ -126,11 +126,19 @@ const aboutLangLabels: Record<string, string> = { en: 'English', zh: '中文', e
 const aboutDesc = reactive<Record<string, string>>({ en: '', zh: '', es: '', fr: '' })
 const savingAbout = ref(false)
 const contactLang = ref('en')
+// 联系方式默认值（与门户静态语言包 locales/*.json 完全一致）：
+// 后台未配置（i18n_entries 无对应词条）时表单展示默认值，门户同步展示默认值
+const CONTACT_DEFAULTS: Record<string, Record<ContactFieldKey, string>> = {
+  en: { email: 'info@sportswear.com', phone: '+86 123 4567 8900', address: 'Guangzhou, China', hours: 'Mon-Fri 9:00-18:00 (GMT+8)' },
+  zh: { email: 'info@sportswear.com', phone: '+86 123 4567 8900', address: '中国 · 广州', hours: '周一至周五 9:00-18:00（GMT+8）' },
+  es: { email: 'info@sportswear.com', phone: '+86 123 4567 8900', address: 'Guangzhou, China', hours: 'Lun-Vie 9:00-18:00 (GMT+8)' },
+  fr: { email: 'info@sportswear.com', phone: '+86 123 4567 8900', address: 'Guangzhou, Chine', hours: 'Lun-Ven 9h-18h (GMT+8)' },
+}
 const contactForm = reactive<Record<string, Record<ContactFieldKey, string>>>({
-  en: { email: '', phone: '', address: '', hours: '' },
-  zh: { email: '', phone: '', address: '', hours: '' },
-  es: { email: '', phone: '', address: '', hours: '' },
-  fr: { email: '', phone: '', address: '', hours: '' },
+  en: { ...CONTACT_DEFAULTS.en },
+  zh: { ...CONTACT_DEFAULTS.zh },
+  es: { ...CONTACT_DEFAULTS.es },
+  fr: { ...CONTACT_DEFAULTS.fr },
 })
 const savingContact = ref(false)
 

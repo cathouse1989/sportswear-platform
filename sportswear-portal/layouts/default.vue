@@ -241,6 +241,10 @@
                 <svg class="w-4 h-4 flex-shrink-0 text-[#D4A853]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                 {{ $t('contact.address_value') }}
               </li>
+              <li class="flex items-center gap-3">
+                <svg class="w-4 h-4 flex-shrink-0 text-[#D4A853]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                {{ $t('contact.hours_value') }}
+              </li>
             </ul>
           </div>
         </div>
