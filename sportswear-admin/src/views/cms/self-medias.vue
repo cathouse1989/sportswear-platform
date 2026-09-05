@@ -62,7 +62,7 @@
 import { onMounted, ref } from 'vue'
 import type { FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
-import { selfMediaApi, themeApi } from '@/api'
+import { selfMediaApi } from '@/api'
 import MediaPicker from '@/components/media/MediaPicker.vue'
 import ProFormDialog from '@/components/pro/ProFormDialog.vue'
 import { useCrud } from '@/composables/useCrud'
@@ -99,15 +99,15 @@ const maxDisplay = ref(6)
 const savingMax = ref(false)
 async function loadMaxDisplay() {
   try {
-    const theme: any = await themeApi.get()
-    const n = Number(theme?.self_media_max_display)
+    const res = await selfMediaApi.getConfig()
+    const n = Number(res?.max_display)
     if (Number.isFinite(n) && n > 0) maxDisplay.value = n
   } catch { /* 读取失败用默认值 */ }
 }
 async function saveMaxDisplay() {
   savingMax.value = true
   try {
-    await themeApi.update('self_media_max_display', String(maxDisplay.value))
+    await selfMediaApi.updateConfig(maxDisplay.value)
     ElMessage.success('已保存最多展示数量')
   } catch {
     ElMessage.error('保存失败')

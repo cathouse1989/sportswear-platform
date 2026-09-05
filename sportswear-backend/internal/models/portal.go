@@ -57,14 +57,7 @@ var DefaultThemeConfigs = []ThemeConfig{
 	{Key: "whatsapp_message", Value: `"Hello! I am interested in your sportswear products."`, Group: "contact", Name: "WhatsApp 默认消息", IsActive: true},
 	{Key: "contact_email", Value: `"info@sportswear.com"`, Group: "contact", Name: "联系邮箱", IsActive: true},
 	{Key: "contact_phone", Value: `"+86 123 4567 8900"`, Group: "contact", Name: "联系电话", IsActive: true},
-	// 社交媒体链接
-	{Key: "social_youtube", Value: `"https://youtube.com/@sportswear"`, Group: "social", Name: "YouTube 链接", IsActive: true},
-	{Key: "social_instagram", Value: `"https://instagram.com/sportswear"`, Group: "social", Name: "Instagram 链接", IsActive: true},
-	{Key: "social_xiaohongshu", Value: `"https://xiaohongshu.com/user/sportswear"`, Group: "social", Name: "小红书链接", IsActive: true},
-	{Key: "social_facebook", Value: `"https://facebook.com/sportswear"`, Group: "social", Name: "Facebook 链接", IsActive: true},
-	{Key: "social_twitter", Value: `"https://twitter.com/sportswear"`, Group: "social", Name: "Twitter/X 链接", IsActive: true},
-	{Key: "social_linkedin", Value: `"https://linkedin.com/company/sportswear"`, Group: "social", Name: "LinkedIn 链接", IsActive: true},
-	{Key: "self_media_max_display", Value: "6", Group: "social", Name: "自媒体最多展示数量", IsActive: true},
+	// 社交/自媒体链接已迁移至「自媒体管理」（self_medias 表），此处不再维护，避免两处重复配置。
 
 	// 翻页配置
 	{Key: "products_page_size", Value: "20", Group: "pagination", Name: "产品列表每页条数", IsActive: true},

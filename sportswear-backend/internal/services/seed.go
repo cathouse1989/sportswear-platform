@@ -446,3 +446,25 @@ func strToUUIDPtr(s string) *uuid.UUID {
 	}
 	return &uid
 }
+
+// SeedSelfMedias 初始化默认自媒体账号（仅当 self_medias 为空时插入，已发布状态）
+// 与门户 Footer 社交图标共用同一数据源，保证「自媒体管理」是唯一配置入口。
+func SeedSelfMedias(db *gorm.DB) {
+	var count int64
+	db.Model(&models.SelfMedia{}).Count(&count)
+	if count > 0 {
+		return
+	}
+	entries := []models.SelfMedia{
+		{Name: "YouTube", Platform: "youtube", URL: "https://youtube.com/@sportswear", SortOrder: 1, Status: models.ProductStatusPublished, IsActive: true},
+		{Name: "Instagram", Platform: "instagram", URL: "https://instagram.com/sportswear", SortOrder: 2, Status: models.ProductStatusPublished, IsActive: true},
+		{Name: "小红书", Platform: "xiaohongshu", URL: "https://xiaohongshu.com/user/sportswear", SortOrder: 3, Status: models.ProductStatusPublished, IsActive: true},
+		{Name: "Facebook", Platform: "facebook", URL: "https://facebook.com/sportswear", SortOrder: 4, Status: models.ProductStatusPublished, IsActive: true},
+		{Name: "Twitter/X", Platform: "twitter", URL: "https://twitter.com/sportswear", SortOrder: 5, Status: models.ProductStatusPublished, IsActive: true},
+		{Name: "LinkedIn", Platform: "linkedin", URL: "https://linkedin.com/company/sportswear", SortOrder: 6, Status: models.ProductStatusPublished, IsActive: true},
+	}
+	for i := range entries {
+		db.Create(&entries[i])
+	}
+	log.Println("[Seed] 已初始化默认自媒体账号")
+}

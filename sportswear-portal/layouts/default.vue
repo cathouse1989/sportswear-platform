@@ -200,6 +200,8 @@
                 <svg v-else-if="s.icon === 'twitter'" class="w-4 h-4 text-[#9A8C7A] group-hover:text-[#0D1B2A] transition-colors" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                 <!-- LinkedIn -->
                 <svg v-else-if="s.icon === 'linkedin'" class="w-4 h-4 text-[#9A8C7A] group-hover:text-[#0D1B2A] transition-colors" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                <!-- 其他平台：通用地球图标 -->
+                <svg v-else class="w-4 h-4 text-[#9A8C7A] group-hover:text-[#0D1B2A] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="1.5"/><path stroke-width="1.5" d="M2 12h20M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20z"/></svg>
               </a>
             </div>
           </div>
@@ -293,7 +295,7 @@ const DEFAULT_FOOTER = [
 ]
 
 // 动态导航数据（SSR + 客户端）
-const { getNavigations, getTheme, trackClick, subscribe } = useApi()
+const { getNavigations, getTheme, getSelfMedias, trackClick, subscribe } = useApi()
 const { data: headerNavData } = await useAsyncData<any[]>(
   'nav-header',
   () => getNavigations('header').catch(() => null),
@@ -409,14 +411,19 @@ const footerCategories = [
 ]
 const catLabel = (c: { key: string; fallback: string }) => (te(c.key) ? t(c.key) : c.fallback)
 
-const socialLinks = computed(() => [
-  { key: 'social_youtube', label: 'YouTube', icon: 'youtube', url: theme.value.social_youtube || '#' },
-  { key: 'social_instagram', label: 'Instagram', icon: 'instagram', url: theme.value.social_instagram || '#' },
-  { key: 'social_xiaohongshu', label: '小红书', icon: 'xiaohongshu', url: theme.value.social_xiaohongshu || '#' },
-  { key: 'social_facebook', label: 'Facebook', icon: 'facebook', url: theme.value.social_facebook || '#' },
-  { key: 'social_twitter', label: 'Twitter/X', icon: 'twitter', url: theme.value.social_twitter || '#' },
-  { key: 'social_linkedin', label: 'LinkedIn', icon: 'linkedin', url: theme.value.social_linkedin || '#' },
-])
+// 自媒体账号（Footer 社交图标 + 首页「关注我们」共用同一数据源，唯一配置入口在「自媒体管理」）
+const { data: selfMediasData } = await useAsyncData<any[]>(
+  'self-medias-footer',
+  () => getSelfMedias().catch(() => []),
+)
+const socialLinks = computed(() => (selfMediasData.value || [])
+  .filter((m: any) => m.url)
+  .map((m: any) => ({
+    key: m.id,
+    label: m.name,
+    icon: m.platform || 'other',
+    url: m.url,
+  })))
 
 const langFlag = computed(() => {
   const current = (locales.value || []).find((l) => l.code === locale.value)

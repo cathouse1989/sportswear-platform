@@ -89,7 +89,7 @@ const NUMBER_KEYS = [
   'header_height', 'footer_columns', 'section_spacing', 'container_width',
   'button_radius', 'card_radius',
   'products_page_size', 'blogs_page_size', 'cases_page_size', 'faqs_page_size', 'admin_page_size',
-  'hero_interval_ms', 'self_media_max_display',
+  'hero_interval_ms',
 ]
 const isNumberKey = (key: string) => NUMBER_KEYS.includes(key)
 

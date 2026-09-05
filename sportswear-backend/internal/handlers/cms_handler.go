@@ -807,3 +807,25 @@ func (h *CMSHandler) UnpublishSelfMedia(c *gin.Context) {
 	h.invalidateCache("self_media", "")
 	utils.Success(c, gin.H{"unpublished": true})
 }
+
+// GetSelfMediaConfig 读取自媒体展示配置（最多展示数量）
+func (h *CMSHandler) GetSelfMediaConfig(c *gin.Context) {
+	utils.Success(c, gin.H{"max_display": h.cmsService.SelfMediaMaxDisplay()})
+}
+
+// UpdateSelfMediaConfig 更新自媒体展示配置（最多展示数量）
+func (h *CMSHandler) UpdateSelfMediaConfig(c *gin.Context) {
+	var req struct {
+		MaxDisplay int `json:"max_display"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, "参数错误: "+err.Error())
+		return
+	}
+	if err := h.cmsService.SetSelfMediaMaxDisplay(req.MaxDisplay); err != nil {
+		utils.BadRequest(c, "保存自媒体配置失败")
+		return
+	}
+	h.invalidateCache("self_media", "")
+	utils.Success(c, gin.H{"max_display": h.cmsService.SelfMediaMaxDisplay()})
+}

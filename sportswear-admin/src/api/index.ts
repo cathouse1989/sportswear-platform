@@ -204,6 +204,8 @@ export const selfMediaApi = {
   delete: (id: string) => http.delete(`/admin/self-medias/${id}`),
   publish: (id: string) => http.post(`/admin/self-medias/${id}/publish`),
   unpublish: (id: string) => http.post(`/admin/self-medias/${id}/unpublish`),
+  getConfig: () => http.get<{ max_display: number }>('/admin/self-medias/config'),
+  updateConfig: (maxDisplay: number) => http.put<{ max_display: number }>('/admin/self-medias/config', { max_display: maxDisplay }),
 }
 
 export const mediaApi = {

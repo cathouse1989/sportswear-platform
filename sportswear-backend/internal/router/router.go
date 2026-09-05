@@ -353,6 +353,10 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 			// 自媒体管理
 			auth.GET("/self-medias",
 				middleware.RequireAnyPermission("selfmedia:manage", "page:view"), cmsHandler.ListSelfMedias)
+			auth.GET("/self-medias/config",
+				middleware.RequireAnyPermission("selfmedia:manage", "page:view"), cmsHandler.GetSelfMediaConfig)
+			auth.PUT("/self-medias/config",
+				middleware.RequirePermission("selfmedia:manage"), cmsHandler.UpdateSelfMediaConfig)
 			auth.POST("/self-medias",
 				middleware.RequirePermission("selfmedia:manage"), cmsHandler.CreateSelfMedia)
 			auth.PUT("/self-medias/:id",

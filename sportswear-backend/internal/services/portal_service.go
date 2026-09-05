@@ -1,4 +1,4 @@
-﻿package services
+package services
 
 import (
 	"encoding/json"
@@ -215,6 +215,17 @@ func (s *PortalService) InitDefaultTheme() error {
 				return err
 			}
 		}
+	}
+
+	// 社交/自媒体链接已迁移至「自媒体管理」：停用 theme_configs 中历史遗留的相关键，
+	// 避免「其他主题配置项」与「自媒体管理」两处重复出现配置（只保留自媒体管理一处）。
+	deprecatedKeys := []string{
+		"social_youtube", "social_instagram", "social_xiaohongshu",
+		"social_facebook", "social_twitter", "social_linkedin",
+		"self_media_max_display",
+	}
+	if err := s.db.Model(&models.ThemeConfig{}).Where("\"key\" IN ?", deprecatedKeys).Update("is_active", false).Error; err != nil {
+		return err
 	}
 	return nil
 }

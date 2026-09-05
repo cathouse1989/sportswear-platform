@@ -1637,6 +1637,26 @@ func (s *CMSService) SelfMediaMaxDisplay() int {
 	return n
 }
 
+// SetSelfMediaMaxDisplay 保存「自媒体最多展示数量」配置（theme_configs，is_active=false 以隐藏于主题配置表）
+func (s *CMSService) SetSelfMediaMaxDisplay(n int) error {
+	if n < 1 {
+		n = 1
+	}
+	var cfg models.ThemeConfig
+	err := s.db.Where("\"key\" = ?", "self_media_max_display").First(&cfg).Error
+	if err != nil {
+		cfg = models.ThemeConfig{
+			Key:      "self_media_max_display",
+			Value:    strconv.Itoa(n),
+			Group:    "self_media",
+			Name:     "自媒体最多展示数量",
+			IsActive: false,
+		}
+		return s.db.Create(&cfg).Error
+	}
+	return s.db.Model(&cfg).Update("value", strconv.Itoa(n)).Error
+}
+
 // ListSelfMedias 自媒体列表（后台：全部状态，服务端分页 + 名称/平台/账号搜索）
 func (s *CMSService) ListSelfMedias(page, pageSize int, keyword string) ([]models.SelfMedia, int64, error) {
 	var items []models.SelfMedia
