@@ -6,6 +6,23 @@
       <p class="mt-3 text-gray-500 text-base leading-relaxed">{{ $t('blog.subtitle') }}</p>
     </header>
 
+    <!-- 分类筛选 -->
+    <div class="flex flex-wrap gap-2 mb-8">
+      <button
+        v-for="chip in categoryChips"
+        :key="chip.value"
+        @click="selectCategory(chip.value)"
+        :class="[
+          'px-4 py-2 rounded-full text-sm font-medium transition border min-h-[40px]',
+          activeCategory === chip.value
+            ? 'bg-black text-white border-black'
+            : 'bg-white text-gray-700 border-gray-200 hover:border-black hover:text-black',
+        ]"
+      >
+        {{ chip.label }}
+      </button>
+    </div>
+
     <!-- 骨架屏 -->
     <div v-if="loading" class="divide-y divide-gray-100">
       <div v-for="i in 4" :key="i" class="animate-pulse flex flex-col sm:flex-row gap-6 py-8 md:py-10">
@@ -58,7 +75,7 @@
         class="inline-flex items-center gap-2 px-8 py-3.5 border-2 border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-black hover:text-black transition disabled:opacity-50 min-h-[48px]"
       >
         <span v-if="loadingMore" class="inline-block w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-        {{ loadingMore ? $t('common.loading') : $t('product.load_more') }}
+        {{ loadingMore ? $t('common.loading') : $t('common.load_more') }}
       </button>
       <p v-else class="text-sm text-gray-400">{{ $t('blog.all_loaded') }}</p>
     </div>
@@ -86,6 +103,22 @@ const page = ref(1)
 const pageSize = ref(Number(route.query._pageSize) || 20)
 const hasMore = ref(true)
 const total = ref(0)
+const activeCategory = ref('')
+
+// 博客分类（与后台/词条一致）
+const BLOG_CATEGORIES = ['oem_guide', 'odm_guide', 'fabric', 'trend', 'industry', 'sourcing', 'brand', 'production']
+const categoryChips = computed(() => [
+  { label: t('blog.all'), value: '' },
+  ...BLOG_CATEGORIES.map((c) => ({ label: t(`blog.categories.${c}`), value: c })),
+])
+
+async function fetchBlogs() {
+  const res = await api.getBlogs({ page: page.value, pageSize: pageSize.value, category: activeCategory.value })
+  return {
+    items: res?.items || (Array.isArray(res) ? res : []),
+    total: typeof res?.total === 'number' ? res.total : (Array.isArray(res) ? res.length : 0),
+  }
+}
 
 // 本地化分类标签：优先词条，回退原始 code
 function categoryLabel(value?: string) {
@@ -114,12 +147,7 @@ function stripHtml(html?: string) {
 // SSR 首屏：内联到 HTML 以提升 SEO
 const { data: initialData } = await useAsyncData<any>(
   'blogs-' + (locale.value || 'en'),
-  () => api.getBlogs({ page: 1, pageSize: pageSize.value })
-    .then((res: any) => ({
-      items: res?.items || (Array.isArray(res) ? res : []),
-      total: typeof res?.total === 'number' ? res.total : (Array.isArray(res) ? res.length : 0),
-    }))
-    .catch(() => ({ items: [], total: 0 })),
+  () => fetchBlogs().catch(() => ({ items: [], total: 0 })),
 )
 
 if (initialData.value) {
@@ -128,12 +156,29 @@ if (initialData.value) {
   hasMore.value = blogs.value.length > 0 && blogs.value.length < total.value
 }
 
+// 切换分类：重置分页并重新加载（服务端筛选）
+async function selectCategory(value: string) {
+  if (activeCategory.value === value) return
+  activeCategory.value = value
+  page.value = 1
+  blogs.value = []
+  total.value = 0
+  hasMore.value = true
+  loading.value = true
+  try {
+    const res = await fetchBlogs()
+    blogs.value = res.items
+    total.value = res.total
+    hasMore.value = blogs.value.length > 0 && blogs.value.length < total.value
+  } finally { loading.value = false }
+}
+
 async function loadMore() {
   if (loadingMore.value || !hasMore.value) return
   loadingMore.value = true
   const nextPage = page.value + 1
   try {
-    const res = await api.getBlogs({ page: nextPage, pageSize: pageSize.value })
+    const res = await api.getBlogs({ page: nextPage, pageSize: pageSize.value, category: activeCategory.value })
     const newItems = Array.isArray(res) ? res : (res?.items || [])
     if (newItems.length > 0) {
       const existingIds = new Set(blogs.value.map((b: any) => b.id))

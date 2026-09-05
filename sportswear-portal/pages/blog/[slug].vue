@@ -17,6 +17,39 @@
       <div v-if="tags.length" class="mt-10 md:mt-12 flex flex-wrap gap-2">
         <span v-for="tag in tags" :key="tag" class="px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-xs">#{{ tag }}</span>
       </div>
+
+      <!-- 相关文章 -->
+      <div v-if="blog.category && (relatedLoading || relatedBlogs.length)" class="mt-14 md:mt-16 border-t border-gray-100 pt-10 md:pt-12">
+        <h2 class="text-xl md:text-2xl font-bold mb-6">{{ $t('blog.related') }}</h2>
+        <!-- 骨架 -->
+        <div v-if="relatedLoading" class="grid sm:grid-cols-2 gap-4 md:gap-6">
+          <div v-for="i in 2" :key="i" class="animate-pulse bg-white rounded-xl overflow-hidden">
+            <div class="aspect-[16/9] bg-gray-100" />
+            <div class="p-4">
+              <div class="h-4 bg-gray-100 rounded w-3/4 mb-2" />
+              <div class="h-3 bg-gray-100 rounded w-1/2" />
+            </div>
+          </div>
+        </div>
+        <!-- 卡片 -->
+        <div v-else class="grid sm:grid-cols-2 gap-4 md:gap-6">
+          <NuxtLink
+            v-for="r in relatedBlogs"
+            :key="r.id"
+            :to="localePath(`/blog/${r.slug}`)"
+            class="group bg-white rounded-xl overflow-hidden shadow hover:shadow-lg transition flex flex-col active:scale-[0.98]"
+          >
+            <div class="aspect-[16/9] overflow-hidden bg-gray-100">
+              <img v-if="r.cover_image" :src="r.cover_image" :alt="r.title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              <div v-else class="w-full h-full flex items-center justify-center text-4xl">📝</div>
+            </div>
+            <div class="p-4 flex flex-col flex-1">
+              <h3 class="text-sm font-semibold line-clamp-2 mb-1">{{ r.title }}</h3>
+              <p v-if="r.summary" class="text-xs text-gray-500 line-clamp-2 mt-1">{{ r.summary }}</p>
+            </div>
+          </NuxtLink>
+        </div>
+      </div>
     </template>
 
     <div v-else-if="!pending" class="text-center py-24">
@@ -45,6 +78,26 @@ const tags = computed(() => {
   const raw = blog.value?.tags || ''
   return raw.split(',').map((s: string) => s.trim()).filter(Boolean)
 })
+
+// 相关文章（同分类，排除当前，客户端拉取）
+const relatedBlogs = ref<any[]>([])
+const relatedLoading = ref(true)
+async function loadRelated() {
+  if (!blog.value?.category) {
+    relatedLoading.value = false
+    return
+  }
+  try {
+    const res = await api.getBlogs({ page: 1, pageSize: 3, category: blog.value.category })
+    const items = res?.items || (Array.isArray(res) ? res : [])
+    relatedBlogs.value = (items || []).filter((b: any) => b.id !== blog.value.id).slice(0, 2)
+  } catch {
+    relatedBlogs.value = []
+  } finally {
+    relatedLoading.value = false
+  }
+}
+onMounted(loadRelated)
 
 // 本地化分类标签
 function categoryLabel(value?: string) {

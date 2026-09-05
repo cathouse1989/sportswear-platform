@@ -1,7 +1,10 @@
 <template>
   <el-card shadow="never">
     <div class="toolbar">
-      <el-input v-model="keyword" placeholder="搜索标题" clearable style="width: 240px" @keyup.enter="handleSearch" />
+      <el-input v-model="keyword" placeholder="搜索标题 / Slug" clearable style="width: 240px" @keyup.enter="handleSearch" />
+      <el-select v-model="projectType" placeholder="项目类型" clearable style="width: 160px" @change="handleSearch">
+        <el-option v-for="p in PROJECT_TYPES" :key="p.value" :label="p.label" :value="p.value" />
+      </el-select>
       <el-button type="primary" @click="handleSearch">查询</el-button>
       <div class="spacer" />
       <el-button type="primary" @click="openCreateDialog">新建案例</el-button>
@@ -85,27 +88,27 @@
               </el-col>
               <el-col :span="12">
                 <el-form-item label="客户需求">
-                  <el-input v-model="form.client_need" type="textarea" :rows="3" placeholder="客户的品牌定位与采购诉求" />
+                  <RichTextEditor v-model="form.client_need" placeholder="客户的品牌定位与采购诉求" min-height="110px" />
                 </el-form-item>
               </el-col>
               <el-col :span="12">
                 <el-form-item label="问题挑战">
-                  <el-input v-model="form.problem" type="textarea" :rows="3" placeholder="项目面临的核心难点" />
+                  <RichTextEditor v-model="form.problem" placeholder="项目面临的核心难点" min-height="110px" />
                 </el-form-item>
               </el-col>
               <el-col :span="24">
                 <el-form-item label="解决方案" prop="solution">
-                  <el-input v-model="form.solution" type="textarea" :rows="4" placeholder="我们如何为客户解决上述问题" />
+                  <RichTextEditor v-model="form.solution" placeholder="我们如何为客户解决上述问题" min-height="130px" />
                 </el-form-item>
               </el-col>
               <el-col :span="12">
                 <el-form-item label="实施过程">
-                  <el-input v-model="form.process" type="textarea" :rows="3" placeholder="打样、生产、质检、交付等关键节点" />
+                  <RichTextEditor v-model="form.process" placeholder="打样、生产、质检、交付等关键节点" min-height="110px" />
                 </el-form-item>
               </el-col>
               <el-col :span="12">
                 <el-form-item label="项目成果">
-                  <el-input v-model="form.result" type="textarea" :rows="3" placeholder="交付成果与客户反馈" />
+                  <RichTextEditor v-model="form.result" placeholder="交付成果与客户反馈" min-height="110px" />
                 </el-form-item>
               </el-col>
             </el-row>
@@ -136,27 +139,50 @@
             <el-row :gutter="12">
               <el-col :span="12">
                 <div class="trans-label">客户需求</div>
-                <el-input v-model="t.client_need" type="textarea" :rows="3" placeholder="留空则沿用默认语言" />
+                <RichTextEditor v-model="t.client_need" placeholder="留空则沿用默认语言" min-height="90px" />
               </el-col>
               <el-col :span="12">
                 <div class="trans-label">问题挑战</div>
-                <el-input v-model="t.problem" type="textarea" :rows="3" placeholder="留空则沿用默认语言" />
+                <RichTextEditor v-model="t.problem" placeholder="留空则沿用默认语言" min-height="90px" />
               </el-col>
               <el-col :span="12">
                 <div class="trans-label">解决方案</div>
-                <el-input v-model="t.solution" type="textarea" :rows="3" placeholder="留空则沿用默认语言" />
+                <RichTextEditor v-model="t.solution" placeholder="留空则沿用默认语言" min-height="90px" />
               </el-col>
               <el-col :span="12">
                 <div class="trans-label">实施过程</div>
-                <el-input v-model="t.process" type="textarea" :rows="3" placeholder="留空则沿用默认语言" />
+                <RichTextEditor v-model="t.process" placeholder="留空则沿用默认语言" min-height="90px" />
               </el-col>
               <el-col :span="24">
                 <div class="trans-label">项目成果</div>
-                <el-input v-model="t.result" type="textarea" :rows="3" placeholder="留空则沿用默认语言" />
+                <RichTextEditor v-model="t.result" placeholder="留空则沿用默认语言" min-height="90px" />
               </el-col>
             </el-row>
           </div>
           <el-empty v-if="!translations.length" description="暂无翻译，点击「添加翻译」配置多语言内容" :image-size="60" />
+        </el-tab-pane>
+        <el-tab-pane label="SEO" name="seo">
+          <el-form label-width="110px">
+            <el-form-item label="SEO 标题">
+              <el-input v-model="form.seo.title" maxlength="200" placeholder="留空则沿用案例标题" />
+            </el-form-item>
+            <el-form-item label="关键词">
+              <el-input v-model="form.seo.keywords" placeholder="逗号分隔，如 yoga,oem,leggings" />
+            </el-form-item>
+            <el-form-item label="SEO 描述">
+              <el-input v-model="form.seo.description" type="textarea" :rows="2" maxlength="200" show-word-limit placeholder="留空则自动取案例摘要" />
+            </el-form-item>
+            <el-divider content-position="left">Open Graph（社交分享）</el-divider>
+            <el-form-item label="OG 标题">
+              <el-input v-model="form.seo.og_title" maxlength="200" placeholder="社交分享标题" />
+            </el-form-item>
+            <el-form-item label="OG 描述">
+              <el-input v-model="form.seo.og_description" type="textarea" :rows="2" placeholder="社交分享描述" />
+            </el-form-item>
+            <el-form-item label="OG 图片">
+              <el-input v-model="form.seo.og_image" placeholder="社交分享图片 URL" />
+            </el-form-item>
+          </el-form>
         </el-tab-pane>
       </el-tabs>
       <template #footer>
@@ -174,6 +200,7 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { caseApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
 import MediaPicker from '@/components/media/MediaPicker.vue'
+import RichTextEditor from '@/components/RichTextEditor.vue'
 import type { Case } from '@/types'
 import { checkCaseGate, gateAlertMessage } from '@/utils/publish-gate'
 
@@ -221,6 +248,7 @@ const total = ref(0)
 const page = ref(1)
 const pageSize = useAdminPageSize()
 const keyword = ref('')
+const projectType = ref('')
 
 const formRef = ref<FormInstance>()
 const dialogVisible = ref(false)
@@ -229,6 +257,7 @@ const editingId = ref('')
 const form = reactive({
   title: '', slug: '', client_industry: '', project_type: '', products: '',
   cover_image: '', client_need: '', problem: '', solution: '', process: '', result: '',
+  seo: { language: 'en', title: '', description: '', keywords: '', og_title: '', og_description: '', og_image: '' },
 })
 const translations = ref<TranslationForm[]>([])
 const rules: FormRules = {
@@ -245,7 +274,7 @@ const rules: FormRules = {
 async function loadData() {
   loading.value = true
   try {
-    const result = await caseApi.list({ page: page.value, pageSize: pageSize.value, keyword: keyword.value })
+    const result = await caseApi.list({ page: page.value, pageSize: pageSize.value, keyword: keyword.value, project_type: projectType.value })
     cases.value = result.items
     total.value = result.total
   } finally { loading.value = false }
@@ -265,6 +294,7 @@ function resetForm() {
     title: '', slug: '', client_industry: '', project_type: '', products: '',
     cover_image: '', client_need: '', problem: '', solution: '', process: '', result: '',
   })
+  Object.assign(form.seo, { language: 'en', title: '', description: '', keywords: '', og_title: '', og_description: '', og_image: '' })
 }
 function openCreateDialog() {
   editingId.value = ''
@@ -273,7 +303,7 @@ function openCreateDialog() {
   translations.value = []
   dialogVisible.value = true
 }
-function openEditDialog(row: Case) {
+async function openEditDialog(row: Case) {
   editingId.value = row.id
   activeTab.value = 'basic'
   Object.assign(form, {
@@ -288,7 +318,7 @@ function openEditDialog(row: Case) {
     process: row.process || '',
     result: row.result || '',
   })
-  // 列表已预加载翻译；为空时回拉详情确保完整回填
+  // 翻译先用列表预加载值，随后用详情覆盖（同时回填 SEO）
   translations.value = (row.translations || []).map((t: any) => ({
     language: t.language,
     title: t.title || '',
@@ -298,19 +328,27 @@ function openEditDialog(row: Case) {
     process: t.process || '',
     result: t.result || '',
   }))
-  if (!translations.value.length) {
-    caseApi.get(row.id).then((detail) => {
-      translations.value = (detail.translations || []).map((t: any) => ({
-        language: t.language,
-        title: t.title || '',
-        client_need: t.client_need || '',
-        problem: t.problem || '',
-        solution: t.solution || '',
-        process: t.process || '',
-        result: t.result || '',
-      }))
-    }).catch(() => { /* 翻译为空不影响主表编辑 */ })
-  }
+  try {
+    const detail = await caseApi.get(row.id)
+    translations.value = (detail.translations || []).map((t: any) => ({
+      language: t.language,
+      title: t.title || '',
+      client_need: t.client_need || '',
+      problem: t.problem || '',
+      solution: t.solution || '',
+      process: t.process || '',
+      result: t.result || '',
+    }))
+    Object.assign(form.seo, {
+      language: detail.seo?.language || 'en',
+      title: detail.seo?.title || '',
+      description: detail.seo?.description || '',
+      keywords: detail.seo?.keywords || '',
+      og_title: detail.seo?.og_title || '',
+      og_description: detail.seo?.og_description || '',
+      og_image: detail.seo?.og_image || '',
+    })
+  } catch { /* 详情回填失败不影响编辑主表 */ }
   dialogVisible.value = true
 }
 function addTranslation() {
@@ -320,8 +358,9 @@ function addTranslation() {
 }
 function removeTranslation(i: number) { translations.value.splice(i, 1) }
 function hasText(v?: string) { return Boolean((v || '').trim()) }
+function hasHtmlContent(v?: string) { return Boolean((v || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim()) }
 function translationHasContent(t: TranslationForm) {
-  return hasText(t.title) || hasText(t.client_need) || hasText(t.problem) || hasText(t.solution) || hasText(t.process) || hasText(t.result)
+  return hasText(t.title) || hasHtmlContent(t.client_need) || hasHtmlContent(t.problem) || hasHtmlContent(t.solution) || hasHtmlContent(t.process) || hasHtmlContent(t.result)
 }
 async function handleSave() {
   const valid = await formRef.value?.validate().catch(() => false)
@@ -333,6 +372,7 @@ async function handleSave() {
   const validTranslations = translations.value.filter((t) => t.language && translationHasContent(t))
   saving.value = true
   try {
+    const seoHasContent = ['title', 'description', 'keywords', 'og_title', 'og_description', 'og_image'].some((f) => hasText((form.seo as any)[f]))
     const payload = {
       ...form,
       translations: validTranslations.map((t) => ({
@@ -344,6 +384,7 @@ async function handleSave() {
         process: t.process || '',
         result: t.result || '',
       })),
+      seo: seoHasContent ? { ...form.seo } : null,
     }
     if (editingId.value) { await caseApi.update(editingId.value, payload) } else { await caseApi.create(payload) }
     ElMessage.success('保存成功'); dialogVisible.value = false; loadData()

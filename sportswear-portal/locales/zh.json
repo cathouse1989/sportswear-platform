@@ -107,6 +107,7 @@
     "no_data": "暂无数据",
     "free_shipping": "满$500免运费 | OEM/ODM 全球服务 | 15年以上行业经验",
     "loading": "加载中...",
+    "load_more": "加载更多",
     "share": "分享",
     "copy": "复制",
     "copied": "已复制！",
@@ -134,6 +135,7 @@
     "phone": "电话",
     "company": "公司名称",
     "message": "留言内容 *",
+    "case_prefill": "您好，我想咨询一个与案例「{case}」类似的项目。",
     "submit": "发送消息",
     "sending": "发送中...",
     "success": "感谢您的留言！我们将在24小时内与您联系。",
@@ -173,8 +175,10 @@
     "title": "博客资讯",
     "subtitle": "运动服装品牌行业洞察、制造指南与趋势报告。",
     "read_more": "查看更多",
+    "related": "相关文章",
     "empty": "暂无文章，敬请期待。",
     "all_loaded": "已全部加载",
+    "all": "全部",
     "back_to_list": "返回博客",
     "not_found": "未找到该文章。",
     "categories": {
@@ -191,6 +195,13 @@
   "case": {
     "title": "案例展示",
     "view_case": "查看案例",
+    "all": "全部",
+    "empty": "暂无案例。",
+    "all_loaded": "已全部加载",
+    "related": "相关案例",
+    "cta_title": "想打造类似的项目？",
+    "cta_desc": "告诉我们您的品牌与目标，我们将在 24 小时内回复定制化的 OEM/ODM 方案与报价。",
+    "cta_button": "获取免费报价",
     "back_to_list": "返回案例",
     "not_found": "未找到该案例。",
     "client_industry": "客户行业",
@@ -205,6 +216,23 @@
       "oem": "OEM",
       "odm": "ODM",
       "private_label": "自有品牌"
+    }
+  },
+  "faq": {
+    "empty": "暂无常见问题。",
+    "all_loaded": "已全部加载",
+    "all": "全部",
+    "categories": {
+      "moq": "MOQ",
+      "oem": "OEM",
+      "odm": "ODM",
+      "sample": "打样",
+      "payment": "支付",
+      "production": "生产",
+      "logistics": "物流",
+      "fabric": "面料",
+      "quality": "质量",
+      "certification": "认证"
     }
   },
   "floating": {

@@ -26,7 +26,8 @@ const passItem = (label: string): PublishGateItem => ({ label, ok: true, severit
 const errorItem = (label: string): PublishGateItem => ({ label, ok: false, severity: 'error' })
 const warnItem = (label: string): PublishGateItem => ({ label, ok: false, severity: 'warning' })
 
-const hasText = (v?: string | null) => Boolean((v || '').trim())
+// 去除 HTML 标签后再判空：兼容富文本内容（<p></p> 视为空）
+const hasText = (v?: string | null) => Boolean((v || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim())
 
 function buildGate(items: PublishGateItem[]): PublishGate {
   return {

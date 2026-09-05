@@ -76,6 +76,7 @@
 <script setup lang="ts">
 const api = useApi()
 const { t } = useI18n()
+const route = useRoute()
 const submitting = ref(false)
 const successMsg = ref('')
 const form = reactive({ name: '', email: '', phone: '', company: '', message: '' })
@@ -140,6 +141,10 @@ function formatSize(bytes: number) {
 
 // 加载主题品牌信息（品牌名 / 副标题）
 onMounted(async () => {
+  // 来自案例详情的 CTA：预填留言，便于销售识别来源案例
+  if (route.query.case_title) {
+    form.message = t('contact.case_prefill', { case: String(route.query.case_title) })
+  }
   try {
     const theme = await api.getTheme()
     if (theme?.brand_name) brandName.value = theme.brand_name
@@ -174,7 +179,7 @@ async function handleSubmit() {
     }
     await api.submitLead({
       ...form,
-      project_type: 'contact',
+      project_type: (route.query.project_type as string) || 'contact',
       attachments: attachments.length ? JSON.stringify(attachments) : '',
     })
     successMsg.value = t('contact.success')

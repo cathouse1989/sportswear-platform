@@ -110,8 +110,8 @@ func (h *PublicHandler) GetHome(c *gin.Context) {
 		wg.Add(6)
 		go func() { defer wg.Done(); products, _ = h.productService.ListFeaturedProducts(8, lang) }()
 		go func() { defer wg.Done(); categories, _ = h.productService.ListCategories() }()
-		go func() { defer wg.Done(); blogs, _, _ = h.cmsService.ListBlogs(1, 4, "", "published") }()
-		go func() { defer wg.Done(); cases, _, _ = h.cmsService.ListPublishedCases(1, 4, "") }()
+		go func() { defer wg.Done(); blogs, _, _ = h.cmsService.ListBlogs(1, 4, "", "published", "") }()
+		go func() { defer wg.Done(); cases, _, _ = h.cmsService.ListPublishedCases(1, 4, "", "") }()
 		go func() { defer wg.Done(); certifications, _ = h.cmsService.ListPublishedCertifications() }()
 		go func() { defer wg.Done(); factories, _ = h.cmsService.ListPublishedFactories() }()
 		wg.Wait()
@@ -359,12 +359,13 @@ func (h *PublicHandler) ListBlogs(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
 	keyword := c.Query("keyword")
+	category := c.Query("category")
 
 	lang := middleware.GetLang(c)
-	key := fmt.Sprintf("cache:blogs:%s:%d:%d:%s", lang, page, pageSize, keyword)
+	key := fmt.Sprintf("cache:blogs:%s:%d:%d:%s:%s", lang, page, pageSize, keyword, category)
 
 	result, err := cached[cachedPage[models.Blog]](h, key, services.CacheTTLMedium, !h.previewMode(c), func() (cachedPage[models.Blog], error) {
-		blogs, total, err := h.cmsService.ListBlogs(page, pageSize, keyword, "published")
+		blogs, total, err := h.cmsService.ListBlogs(page, pageSize, keyword, "published", category)
 		if err != nil {
 			return cachedPage[models.Blog]{}, err
 		}
@@ -411,12 +412,13 @@ func (h *PublicHandler) GetBlog(c *gin.Context) {
 func (h *PublicHandler) ListCases(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	projectType := c.Query("project_type")
 
 	lang := middleware.GetLang(c)
-	key := fmt.Sprintf("cache:cases:%s:%d:%d", lang, page, pageSize)
+	key := fmt.Sprintf("cache:cases:%s:%d:%d:%s", lang, page, pageSize, projectType)
 
 	result, err := cached[cachedPage[models.Case]](h, key, services.CacheTTLMedium, !h.previewMode(c), func() (cachedPage[models.Case], error) {
-		cases, total, err := h.cmsService.ListPublishedCases(page, pageSize, "")
+		cases, total, err := h.cmsService.ListPublishedCases(page, pageSize, "", projectType)
 		if err != nil {
 			return cachedPage[models.Case]{}, err
 		}
@@ -458,13 +460,12 @@ func (h *PublicHandler) ListFAQs(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
 	category := c.Query("category")
-	language := c.DefaultQuery("language", "en")
 	lang := middleware.GetLang(c)
 
-	key := fmt.Sprintf("cache:faqs:%s:%d:%d:%s:%s", language, page, pageSize, category, lang)
+	key := fmt.Sprintf("cache:faqs:%s:%d:%d:%s", lang, page, pageSize, category)
 
 	result, err := cached[cachedPage[models.FAQ]](h, key, services.CacheTTLMedium, !h.previewMode(c), func() (cachedPage[models.FAQ], error) {
-		faqs, total, err := h.cmsService.ListFAQs(page, pageSize, category, language)
+		faqs, total, err := h.cmsService.ListPublishedFAQsWithFallback(page, pageSize, category, lang)
 		if err != nil {
 			return cachedPage[models.FAQ]{}, err
 		}

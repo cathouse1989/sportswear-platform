@@ -112,7 +112,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { cmsApi } from '@/api/cms'
+import { blogApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
 import MediaPicker from '@/components/media/MediaPicker.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
@@ -169,7 +169,7 @@ const rules: FormRules = {
 async function loadData() {
   loading.value = true
   try {
-    const result = await cmsApi.blogs.list({ page: page.value, pageSize: pageSize.value, keyword: keyword.value, category: category.value })
+    const result = await blogApi.list({ page: page.value, pageSize: pageSize.value, keyword: keyword.value, category: category.value })
     blogs.value = result.items
     total.value = result.total
   } finally { loading.value = false }
@@ -194,7 +194,7 @@ async function openEditDialog(row: Blog) {
   translations.value = (row.translations || []).map((t: any) => ({ language: t.language, title: t.title || '', content: t.content || '' }))
   if (!translations.value.length) {
     try {
-      const detail = await cmsApi.blogs.get(row.id)
+      const detail = await blogApi.get(row.id)
       translations.value = (detail.translations || []).map((t: any) => ({ language: t.language, title: t.title || '', content: t.content || '' }))
     } catch { /* 忽略：翻译为空也不影响主表编辑 */ }
   }
@@ -225,7 +225,7 @@ async function handleSave() {
       ...form,
       translations: validTranslations.map((t) => ({ language: t.language, title: t.title || '', content: t.content || '' })),
     }
-    if (editingId.value) { await cmsApi.blogs.update(editingId.value, payload) } else { await cmsApi.blogs.create(payload) }
+    if (editingId.value) { await blogApi.update(editingId.value, payload) } else { await blogApi.create(payload) }
     ElMessage.success('保存成功'); dialogVisible.value = false; loadData()
   } catch {} finally { saving.value = false }
 }
@@ -236,17 +236,17 @@ async function handlePublish(row: Blog) {
     await ElMessageBox.alert(gateAlertMessage(gate), '无法发布', { type: 'warning', confirmButtonText: '知道了' }).catch(() => {})
     return
   }
-  await cmsApi.blogs.publish(row.id)
+  await blogApi.publish(row.id)
   ElMessage.success('已发布')
   loadData()
 }
 async function handleUnpublish(row: Blog) {
   await ElMessageBox.confirm(`确定下线博客「${row.title}」吗？下线后前台不可见。`, '警告', { type: 'warning' })
-  await cmsApi.blogs.unpublish(row.id)
+  await blogApi.unpublish(row.id)
   ElMessage.success('已下线')
   loadData()
 }
-async function handleDelete(row: Blog) { await ElMessageBox.confirm(`确定删除博客 ${row.title} 吗？`, '警告', { type: 'warning' }); await cmsApi.blogs.delete(row.id); ElMessage.success('已删除'); loadData() }
+async function handleDelete(row: Blog) { await ElMessageBox.confirm(`确定删除博客 ${row.title} 吗？`, '警告', { type: 'warning' }); await blogApi.delete(row.id); ElMessage.success('已删除'); loadData() }
 onMounted(loadData)
 </script>
 <style scoped>

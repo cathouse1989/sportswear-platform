@@ -690,7 +690,7 @@ func (s *CMSService) SyncNavVisibilityWithPages() (int, error) {
 // ==================== 博客管理 ====================
 
 // ListBlogs 博客列表
-func (s *CMSService) ListBlogs(page, pageSize int, keyword, status string) ([]models.Blog, int64, error) {
+func (s *CMSService) ListBlogs(page, pageSize int, keyword, status, category string) ([]models.Blog, int64, error) {
 	var blogs []models.Blog
 	var total int64
 
@@ -700,6 +700,9 @@ func (s *CMSService) ListBlogs(page, pageSize int, keyword, status string) ([]mo
 	}
 	if status != "" {
 		query = query.Where("status = ?", status)
+	}
+	if category != "" {
+		query = query.Where("category = ?", category)
 	}
 
 	query.Count(&total)
@@ -917,13 +920,16 @@ func (s *CMSService) UnpublishBlog(id string) error {
 // ==================== 案例管理 ====================
 
 // ListCases 案例列表（后台：全部状态）
-func (s *CMSService) ListCases(page, pageSize int, keyword string) ([]models.Case, int64, error) {
+func (s *CMSService) ListCases(page, pageSize int, keyword, projectType string) ([]models.Case, int64, error) {
 	var cases []models.Case
 	var total int64
 
 	query := s.db.Model(&models.Case{})
 	if keyword != "" {
 		query = query.Where("title LIKE ? OR slug LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
+	}
+	if projectType != "" {
+		query = query.Where("project_type = ?", projectType)
 	}
 
 	query.Count(&total)
@@ -934,13 +940,16 @@ func (s *CMSService) ListCases(page, pageSize int, keyword string) ([]models.Cas
 }
 
 // ListPublishedCases 已发布案例列表（前台公开接口专用）
-func (s *CMSService) ListPublishedCases(page, pageSize int, keyword string) ([]models.Case, int64, error) {
+func (s *CMSService) ListPublishedCases(page, pageSize int, keyword, projectType string) ([]models.Case, int64, error) {
 	var cases []models.Case
 	var total int64
 
 	query := s.db.Model(&models.Case{}).Where("status = ?", models.ContentStatusPublished)
 	if keyword != "" {
 		query = query.Where("title LIKE ? OR slug LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
+	}
+	if projectType != "" {
+		query = query.Where("project_type = ?", projectType)
 	}
 
 	query.Count(&total)
@@ -957,6 +966,7 @@ func (s *CMSService) GetCase(id string) (*models.Case, error) {
 	if err != nil {
 		return nil, errors.New("案例不存在")
 	}
+	s.loadCaseSEO(&caseItem)
 	return &caseItem, nil
 }
 
@@ -968,7 +978,16 @@ func (s *CMSService) GetCaseBySlug(slug string) (*models.Case, error) {
 	if err != nil {
 		return nil, errors.New("案例不存在")
 	}
+	s.loadCaseSEO(&caseItem)
 	return &caseItem, nil
+}
+
+// loadCaseSEO 加载案例 SEO 配置（gorm:"-" 字段需手动查询）
+func (s *CMSService) loadCaseSEO(caseItem *models.Case) {
+	var seo models.SEO
+	if err := s.db.Where("entity_type = ? AND entity_id = ?", "case", caseItem.ID).First(&seo).Error; err == nil {
+		caseItem.SEO = &seo
+	}
 }
 
 // CreateCase 创建案例
@@ -1192,15 +1211,51 @@ func (s *CMSService) ListFAQs(page, pageSize int, category, language string) ([]
 	return faqs, total, err
 }
 
+// ListPublishedFAQs 已启用 FAQ 列表（前台公开接口专用）
+func (s *CMSService) ListPublishedFAQs(page, pageSize int, category, language string) ([]models.FAQ, int64, error) {
+	var faqs []models.FAQ
+	var total int64
+
+	query := s.db.Model(&models.FAQ{}).Where("is_active = ?", true)
+	if category != "" {
+		query = query.Where("category = ?", category)
+	}
+	if language != "" {
+		query = query.Where("language = ?", language)
+	}
+
+	query.Count(&total)
+	err := query.Preload("Translations").
+		Offset((page - 1) * pageSize).Limit(pageSize).Order("sort_order ASC").Find(&faqs).Error
+
+	return faqs, total, err
+}
+
+// ListPublishedFAQsWithFallback 已启用 FAQ 列表（语言回退：目标语言无内容时回退英文）
+func (s *CMSService) ListPublishedFAQsWithFallback(page, pageSize int, category, language string) ([]models.FAQ, int64, error) {
+	faqs, total, err := s.ListPublishedFAQs(page, pageSize, category, language)
+	if err != nil {
+		return nil, 0, err
+	}
+	if total == 0 && language != "en" {
+		return s.ListPublishedFAQs(page, pageSize, category, "en")
+	}
+	return faqs, total, nil
+}
+
 // CreateFAQ 创建 FAQ
 func (s *CMSService) CreateFAQ(req *FAQRequest) (*models.FAQ, error) {
+	isActive := true
+	if req.IsActive != nil {
+		isActive = *req.IsActive
+	}
 	faq := models.FAQ{
 		Question:  req.Question,
 		Answer:    req.Answer,
 		Category:  req.Category,
 		Language:  req.Language,
 		SortOrder: req.SortOrder,
-		IsActive:  req.IsActive,
+		IsActive:  isActive,
 	}
 	if err := s.db.Create(&faq).Error; err != nil {
 		return nil, err
@@ -1215,7 +1270,7 @@ type FAQRequest struct {
 	Category  string `json:"category"`
 	Language  string `json:"language"`
 	SortOrder int    `json:"sort_order"`
-	IsActive  bool   `json:"is_active"`
+	IsActive  *bool  `json:"is_active"`
 }
 
 // UpdateFAQ 更新 FAQ
@@ -1231,7 +1286,9 @@ func (s *CMSService) UpdateFAQ(id string, req *FAQRequest) (*models.FAQ, error) 
 		"category":   req.Category,
 		"language":   req.Language,
 		"sort_order": req.SortOrder,
-		"is_active":  req.IsActive,
+	}
+	if req.IsActive != nil {
+		updates["is_active"] = *req.IsActive
 	}
 	if err := s.db.Model(&faq).Updates(updates).Error; err != nil {
 		return nil, err

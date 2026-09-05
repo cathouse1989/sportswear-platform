@@ -31,8 +31,50 @@
           <h2 class="text-lg md:text-xl font-semibold mb-3 flex items-center gap-2.5">
             <span class="w-1 h-5 rounded-full bg-black inline-block"></span>{{ section.label }}
           </h2>
-          <p class="text-gray-600 leading-relaxed whitespace-pre-line">{{ section.value }}</p>
+          <div class="text-gray-600 leading-relaxed prose prose-base max-w-none" v-html="sanitizeHtml(section.value)"></div>
         </section>
+      </div>
+
+      <!-- 询盘 CTA -->
+      <div class="mt-12 md:mt-16 rounded-2xl bg-gray-50 border border-gray-100 p-6 md:p-10 text-center">
+        <h2 class="text-xl md:text-2xl font-bold mb-3">{{ $t('case.cta_title') }}</h2>
+        <p class="text-gray-600 mb-6 max-w-2xl mx-auto">{{ $t('case.cta_desc') }}</p>
+        <NuxtLink :to="localePath({ path: '/contact', query: { case_title: caseItem.title, project_type: caseItem.project_type } })" class="inline-flex items-center gap-2 px-8 py-3.5 bg-black text-white rounded-full text-sm font-medium hover:bg-gray-800 transition min-h-[48px]">
+          {{ $t('case.cta_button') }} <span aria-hidden="true">→</span>
+        </NuxtLink>
+      </div>
+
+      <!-- 相关案例 -->
+      <div v-if="caseItem?.project_type && (relatedLoading || relatedCases.length)" class="mt-14 md:mt-16">
+        <h2 class="text-xl md:text-2xl font-bold mb-6">{{ $t('case.related') }}</h2>
+        <!-- 骨架 -->
+        <div v-if="relatedLoading" class="grid sm:grid-cols-2 gap-4 md:gap-6">
+          <div v-for="i in 2" :key="i" class="animate-pulse bg-white rounded-xl overflow-hidden">
+            <div class="aspect-[16/9] bg-gray-100" />
+            <div class="p-4">
+              <div class="h-4 bg-gray-100 rounded w-3/4 mb-2" />
+              <div class="h-3 bg-gray-100 rounded w-1/2" />
+            </div>
+          </div>
+        </div>
+        <!-- 卡片 -->
+        <div v-else class="grid sm:grid-cols-2 gap-4 md:gap-6">
+          <NuxtLink
+            v-for="r in relatedCases"
+            :key="r.id"
+            :to="localePath(`/cases/${r.slug}`)"
+            class="group bg-white rounded-xl overflow-hidden shadow hover:shadow-lg transition flex flex-col active:scale-[0.98]"
+          >
+            <div class="aspect-[16/9] overflow-hidden bg-gray-100">
+              <img v-if="r.cover_image" :src="r.cover_image" :alt="r.title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              <div v-else class="w-full h-full flex items-center justify-center text-gray-300 text-sm font-medium">{{ $t('nav.cases') }}</div>
+            </div>
+            <div class="p-4 flex flex-col flex-1">
+              <h3 class="text-sm font-semibold line-clamp-2 mb-1">{{ r.title }}</h3>
+              <p v-if="r.client_industry" class="text-xs text-gray-500 line-clamp-1">{{ r.client_industry }}</p>
+            </div>
+          </NuxtLink>
+        </div>
       </div>
     </template>
 
@@ -98,14 +140,50 @@ const sections = computed(() => {
     .filter((s) => s.value)
 })
 
+// 相关案例（同项目类型，排除当前，客户端拉取）
+const relatedCases = ref<any[]>([])
+const relatedLoading = ref(true)
+async function loadRelated() {
+  if (!caseItem.value?.project_type) {
+    relatedLoading.value = false
+    return
+  }
+  try {
+    const res = await api.getCases({ page: 1, pageSize: 3, project_type: caseItem.value.project_type })
+    const items = res?.items || (Array.isArray(res) ? res : [])
+    relatedCases.value = (items || []).filter((c: any) => c.id !== caseItem.value.id).slice(0, 2)
+  } catch {
+    relatedCases.value = []
+  } finally {
+    relatedLoading.value = false
+  }
+}
+onMounted(loadRelated)
+
+// 去除 HTML 标签生成纯文本摘要（供 meta description 使用）
+function stripHtml(html?: string) {
+  return (html || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+// 富文本安全渲染兜底（对齐博客详情页）
+function sanitizeHtml(html?: string) {
+  if (!html) return ''
+  return html
+    .replace(/<\s*(script|iframe|object|embed|style|link|meta)\b[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+    .replace(/<\s*(script|iframe|object|embed|style|link|meta)\b[^>]*\/?\s*>/gi, '')
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/(href|src)\s*=\s*("|')?\s*javascript:[^"'\s>]*("|')?/gi, '$1=""')
+}
+
 // SEO - 案例详情页
 useSeoHead({
-  title: computed(() => (caseItem.value?.title ? caseItem.value.title : 'Case Study')),
+  title: computed(() => caseItem.value?.seo?.title || caseItem.value?.title || 'Case Study'),
   description: computed(() => {
     const c = caseItem.value || {}
-    return (c.client_need || c.solution || '').slice(0, 160)
+    return stripHtml(c.seo?.description || c.client_need || c.solution || '').slice(0, 160)
   }),
-  ogImage: computed(() => caseItem.value?.cover_image || undefined),
+  keywords: computed(() => caseItem.value?.seo?.keywords || undefined),
+  ogImage: computed(() => caseItem.value?.seo?.og_image || caseItem.value?.cover_image || undefined),
   ogType: 'article',
 })
 </script>

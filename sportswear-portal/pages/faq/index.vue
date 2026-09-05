@@ -1,6 +1,23 @@
 <template>
   <div class="max-w-4xl mx-auto px-4 py-12">
-    <h1 class="text-2xl md:text-3xl font-bold mb-6 md:mb-8">{{ $t('nav.faq') }}</h1>
+    <h1 class="text-2xl md:text-3xl font-bold mb-4 md:mb-6">{{ $t('nav.faq') }}</h1>
+
+    <!-- 分类筛选 -->
+    <div class="flex flex-wrap gap-2 mb-8">
+      <button
+        v-for="chip in categoryChips"
+        :key="chip.value"
+        @click="selectCategory(chip.value)"
+        :class="[
+          'px-4 py-2 rounded-full text-sm font-medium transition border min-h-[40px]',
+          activeCategory === chip.value
+            ? 'bg-black text-white border-black'
+            : 'bg-white text-gray-700 border-gray-200 hover:border-black hover:text-black',
+        ]"
+      >
+        {{ chip.label }}
+      </button>
+    </div>
 
     <!-- 骨架屏 -->
     <div v-if="loading" class="space-y-4">
@@ -21,7 +38,7 @@
     </div>
 
     <!-- 空态 -->
-    <div v-if="!loading && !faqs?.length" class="text-center py-16 text-gray-400">No FAQs yet.</div>
+    <div v-if="!loading && !faqs?.length" class="text-center py-16 text-gray-400">{{ $t('faq.empty') }}</div>
 
     <!-- 加载更多 -->
     <div v-if="!loading && faqs.length" class="text-center mt-10 md:mt-12">
@@ -32,18 +49,21 @@
         class="inline-flex items-center gap-2 px-8 py-3.5 border-2 border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-black hover:text-black transition disabled:opacity-50 min-h-[48px]"
       >
         <span v-if="loadingMore" class="inline-block w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-        {{ loadingMore ? $t('common.loading') : $t('product.load_more') }}
+        {{ loadingMore ? $t('common.loading') : $t('common.load_more') }}
       </button>
-      <p v-else class="text-sm text-gray-400">{{ $t('product.no_products') || 'No more FAQs' }}</p>
+      <p v-else class="text-sm text-gray-400">{{ $t('faq.all_loaded') }}</p>
     </div>
   </div>
 </template>
 <script setup lang="ts">
 const api = useApi()
-const { locale } = useI18n()
+const { locale, t } = useI18n()
 const route = useRoute()
 const openId = ref<string | null>(null)
 function toggle(id: string) { openId.value = openId.value === id ? null : id }
+
+// FAQ 分类（与后台一致）
+const FAQ_CATEGORIES = ['moq', 'oem', 'odm', 'sample', 'payment', 'production', 'logistics', 'fabric', 'quality', 'certification']
 // SEO - FAQ
 useSeoHead({
   title: 'FAQ - Sportswear OEM/ODM Manufacturing',
@@ -60,16 +80,25 @@ const page = ref(1)
 const pageSize = ref(Number(route.query._pageSize) || 20)
 const hasMore = ref(true)
 const total = ref(0)
+const activeCategory = ref('')
+
+const categoryChips = computed(() => [
+  { label: t('faq.all'), value: '' },
+  ...FAQ_CATEGORIES.map((c) => ({ label: t(`faq.categories.${c}`), value: c })),
+])
+
+async function fetchFaqs() {
+  const res = await api.getFaqs({ page: page.value, pageSize: pageSize.value, category: activeCategory.value })
+  return {
+    items: res?.items || (Array.isArray(res) ? res : []),
+    total: typeof res?.total === 'number' ? res.total : (Array.isArray(res) ? res.length : 0),
+  }
+}
 
 // SSR 首屏：内联到 HTML 以提升 SEO
 const { data: initialData } = await useAsyncData<any>(
   'faqs-' + (locale.value || 'en'),
-  () => api.getFaqs({ page: 1, pageSize: pageSize.value })
-    .then((res: any) => ({
-      items: res?.items || (Array.isArray(res) ? res : []),
-      total: typeof res?.total === 'number' ? res.total : (Array.isArray(res) ? res.length : 0),
-    }))
-    .catch(() => ({ items: [], total: 0 })),
+  () => fetchFaqs().catch(() => ({ items: [], total: 0 })),
 )
 
 if (initialData.value) {
@@ -78,12 +107,29 @@ if (initialData.value) {
   hasMore.value = faqs.value.length > 0 && faqs.value.length < total.value
 }
 
+// 切换分类：重置分页并重新加载（服务端筛选）
+async function selectCategory(value: string) {
+  if (activeCategory.value === value) return
+  activeCategory.value = value
+  page.value = 1
+  faqs.value = []
+  total.value = 0
+  hasMore.value = true
+  loading.value = true
+  try {
+    const res = await fetchFaqs()
+    faqs.value = res.items
+    total.value = res.total
+    hasMore.value = faqs.value.length > 0 && faqs.value.length < total.value
+  } finally { loading.value = false }
+}
+
 async function loadMore() {
   if (loadingMore.value || !hasMore.value) return
   loadingMore.value = true
   const nextPage = page.value + 1
   try {
-    const res = await api.getFaqs({ page: nextPage, pageSize: pageSize.value })
+    const res = await api.getFaqs({ page: nextPage, pageSize: pageSize.value, category: activeCategory.value })
     const newItems = Array.isArray(res) ? res : (res?.items || [])
     if (newItems.length > 0) {
       const existingIds = new Set(faqs.value.map((f: any) => f.id))

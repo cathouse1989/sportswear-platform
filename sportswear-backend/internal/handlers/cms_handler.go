@@ -253,8 +253,9 @@ func (h *CMSHandler) ListBlogs(c *gin.Context) {
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	category := c.Query("category")
 
-	blogs, total, err := h.cmsService.ListBlogs(page, pageSize, keyword, status)
+	blogs, total, err := h.cmsService.ListBlogs(page, pageSize, keyword, status, category)
 	if err != nil {
 		utils.InternalError(c, "获取博客列表失败")
 		return
@@ -343,8 +344,9 @@ func (h *CMSHandler) ListCases(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
 	keyword := c.Query("keyword")
+	projectType := c.Query("project_type")
 
-	cases, total, err := h.cmsService.ListCases(page, pageSize, keyword)
+	cases, total, err := h.cmsService.ListCases(page, pageSize, keyword, projectType)
 	if err != nil {
 		utils.InternalError(c, "获取案例列表失败")
 		return

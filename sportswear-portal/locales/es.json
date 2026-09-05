@@ -107,6 +107,7 @@
     "no_data": "Sin datos disponibles",
     "free_shipping": "Envío gratis en pedidos > $500 | OEM/ODM Mundial | 15+ Años de Excelencia",
     "loading": "Cargando...",
+    "load_more": "Cargar Más",
     "share": "Compartir",
     "copy": "Copiar",
     "copied": "¡Copiado!",
@@ -134,6 +135,7 @@
     "phone": "Teléfono",
     "company": "Empresa",
     "message": "Mensaje *",
+    "case_prefill": "Hola, me interesa un proyecto similar a su caso \"{case}\".",
     "submit": "Enviar Mensaje",
     "sending": "Enviando...",
     "success": "¡Gracias! Le contactaremos en 24 horas.",
@@ -173,8 +175,10 @@
     "title": "Blog",
     "subtitle": "Perspectivas de la industria, guías de fabricación e informes de tendencias para marcas deportivas.",
     "read_more": "Leer Más",
+    "related": "Artículos relacionados",
     "empty": "Aún no hay artículos. Vuelve pronto.",
     "all_loaded": "Todos los artículos cargados",
+    "all": "Todos",
     "back_to_list": "Volver al Blog",
     "not_found": "No se pudo encontrar este artículo.",
     "categories": {
@@ -191,6 +195,13 @@
   "case": {
     "title": "Casos",
     "view_case": "Ver Caso",
+    "all": "Todos",
+    "empty": "Aún no hay casos.",
+    "all_loaded": "Todos los casos cargados",
+    "related": "Casos relacionados",
+    "cta_title": "¿Listo para un proyecto similar?",
+    "cta_desc": "Cuéntenos sobre su marca y objetivos; le responderemos con una solución OEM/ODM a medida y una cotización en 24 horas.",
+    "cta_button": "Obtener una cotización gratis",
     "back_to_list": "Volver a Casos",
     "not_found": "No se encontró este caso.",
     "client_industry": "Industria del cliente",
@@ -205,6 +216,23 @@
       "oem": "OEM",
       "odm": "ODM",
       "private_label": "Marca propia"
+    }
+  },
+  "faq": {
+    "empty": "Aún no hay preguntas frecuentes.",
+    "all_loaded": "Todas las preguntas cargadas",
+    "all": "Todos",
+    "categories": {
+      "moq": "MOQ",
+      "oem": "OEM",
+      "odm": "ODM",
+      "sample": "Muestreo",
+      "payment": "Pago",
+      "production": "Producción",
+      "logistics": "Logística",
+      "fabric": "Tejido",
+      "quality": "Calidad",
+      "certification": "Certificación"
     }
   },
   "floating": {

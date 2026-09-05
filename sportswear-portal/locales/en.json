@@ -107,6 +107,7 @@
     "no_data": "No data available",
     "free_shipping": "Free Shipping on Orders Over $500 | OEM/ODM Worldwide | 15+ Years Excellence",
     "loading": "Loading...",
+    "load_more": "Load More",
     "share": "Share",
     "copy": "Copy",
     "copied": "Copied!",
@@ -134,6 +135,7 @@
     "phone": "Phone",
     "company": "Company",
     "message": "Message *",
+    "case_prefill": "Hello, I'm interested in a project similar to your case study \"{case}\".",
     "submit": "Send Message",
     "sending": "Sending...",
     "success": "Thank you! We will contact you within 24 hours.",
@@ -173,8 +175,10 @@
     "title": "Blog",
     "subtitle": "Industry insights, manufacturing guides and trend reports for sportswear brands.",
     "read_more": "Read More",
+    "related": "Related Articles",
     "empty": "No articles yet. Check back soon.",
     "all_loaded": "All articles loaded",
+    "all": "All",
     "back_to_list": "Back to Blog",
     "not_found": "This article could not be found.",
     "categories": {
@@ -191,6 +195,13 @@
   "case": {
     "title": "Cases",
     "view_case": "View Case",
+    "all": "All",
+    "empty": "No cases yet.",
+    "all_loaded": "All cases loaded",
+    "related": "Related Cases",
+    "cta_title": "Ready to build a similar project?",
+    "cta_desc": "Tell us about your brand and goals — we'll get back with a tailored OEM/ODM solution and quote within 24 hours.",
+    "cta_button": "Get a Free Quote",
     "back_to_list": "Back to Cases",
     "not_found": "This case study could not be found.",
     "client_industry": "Client Industry",
@@ -205,6 +216,23 @@
       "oem": "OEM",
       "odm": "ODM",
       "private_label": "Private Label"
+    }
+  },
+  "faq": {
+    "empty": "No FAQs yet.",
+    "all_loaded": "All FAQs loaded",
+    "all": "All",
+    "categories": {
+      "moq": "MOQ",
+      "oem": "OEM",
+      "odm": "ODM",
+      "sample": "Sampling",
+      "payment": "Payment",
+      "production": "Production",
+      "logistics": "Logistics",
+      "fabric": "Fabric",
+      "quality": "Quality",
+      "certification": "Certification"
     }
   },
   "floating": {

@@ -5,6 +5,9 @@
       <el-select v-model="category" placeholder="分类" clearable style="width: 160px" @change="handleSearch">
         <el-option v-for="c in CATEGORIES" :key="c.value" :label="c.label" :value="c.value" />
       </el-select>
+      <el-select v-model="language" placeholder="语言" clearable style="width: 140px" @change="handleSearch">
+        <el-option v-for="l in LANGUAGES" :key="l.value" :label="l.label" :value="l.value" />
+      </el-select>
       <el-button type="primary" @click="handleSearch">查询</el-button>
       <div class="spacer" />
       <el-button type="primary" @click="openCreateDialog">新建 FAQ</el-button>
@@ -16,6 +19,11 @@
       </el-table-column>
       <el-table-column prop="language" label="语言" width="80" />
       <el-table-column prop="sort_order" label="排序" width="80" />
+      <el-table-column label="状态" width="90">
+        <template #default="{ row }">
+          <el-tag :type="row.is_active ? 'success' : 'info'" size="small">{{ row.is_active ? '启用' : '停用' }}</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="操作" width="160">
         <template #default="{ row }: any">
           <el-button size="small" @click="openEditDialog(row)">编辑</el-button>
@@ -47,6 +55,9 @@
         <el-form-item label="排序">
           <el-input-number v-model="form.sort_order" :min="0" />
         </el-form-item>
+        <el-form-item label="启用">
+          <el-switch v-model="form.is_active" active-text="前台可见" inactive-text="已停用" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -60,7 +71,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { cmsApi } from '@/api/cms'
+import { faqApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
 import type { FAQ } from '@/types'
 
@@ -95,11 +106,12 @@ const page = ref(1)
 const pageSize = useAdminPageSize()
 const keyword = ref('')
 const category = ref('')
+const language = ref('')
 
 const formRef = ref<FormInstance>()
 const dialogVisible = ref(false)
 const editingId = ref('')
-const form = reactive({ question: '', answer: '', category: '', language: 'en', sort_order: 0 })
+const form = reactive({ question: '', answer: '', category: '', language: 'en', sort_order: 0, is_active: true })
 const rules: FormRules = {
   question: [{ required: true, message: '请输入问题', trigger: 'blur' }],
   answer: [{ required: true, message: '请输入答案', trigger: 'blur' }],
@@ -108,17 +120,17 @@ const rules: FormRules = {
 async function loadData() {
   loading.value = true
   try {
-    const result = await cmsApi.faqs.list({ page: page.value, pageSize: pageSize.value, keyword: keyword.value, category: category.value })
+    const result = await faqApi.list({ page: page.value, pageSize: pageSize.value, keyword: keyword.value, category: category.value, language: language.value })
     faqs.value = result.items
     total.value = result.total
   } finally { loading.value = false }
 }
 function handleSearch() { page.value = 1; loadData() }
-function resetForm() { Object.assign(form, { question: '', answer: '', category: '', language: 'en', sort_order: 0 }) }
+function resetForm() { Object.assign(form, { question: '', answer: '', category: '', language: 'en', sort_order: 0, is_active: true }) }
 function openCreateDialog() { editingId.value = ''; resetForm(); dialogVisible.value = true }
 function openEditDialog(row: FAQ) {
   editingId.value = row.id
-  Object.assign(form, { question: row.question, answer: row.answer, category: row.category || '', language: row.language || 'en', sort_order: row.sort_order ?? 0 })
+  Object.assign(form, { question: row.question, answer: row.answer, category: row.category || '', language: row.language || 'en', sort_order: row.sort_order ?? 0, is_active: row.is_active })
   dialogVisible.value = true
 }
 async function handleSave() {
@@ -126,11 +138,11 @@ async function handleSave() {
   if (!valid) return
   saving.value = true
   try {
-    if (editingId.value) { await cmsApi.faqs.update(editingId.value, form) } else { await cmsApi.faqs.create(form) }
+    if (editingId.value) { await faqApi.update(editingId.value, form) } else { await faqApi.create(form) }
     ElMessage.success('保存成功'); dialogVisible.value = false; loadData()
   } catch {} finally { saving.value = false }
 }
-async function handleDelete(row: FAQ) { await ElMessageBox.confirm('确定删除此 FAQ 吗？', '警告', { type: 'warning' }); await cmsApi.faqs.delete(row.id); ElMessage.success('已删除'); loadData() }
+async function handleDelete(row: FAQ) { await ElMessageBox.confirm('确定删除此 FAQ 吗？', '警告', { type: 'warning' }); await faqApi.delete(row.id); ElMessage.success('已删除'); loadData() }
 onMounted(loadData)
 </script>
 <style scoped>

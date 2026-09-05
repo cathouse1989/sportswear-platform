@@ -216,7 +216,7 @@ func (h *SystemHandler) GetSitemap(c *gin.Context) {
 	}
 
 	// 博客（已发布）
-	blogs, _, _ := h.cmsService.ListBlogs(1, 1000, "", "published")
+	blogs, _, _ := h.cmsService.ListBlogs(1, 1000, "", "published", "")
 	for _, b := range blogs {
 		sb.WriteString(services.BuildSitemapEntry(baseURL, lang, "blogs/"+b.Slug, b.UpdatedAt.Format("2006-01-02")) + "\n")
 	}

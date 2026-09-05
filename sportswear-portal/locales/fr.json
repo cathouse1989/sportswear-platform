@@ -107,6 +107,7 @@
     "no_data": "Aucune donnée disponible",
     "free_shipping": "Livraison gratuite > 500$ | OEM/ODM Mondial | 15+ Ans d'Excellence",
     "loading": "Chargement...",
+    "load_more": "Charger Plus",
     "share": "Partager",
     "copy": "Copier",
     "copied": "Copié !",
@@ -134,6 +135,7 @@
     "phone": "Téléphone",
     "company": "Société",
     "message": "Message *",
+    "case_prefill": "Bonjour, je souhaite discuter d'un projet similaire à votre étude de cas « {case} ».",
     "submit": "Envoyer le Message",
     "sending": "Envoi en cours...",
     "success": "Merci ! Nous vous contacterons sous 24 heures.",
@@ -173,8 +175,10 @@
     "title": "Blog",
     "subtitle": "Aperçus de l'industrie, guides de fabrication et rapports de tendances pour les marques de sport.",
     "read_more": "Lire la Suite",
+    "related": "Articles liés",
     "empty": "Aucun article pour le moment. Revenez bientôt.",
     "all_loaded": "Tous les articles sont chargés",
+    "all": "Tous",
     "back_to_list": "Retour au Blog",
     "not_found": "Cet article est introuvable.",
     "categories": {
@@ -191,6 +195,13 @@
   "case": {
     "title": "Cas",
     "view_case": "Voir le Cas",
+    "all": "Tous",
+    "empty": "Aucun cas pour le moment.",
+    "all_loaded": "Tous les cas chargés",
+    "related": "Cas liés",
+    "cta_title": "Prêt à lancer un projet similaire ?",
+    "cta_desc": "Parlez-nous de votre marque et de vos objectifs : nous vous répondrons avec une solution OEM/ODM sur mesure et un devis sous 24 h.",
+    "cta_button": "Obtenir un devis gratuit",
     "back_to_list": "Retour aux cas",
     "not_found": "Cette étude de cas est introuvable.",
     "client_industry": "Secteur du client",
@@ -205,6 +216,23 @@
       "oem": "OEM",
       "odm": "ODM",
       "private_label": "Marque propre"
+    }
+  },
+  "faq": {
+    "empty": "Aucune FAQ pour le moment.",
+    "all_loaded": "Toutes les FAQ chargées",
+    "all": "Tous",
+    "categories": {
+      "moq": "MOQ",
+      "oem": "OEM",
+      "odm": "ODM",
+      "sample": "Échantillonnage",
+      "payment": "Paiement",
+      "production": "Production",
+      "logistics": "Logistique",
+      "fabric": "Tissu",
+      "quality": "Qualité",
+      "certification": "Certification"
     }
   },
   "floating": {
