@@ -193,6 +193,30 @@ func humanizeSlug(slug string) string {
 	return strings.Join(parts, " ")
 }
 
+// demoProductName 演示产品的本地化名称（en 缺省用 humanizeSlug，这里只放 zh/es/fr）
+var demoProductName = map[string]map[string]string{
+	"premium-yoga-leggings":       {"zh": "高腰瑜伽裤", "es": "Leggings de Yoga Premium", "fr": "Leggings de Yoga Premium"},
+	"eco-friendly-yoga-top":       {"zh": "环保瑜伽上衣", "es": "Top de Yoga Ecológico", "fr": "Haut de Yoga Écologique"},
+	"professional-running-shorts": {"zh": "专业跑步短裤", "es": "Pantalón Corto de Running Profesional", "fr": "Short de Course Professionnel"},
+	"reflective-running-jacket":   {"zh": "反光跑步夹克", "es": "Chaqueta de Running Reflectante", "fr": "Veste de Course Réfléchissante"},
+	"compression-training-tee":    {"zh": "压缩训练T恤", "es": "Camiseta de Entrenamiento de Compresión", "fr": "T-shirt d'Entraînement de Compression"},
+	"training-duffle-bag":         {"zh": "训练旅行包", "es": "Bolso de Entrenamiento", "fr": "Sac de Sport"},
+	"pro-team-soccer-jersey":      {"zh": "专业足球队服", "es": "Camiseta de Fútbol Profesional", "fr": "Maillot de Football Pro"},
+	"custom-basketball-uniform":   {"zh": "定制篮球服", "es": "Uniforme de Baloncesto Personalizado", "fr": "Uniforme de Basketball Personnalisé"},
+	"women-running-tights":        {"zh": "女式跑步紧身裤", "es": "Mallas de Running para Mujer", "fr": "Collant de Course Femme"},
+	"mens-yoga-pants":             {"zh": "男士瑜伽裤", "es": "Pantalones de Yoga para Hombre", "fr": "Pantalon de Yoga Homme"},
+}
+
+// localizedProductName 返回产品本地化名称；未配置时回退英文 humanized slug
+func localizedProductName(slug, lang string) string {
+	if names, ok := demoProductName[slug]; ok {
+		if n := names[lang]; n != "" {
+			return n
+		}
+	}
+	return humanizeSlug(slug)
+}
+
 // localizedDemoCopy 按语言生成演示文案（brief/description/features/usage）
 func localizedDemoCopy(lang, catSlug, material, enBrief, enDesc string) (string, string, string, string) {
 	cat := demoCatWord(lang, catSlug)
@@ -220,16 +244,16 @@ func localizedDemoCopy(lang, catSlug, material, enBrief, enDesc string) (string,
 }
 
 // buildDemoTranslation 构造一条演示翻译
-func buildDemoTranslation(lang, catSlug, material, enName, enBrief, enDesc string) models.ProductTranslation {
+func buildDemoTranslation(lang, catSlug, material, slug, enBrief, enDesc string) models.ProductTranslation {
 	brief, desc, features, usage := localizedDemoCopy(lang, catSlug, material, enBrief, enDesc)
 	return models.ProductTranslation{
-		Language: lang, Name: enName, Brief: brief, Description: desc,
+		Language: lang, Name: localizedProductName(slug, lang), Brief: brief, Description: desc,
 		Features: features, Usage: usage, Status: models.TranslationStatusPublished,
 	}
 }
 
 // ensureProductTranslation 缺失则创建；已存在但为裸种子数据（name=SKU 或关键字段空）则补缺修正
-func ensureProductTranslation(db *gorm.DB, productID uuid.UUID, sku string, t models.ProductTranslation) {
+func ensureProductTranslation(db *gorm.DB, productID uuid.UUID, sku, enName string, t models.ProductTranslation) {
 	var existing models.ProductTranslation
 	if err := db.Where("product_id = ? AND language = ?", productID, t.Language).First(&existing).Error; err != nil {
 		t.ProductID = productID
@@ -237,7 +261,7 @@ func ensureProductTranslation(db *gorm.DB, productID uuid.UUID, sku string, t mo
 		return
 	}
 	updates := map[string]interface{}{}
-	if existing.Name == "" || existing.Name == sku {
+	if existing.Name == "" || existing.Name == sku || existing.Name == enName {
 		updates["name"] = t.Name
 	}
 	if existing.Brief == "" {
@@ -327,7 +351,7 @@ func enrichDemoProduct(db *gorm.DB, p *models.Product, catSlug, seriesID string)
 
 	// 2) 多语言翻译（en/zh/es/fr）
 	for _, lang := range []string{"en", "zh", "es", "fr"} {
-		ensureProductTranslation(db, p.ID, p.SKU, buildDemoTranslation(lang, catSlug, material, enName, p.Brief, p.Description))
+		ensureProductTranslation(db, p.ID, p.SKU, enName, buildDemoTranslation(lang, catSlug, material, p.Slug, p.Brief, p.Description))
 	}
 
 	// 3) 规格：缺失时补齐

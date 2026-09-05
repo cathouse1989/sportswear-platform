@@ -76,6 +76,20 @@
       "clear": "Limpiar",
       "show_more": "Ver Más",
       "show_less": "Ver Menos"
+    },
+    "categories": {
+      "yoga-wear": "Ropa de Yoga",
+      "running-gear": "Equipo de Running",
+      "training-apparel": "Ropa de Entrenamiento",
+      "team-uniforms": "Uniformes de Equipo",
+      "custom-design": "Diseño Personalizado"
+    },
+    "series": {
+      "zen-studio-collection": "Colección Zen Studio",
+      "aero-run-series": "Serie Aero Run",
+      "pro-training-line": "Línea Pro Training",
+      "team-pro-series": "Serie Team Pro",
+      "custom-atelier": "Atelier Personalizado"
     }
   },
   "about": {

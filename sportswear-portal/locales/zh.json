@@ -76,6 +76,20 @@
       "clear": "清空",
       "show_more": "展开全文",
       "show_less": "收起"
+    },
+    "categories": {
+      "yoga-wear": "瑜伽服",
+      "running-gear": "跑步装备",
+      "training-apparel": "训练服饰",
+      "team-uniforms": "团队队服",
+      "custom-design": "定制设计"
+    },
+    "series": {
+      "zen-studio-collection": "禅意工作室系列",
+      "aero-run-series": "竞速跑步系列",
+      "pro-training-line": "专业训练系列",
+      "team-pro-series": "团队专业系列",
+      "custom-atelier": "定制工坊"
     }
   },
   "about": {

@@ -43,13 +43,13 @@
             class="shrink-0 px-4 py-2.5 rounded-full text-sm font-medium transition border min-h-[40px]"
             :class="selectedCategory === cat.id ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'"
           >
-            {{ cat.name }}
+            {{ localizedCategory(cat.name, cat.slug) }}
           </button>
         </div>
 
         <select v-model="selectedCategory" @change="fetchProducts" class="px-4 py-2.5 rounded-full text-sm font-medium border border-gray-200 bg-white text-gray-600 focus:outline-none focus:border-black transition min-h-[40px]">
           <option value="">{{ $t('product.all_categories') }}</option>
-          <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+          <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ localizedCategory(cat.name, cat.slug) }}</option>
         </select>
 
         <select v-model="selectedGender" @change="fetchProducts" class="px-4 py-2.5 rounded-full text-sm font-medium border border-gray-200 bg-white text-gray-600 focus:outline-none focus:border-black transition min-h-[40px]">
@@ -131,6 +131,7 @@ useSeoHead({
 const api = useApi()
 const route = useRoute()
 const { locale } = useI18n()
+const { localizedCategory } = useLocalized()
 const products = ref<any[]>([])
 const categories = ref<any[]>([])
 const selectedCategory = ref('')

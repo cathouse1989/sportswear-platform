@@ -59,6 +59,7 @@ const route = useRoute()
 const localePath = useLocalePath()
 const api = useApi()
 const { locale } = useI18n()
+const { localizedCategory } = useLocalized()
 
 const slug = route.params.slug as string
 
@@ -79,7 +80,7 @@ const { data: catData, refresh: refreshCategories } = await useAsyncData<any[]>(
   () => api.getCategories().catch(() => []),
 )
 const category = computed(() => findCategory(catData.value, slug))
-const categoryName = computed(() => category.value?.name || slug)
+const categoryName = computed(() => localizedCategory(category.value?.name || slug, slug))
 
 // 分类下产品（自包含：内部重新拉分类匹配，避免与分类树刷新时序耦合）
 const { data: productsData, refresh: refreshProducts } = await useAsyncData<any[]>(

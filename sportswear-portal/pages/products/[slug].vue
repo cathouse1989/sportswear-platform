@@ -7,7 +7,7 @@
           :items="[
             { name: $t('nav.home'), to: localePath('/') },
             { name: $t('product.products'), to: localePath('/products') },
-            ...(product.category?.slug ? [{ name: product.category.name || product.category.slug, to: localePath('/categories/' + product.category.slug) }] : []),
+            ...(product.category?.slug ? [{ name: localizedCategory(product.category.name || product.category.slug, product.category.slug), to: localePath('/categories/' + product.category.slug) }] : []),
             { name: product.name || product.sku },
           ]"
         />
@@ -446,6 +446,7 @@ const route = useRoute()
 const localePath = useLocalePath()
 const api = useApi()
 const { locale } = useI18n()
+const { localizedCategory } = useLocalized()
 
 const currentImageIndex = ref(0)
 const copied = ref(false)

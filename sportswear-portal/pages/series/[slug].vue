@@ -59,6 +59,7 @@ const route = useRoute()
 const localePath = useLocalePath()
 const api = useApi()
 const { locale } = useI18n()
+const { localizedSeries } = useLocalized()
 
 const slug = route.params.slug as string
 
@@ -72,7 +73,7 @@ const { data: seriesData, refresh: refreshSeries } = await useAsyncData<any[]>(
   () => api.getSeries().catch(() => []),
 )
 const series = computed(() => asArray(seriesData.value).find((s: any) => s.slug === slug))
-const seriesName = computed(() => series.value?.name || slug)
+const seriesName = computed(() => localizedSeries(series.value?.name || slug, slug))
 
 // 系列下产品（自包含：内部重新拉系列匹配，避免与系列列表刷新时序耦合）
 const { data: productsData, refresh: refreshProducts } = await useAsyncData<any[]>(
