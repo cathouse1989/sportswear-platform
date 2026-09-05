@@ -772,17 +772,23 @@ func (s *AuthService) InitDefaultData() error {
 	var navCount int64
 	s.db.Model(&models.Navigation{}).Count(&navCount)
 	if navCount == 0 {
+		// header 与 footer 顶级导航顺序保持一致：
+		// 首页 / 产品中心 / 案例展示 / 关于我们 / 博客 / 常见问题 / 联系我们
 		navigations := []models.Navigation{
 			{Name: "Home", Type: "header", URL: "/", SortOrder: 1, IsVisible: true},
 			{Name: "Products", Type: "header", URL: "/products", SortOrder: 2, IsVisible: true},
-			{Name: "OEM Service", Type: "header", URL: "/oem", SortOrder: 3, IsVisible: true},
-			{Name: "ODM Service", Type: "header", URL: "/odm", SortOrder: 4, IsVisible: true},
-			{Name: "Manufacturing", Type: "header", URL: "/factory", SortOrder: 5, IsVisible: true},
-			{Name: "Cases", Type: "header", URL: "/cases", SortOrder: 6, IsVisible: true},
-			{Name: "Blog", Type: "header", URL: "/blog", SortOrder: 7, IsVisible: true},
-			{Name: "FAQ", Type: "header", URL: "/faq", SortOrder: 8, IsVisible: true},
-			{Name: "About Us", Type: "header", URL: "/about", SortOrder: 9, IsVisible: true},
-			{Name: "Contact Us", Type: "header", URL: "/contact", SortOrder: 10, IsVisible: true},
+			{Name: "Cases", Type: "header", URL: "/cases", SortOrder: 3, IsVisible: true},
+			{Name: "About Us", Type: "header", URL: "/about", SortOrder: 4, IsVisible: true},
+			{Name: "Blog", Type: "header", URL: "/blog", SortOrder: 5, IsVisible: true},
+			{Name: "FAQ", Type: "header", URL: "/faq", SortOrder: 6, IsVisible: true},
+			{Name: "Contact Us", Type: "header", URL: "/contact", SortOrder: 7, IsVisible: true},
+			{Name: "Home", Type: "footer", URL: "/", SortOrder: 1, IsVisible: true},
+			{Name: "Products", Type: "footer", URL: "/products", SortOrder: 2, IsVisible: true},
+			{Name: "Cases", Type: "footer", URL: "/cases", SortOrder: 3, IsVisible: true},
+			{Name: "About Us", Type: "footer", URL: "/about", SortOrder: 4, IsVisible: true},
+			{Name: "Blog", Type: "footer", URL: "/blog", SortOrder: 5, IsVisible: true},
+			{Name: "FAQ", Type: "footer", URL: "/faq", SortOrder: 6, IsVisible: true},
+			{Name: "Contact Us", Type: "footer", URL: "/contact", SortOrder: 7, IsVisible: true},
 		}
 		s.db.Create(&navigations)
 	}

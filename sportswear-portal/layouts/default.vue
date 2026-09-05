@@ -286,8 +286,8 @@ const contactPhoneHref = computed(() => 'tel:' + t('contact.phone_value').replac
 const DEFAULT_NAV = [
   { path: '/', label: 'nav.home', target: '_self', isExternal: false },
   { path: '/products', label: 'nav.products', target: '_self', isExternal: false },
-  { path: '/about', label: 'nav.about', target: '_self', isExternal: false },
   { path: '/cases', label: 'nav.cases', target: '_self', isExternal: false },
+  { path: '/about', label: 'nav.about', target: '_self', isExternal: false },
   { path: '/blog', label: 'nav.blog', target: '_self', isExternal: false },
   { path: '/faq', label: 'nav.faq', target: '_self', isExternal: false },
   { path: '/contact', label: 'nav.contact', target: '_self', isExternal: false },
@@ -296,10 +296,11 @@ const DEFAULT_NAV = [
 const DEFAULT_FOOTER = [
   { path: '/', label: 'nav.home', target: '_self', isExternal: false },
   { path: '/products', label: 'nav.products', target: '_self', isExternal: false },
-  { path: '/about', label: 'nav.about', target: '_self', isExternal: false },
   { path: '/cases', label: 'nav.cases', target: '_self', isExternal: false },
+  { path: '/about', label: 'nav.about', target: '_self', isExternal: false },
   { path: '/blog', label: 'nav.blog', target: '_self', isExternal: false },
   { path: '/faq', label: 'nav.faq', target: '_self', isExternal: false },
+  { path: '/contact', label: 'nav.contact', target: '_self', isExternal: false },
 ]
 
 // 动态导航数据（SSR + 客户端）
