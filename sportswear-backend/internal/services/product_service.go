@@ -374,10 +374,11 @@ func (s *ProductService) syncProductChildren(product *models.Product, req *Produ
 		}
 		for i, spec := range req.Specs {
 			item := models.ProductSpec{
-				ProductID: product.ID,
-				Name:      spec.Name,
-				Value:     spec.Value,
-				SortOrder: spec.SortOrder,
+				ProductID:    product.ID,
+				Name:         spec.Name,
+				Value:        spec.Value,
+				SortOrder:    spec.SortOrder,
+				Translations: spec.Translations,
 			}
 			if spec.SortOrder == 0 {
 				item.SortOrder = i
@@ -469,9 +470,10 @@ type ProductVideoRequest struct {
 
 // ProductSpecRequest 产品规格请求
 type ProductSpecRequest struct {
-	Name      string `json:"name"`
-	Value     string `json:"value"`
-	SortOrder int    `json:"sort_order"`
+	Name         string `json:"name"`
+	Value        string `json:"value"`
+	SortOrder    int    `json:"sort_order"`
+	Translations string `json:"translations"`
 }
 
 // ProductCustomizationRequest 产品定制能力请求

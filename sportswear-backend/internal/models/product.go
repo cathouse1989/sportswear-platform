@@ -127,6 +127,9 @@ type ProductSpec struct {
 	Name      string    `gorm:"type:varchar(100);not null" json:"name"`
 	Value     string    `gorm:"type:varchar(200)" json:"value"`
 	SortOrder int       `gorm:"default:0" json:"sort_order"`
+	// 多语言翻译（JSONB）：{"zh":"...","es":"...","fr":"..."}，键为语言码，值为该语言的 value 文案。
+	// 英文为源（Value 字段）；其余语言按需补充，未配置时门户回退英文。
+	Translations string `gorm:"type:jsonb" json:"translations"`
 }
 
 // ProductCustomization 产品定制能力

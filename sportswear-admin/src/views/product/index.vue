@@ -589,18 +589,25 @@
           <el-button size="small" @click="addSpecPreset('Fabric', 'Polyester, Cotton, Nylon')">面料 Fabric</el-button>
         </div>
         <div class="spec-list">
-          <div v-for="(spec, idx) in specs" :key="idx" class="spec-row">
-            <el-input v-model="spec.name" placeholder="规格名称，如：面料" style="width: 180px" />
-            <el-input v-model="spec.value" placeholder="规格值，如：涤纶 / 多选项用逗号分隔" style="width: 220px" />
-            <el-button size="small" circle @click="moveSpec(idx, -1)" :disabled="idx === 0" title="上移">
-              <template #icon><el-icon><ArrowUp /></el-icon></template>
-            </el-button>
-            <el-button size="small" circle @click="moveSpec(idx, 1)" :disabled="idx === specs.length - 1" title="下移">
-              <template #icon><el-icon><ArrowDown /></el-icon></template>
-            </el-button>
-            <el-button type="danger" size="small" @click="removeSpec(idx)" circle>
-              <template #icon><el-icon><Delete /></el-icon></template>
-            </el-button>
+          <div v-for="(spec, idx) in specs" :key="idx" class="spec-item">
+            <div class="spec-row">
+              <el-input v-model="spec.name" placeholder="规格名称，如：面料" style="width: 180px" />
+              <el-input v-model="spec.value" placeholder="规格值 (英文)" style="width: 220px" />
+              <el-button size="small" circle @click="moveSpec(idx, -1)" :disabled="idx === 0" title="上移">
+                <template #icon><el-icon><ArrowUp /></el-icon></template>
+              </el-button>
+              <el-button size="small" circle @click="moveSpec(idx, 1)" :disabled="idx === specs.length - 1" title="下移">
+                <template #icon><el-icon><ArrowDown /></el-icon></template>
+              </el-button>
+              <el-button type="danger" size="small" @click="removeSpec(idx)" circle>
+                <template #icon><el-icon><Delete /></el-icon></template>
+              </el-button>
+            </div>
+            <div class="spec-trans">
+              <el-input v-model="spec.value_zh" placeholder="值 (中文)" />
+              <el-input v-model="spec.value_es" placeholder="值 (西语)" />
+              <el-input v-model="spec.value_fr" placeholder="值 (法语)" />
+            </div>
           </div>
         </div>
         <el-button size="small" @click="addSpec" class="mt-2">
@@ -795,7 +802,7 @@ const uploadProgress = ref(0)
 // 规格管理
 const specDialogVisible = ref(false)
 const specProductId = ref('')
-const specs = ref<Array<{ name: string; value: string }>>([])
+const specs = ref<Array<{ name: string; value: string; value_zh?: string; value_es?: string; value_fr?: string }>>([])
 const specDetail = ref<any>(null)
 const savingSpecs = ref(false)
 
@@ -1312,17 +1319,21 @@ async function openSpecDialog(row: Product) {
     const detail = await productApi.get(row.id)
     specDetail.value = detail
     if (detail.specs?.length) {
-      specs.value = detail.specs.map(s => ({ name: s.name, value: s.value }))
+      specs.value = detail.specs.map(s => {
+        let t: Record<string, string> = {}
+        try { t = s.translations ? JSON.parse(s.translations) : {} } catch { t = {} }
+        return { name: s.name, value: s.value, value_zh: t.zh || '', value_es: t.es || '', value_fr: t.fr || '' }
+      })
     }
   } catch {}
 }
 
 function addSpec() {
-  specs.value.push({ name: '', value: '' })
+  specs.value.push({ name: '', value: '', value_zh: '', value_es: '', value_fr: '' })
 }
 
 function addSpecPreset(name: string, value: string) {
-  specs.value.push({ name, value })
+  specs.value.push({ name, value, value_zh: '', value_es: '', value_fr: '' })
 }
 
 function removeSpec(idx: number) {
@@ -1341,7 +1352,14 @@ function moveSpec(idx: number, dir: number) {
 async function saveSpecs() {
   savingSpecs.value = true
   try {
-    await productApi.update(specProductId.value, { ...productPayload(specDetail.value), specs: specs.value.map((s, i) => ({ name: s.name, value: s.value, sort_order: i })) })
+    await productApi.update(specProductId.value, { ...productPayload(specDetail.value), specs: specs.value.map((s: any, i) => {
+      const { value_zh, value_es, value_fr, ...rest } = s
+      const translations: Record<string, string> = {}
+      if (value_zh) translations.zh = value_zh
+      if (value_es) translations.es = value_es
+      if (value_fr) translations.fr = value_fr
+      return { ...rest, sort_order: i, translations: JSON.stringify(translations) }
+    }) })
     ElMessage.success('规格保存成功')
     specDialogVisible.value = false
     loadData()
@@ -1847,7 +1865,23 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.spec-item {
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px solid #f0ede8;
+  border-radius: 8px;
+}
+.spec-trans {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.spec-trans .el-input {
+  flex: 1;
+  min-width: 140px;
 }
 .video-row {
   display: flex;

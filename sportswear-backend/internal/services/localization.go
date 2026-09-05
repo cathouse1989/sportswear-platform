@@ -78,6 +78,8 @@ func LocalizeProduct(p *models.Product, lang string) {
 	}
 	// 定制能力 note 按语言解析（JSONB 翻译字段，未配置时回退英文 Note）
 	localizeCustomizations(p.Customizations, lang)
+	// 规格参数 value 按语言解析（JSONB 翻译字段，未配置时回退英文 Value）
+	localizeSpecs(p.Specs, lang)
 }
 
 // resolveTranslated 解析 JSONB 翻译字段（如 {"zh":"...","es":"...","fr":"..."}），返回目标语言文案。
@@ -98,6 +100,15 @@ func localizeCustomizations(customizations []models.ProductCustomization, lang s
 	for i := range customizations {
 		if note := resolveTranslated(customizations[i].Translations, lang); note != "" {
 			customizations[i].Note = note
+		}
+	}
+}
+
+// localizeSpecs 批量本地化规格参数的 value
+func localizeSpecs(specs []models.ProductSpec, lang string) {
+	for i := range specs {
+		if value := resolveTranslated(specs[i].Translations, lang); value != "" {
+			specs[i].Value = value
 		}
 	}
 }
