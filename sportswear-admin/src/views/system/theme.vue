@@ -84,7 +84,7 @@ const adminSystemName = ref('')
 const logoAlt = ref('')
 const savingLogo = ref(false)
 
-// 数值型配置项：以数字输入框渲染（含「自媒体最多展示数量」）
+// 数值型配置项：以数字输入框渲染
 const NUMBER_KEYS = [
   'header_height', 'footer_columns', 'section_spacing', 'container_width',
   'button_radius', 'card_radius',
@@ -93,11 +93,14 @@ const NUMBER_KEYS = [
 ]
 const isNumberKey = (key: string) => NUMBER_KEYS.includes(key)
 
+// 商标/Logo 相关配置仅在「商标 Logo 配置」区块维护，避免与下方「其他主题配置项」重复出现
+const LOGO_KEYS = ['logo_url', 'logo_alt', 'favicon_url', 'brand_name', 'brand_subtitle', 'admin_system_name']
+
 async function loadData() {
   loading.value = true
   try {
     const allItems = await themeApi.adminList()
-    items.value = allItems
+    items.value = allItems.filter((i: any) => !LOGO_KEYS.includes(i.key))
     logoUrl.value = allItems.find((i: any) => i.key === 'logo_url')?.value || ''
     faviconUrl.value = allItems.find((i: any) => i.key === 'favicon_url')?.value || ''
     brandName.value = allItems.find((i: any) => i.key === 'brand_name')?.value || ''
