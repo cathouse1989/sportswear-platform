@@ -223,6 +223,8 @@ func (s *PortalService) InitDefaultTheme() error {
 		"social_youtube", "social_instagram", "social_xiaohongshu",
 		"social_facebook", "social_twitter", "social_linkedin",
 		"self_media_max_display",
+		// 联系方式（邮箱/电话/地址/坐标）已回归门户 Footer 硬编码维护，停用 theme_configs 中的历史遗留键
+		"contact_email", "contact_phone", "contact_address", "contact_latitude", "contact_longitude",
 	}
 	if err := s.db.Model(&models.ThemeConfig{}).Where("\"key\" IN ?", deprecatedKeys).Update("is_active", false).Error; err != nil {
 		return err

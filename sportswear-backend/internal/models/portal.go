@@ -55,8 +55,6 @@ var DefaultThemeConfigs = []ThemeConfig{
 	{Key: "footer_columns", Value: `4`, Group: "footer", Name: "Footer 栏数", IsActive: true},
 	{Key: "whatsapp_number", Value: `"8612345678900"`, Group: "contact", Name: "WhatsApp 号码（含国家代码，不含+号）", IsActive: true},
 	{Key: "whatsapp_message", Value: `"Hello! I am interested in your sportswear products."`, Group: "contact", Name: "WhatsApp 默认消息", IsActive: true},
-	{Key: "contact_email", Value: `"info@sportswear.com"`, Group: "contact", Name: "联系邮箱", IsActive: true},
-	{Key: "contact_phone", Value: `"+86 123 4567 8900"`, Group: "contact", Name: "联系电话", IsActive: true},
 	// 社交/自媒体链接已迁移至「自媒体管理」（self_medias 表），此处不再维护，避免两处重复配置。
 
 	// 翻页配置
