@@ -369,6 +369,12 @@ func (h *PublicHandler) ListBlogs(c *gin.Context) {
 			return cachedPage[models.Blog]{}, err
 		}
 		services.LocalizeBlogs(blogs, lang)
+		// 列表瘦身：不下发正文全文与翻译（详情接口再取），仅保留纯文本摘要，控制列表 payload 与带宽
+		for i := range blogs {
+			blogs[i].Summary = services.ExcerptHTML(blogs[i].Content, 200)
+			blogs[i].Content = ""
+			blogs[i].Translations = nil
+		}
 		return cachedPage[models.Blog]{Items: blogs, Total: total}, nil
 	})
 	if err != nil {

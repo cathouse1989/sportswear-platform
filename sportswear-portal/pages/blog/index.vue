@@ -37,7 +37,7 @@
             <time>{{ formatDate(b.published_at || b.created_at) }}</time>
           </div>
           <h2 class="text-lg md:text-xl font-semibold leading-snug text-gray-900 group-hover:text-blue-700 transition-colors line-clamp-2">{{ b.title }}</h2>
-          <p class="mt-2.5 text-sm md:text-base text-gray-500 leading-relaxed line-clamp-2">{{ stripHtml(b.content) }}</p>
+          <p class="mt-2.5 text-sm md:text-base text-gray-500 leading-relaxed line-clamp-2">{{ b.summary || stripHtml(b.content) }}</p>
           <span class="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-blue-700">
             {{ $t('blog.read_more') }}
             <span aria-hidden="true">→</span>

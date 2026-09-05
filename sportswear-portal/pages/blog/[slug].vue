@@ -13,7 +13,7 @@
       </div>
       <h1 class="text-3xl md:text-4xl font-bold leading-tight mb-8 md:mb-10">{{ blog.title }}</h1>
       <img v-if="blog.cover_image" :src="blog.cover_image" :alt="blog.title" class="w-full rounded-xl object-cover mb-10 md:mb-12 max-h-[440px] bg-gray-100" />
-      <div class="prose prose-lg max-w-none" v-html="blog.content"></div>
+      <div class="prose prose-lg max-w-none" v-html="sanitizeHtml(blog.content)"></div>
       <div v-if="tags.length" class="mt-10 md:mt-12 flex flex-wrap gap-2">
         <span v-for="tag in tags" :key="tag" class="px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-xs">#{{ tag }}</span>
       </div>
@@ -68,6 +68,17 @@ function formatDate(value?: string) {
 // 去除 HTML 标签生成摘要
 function stripHtml(html?: string) {
   return (html || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+// 富文本安全渲染兜底：去除脚本/内嵌对象/事件属性/javascript: 协议，
+// 兼容历史纯 textarea 录入的 HTML 数据（TipTap 输出本身已在白名单内）。
+function sanitizeHtml(html?: string) {
+  if (!html) return ''
+  return html
+    .replace(/<\s*(script|iframe|object|embed|style|link|meta)\b[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+    .replace(/<\s*(script|iframe|object|embed|style|link|meta)\b[^>]*\/?\s*>/gi, '')
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/(href|src)\s*=\s*("|')?\s*javascript:[^"'\s>]*("|')?/gi, '$1=""')
 }
 
 // SEO - 博客详情页

@@ -69,8 +69,8 @@
             <el-form-item label="封面图">
               <MediaPicker v-model="form.cover_image" />
             </el-form-item>
-            <el-form-item label="正文" prop="content">
-              <el-input v-model="form.content" type="textarea" :rows="8" placeholder="正文内容（富文本编辑器见打磨方案 P2-#12）" />
+            <el-form-item label="正文">
+              <RichTextEditor v-model="form.content" placeholder="正文内容" min-height="220px" />
             </el-form-item>
           </el-form>
         </el-tab-pane>
@@ -88,7 +88,7 @@
               <el-button size="small" type="danger" @click="removeTranslation(i)">删除</el-button>
             </div>
             <el-input v-model="t.title" size="small" placeholder="翻译标题" class="trans-title" />
-            <el-input v-model="t.content" type="textarea" :rows="4" placeholder="翻译正文" class="trans-content" />
+            <RichTextEditor v-model="t.content" placeholder="翻译正文" min-height="120px" class="trans-content" />
           </div>
           <el-empty v-if="!translations.length" description="暂无翻译，点击「添加翻译」配置多语言内容" :image-size="60" />
         </el-tab-pane>
@@ -108,6 +108,7 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { cmsApi } from '@/api/cms'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
 import MediaPicker from '@/components/media/MediaPicker.vue'
+import RichTextEditor from '@/components/RichTextEditor.vue'
 import type { Blog } from '@/types'
 import { checkBlogGate, gateAlertMessage } from '@/utils/publish-gate'
 
@@ -154,7 +155,6 @@ const rules: FormRules = {
     { pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/, message: '仅允许小写字母、数字和中划线', trigger: 'blur' },
   ],
   category: [{ required: true, message: '请选择分类', trigger: 'change' }],
-  content: [{ required: true, message: '请输入正文', trigger: 'blur' }],
 }
 
 async function loadData() {
@@ -197,9 +197,14 @@ function addTranslation() {
   translations.value.push({ language: lang, title: '', content: '' })
 }
 function removeTranslation(i: number) { translations.value.splice(i, 1) }
+// 富文本正文是否含实质内容（去除标签后非空）
+function hasContent(html?: string) {
+  return (html || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim().length > 0
+}
 async function handleSave() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
+  if (!hasContent(form.content)) { ElMessage.warning('请输入正文'); activeTab.value = 'basic'; return }
   for (const t of translations.value) {
     if (!t.language) { ElMessage.warning('翻译语言不能为空'); activeTab.value = 'translations'; return }
   }

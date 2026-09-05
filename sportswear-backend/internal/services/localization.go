@@ -1,6 +1,9 @@
 ﻿package services
 
 import (
+	"regexp"
+	"strings"
+
 	"sportswear-backend/internal/models"
 )
 
@@ -140,4 +143,29 @@ func LocalizeCases(cases []models.Case, lang string) {
 	for i := range cases {
 		LocalizeCase(&cases[i], lang)
 	}
+}
+
+// 摘要提取用正则（编译一次，供列表接口复用，避免逐条重复编译）
+var (
+	excerptBlockRe = regexp.MustCompile(`(?is)<(script|style)\b[^>]*>.*?</\1>`)
+	excerptTagRe   = regexp.MustCompile(`(?s)<[^>]*>`)
+	excerptSpaceRe = regexp.MustCompile(`\s+`)
+)
+
+// ExcerptHTML 提取 HTML 纯文本摘要：去除标签/脚本，压缩空白并按字符截断。
+// 用于列表接口瘦身——列表不下发全文 content，仅返回摘要。
+func ExcerptHTML(html string, max int) string {
+	text := excerptBlockRe.ReplaceAllString(html, "")
+	text = excerptTagRe.ReplaceAllString(text, " ")
+	// 解码常见 HTML 实体
+	replacer := strings.NewReplacer("&nbsp;", " ", "&amp;", "&", "&lt;", "<", "&gt;", ">", "&quot;", "\"", "&#39;", "'")
+	text = replacer.Replace(text)
+	text = excerptSpaceRe.ReplaceAllString(text, " ")
+	text = strings.TrimSpace(text)
+
+	runes := []rune(text)
+	if len(runes) <= max {
+		return text
+	}
+	return strings.TrimSpace(string(runes[:max])) + "…"
 }

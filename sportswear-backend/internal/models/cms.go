@@ -69,6 +69,7 @@ type Blog struct {
 	Content      string            `gorm:"type:text" json:"content"`
 	Status       ContentStatus     `gorm:"type:varchar(20);default:draft" json:"status"`
 	PublishedAt  *time.Time        `json:"published_at"`
+	Summary      string            `gorm:"-" json:"summary,omitempty"` // 列表摘要（运行时计算，非 DB 列）
 	Translations []BlogTranslation `json:"translations,omitempty"`
 	SEO          *SEO              `gorm:"-" json:"seo,omitempty"`
 }
