@@ -257,7 +257,7 @@
             <div>
               <div class="font-semibold text-sm text-[#0D1B2A] capitalize">{{ localizedEnum('product.customization_options', c.type) }}</div>
               <div v-if="c.note" class="text-xs text-gray-500 mt-1">{{ c.note }}</div>
-              <div v-if="c.is_enabled" class="text-xs text-green-600 mt-1 font-medium">✓ Available</div>
+              <div v-if="c.is_enabled" class="text-xs text-green-600 mt-1 font-medium">✓ {{ $t('product.detail.available') }}</div>
             </div>
           </div>
         </div>
