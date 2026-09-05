@@ -1,7 +1,9 @@
-﻿package services
+package services
 
 import (
+	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,7 +17,9 @@ func Seed(db *gorm.DB) {
 	var count int64
 	db.Model(&models.Product{}).Count(&count)
 	if count > 0 {
-		log.Println("[Seed] 已有产品数据，跳过")
+		log.Println("[Seed] 已有产品数据，跳过初始种子")
+		// 幂等回填已存在的演示产品（多语言 + 下级页面内容）
+		ensureDemoProductContent(db)
 		return
 	}
 	log.Println("[Seed] 创建示例数据...")
@@ -120,6 +124,294 @@ func Seed(db *gorm.DB) {
 	}
 
 	log.Println("[Seed] 示例数据创建完成: 5个分类, 10个产品, 4篇博客, 4个认证, 5个FAQ")
+
+	// 幂等回填演示产品的多语言翻译与下级页面内容
+	ensureDemoProductContent(db)
+}
+
+// ====================================================================
+// 演示产品内容回填（幂等）：为示例产品（SKU 前缀 SW-）补齐多语言翻译与下级页面内容
+// ====================================================================
+
+// demoCatWord 各分类在 en/zh/es/fr 下的展示名
+var demoCatWordMap = map[string]map[string]string{
+	"yoga-wear":        {"en": "Yoga Wear", "zh": "瑜伽服", "es": "ropa de yoga", "fr": "vêtements de yoga"},
+	"running-gear":     {"en": "Running Gear", "zh": "跑步装备", "es": "equipo de running", "fr": "équipement de course"},
+	"training-apparel": {"en": "Training Apparel", "zh": "训练服饰", "es": "ropa de entrenamiento", "fr": "vêtements d'entraînement"},
+	"team-uniforms":    {"en": "Team Uniforms", "zh": "团队队服", "es": "uniformes de equipo", "fr": "uniformes d'équipe"},
+	"custom-design":    {"en": "Custom Design", "zh": "定制设计", "es": "diseño personalizado", "fr": "design personnalisé"},
+}
+
+func demoCatWord(lang, catSlug string) string {
+	if m, ok := demoCatWordMap[catSlug]; ok {
+		if w := m[lang]; w != "" {
+			return w
+		}
+	}
+	return catSlug
+}
+
+// demoWeight 各分类示例克重
+var demoWeight = map[string]string{
+	"yoga-wear": "220g", "running-gear": "180g", "training-apparel": "200g",
+	"team-uniforms": "190g", "custom-design": "200g",
+}
+
+// demoGallery 各分类的画廊示例图（Unsplash）
+var demoGallery = map[string][]string{
+	"yoga-wear": {
+		"https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=1000&fit=crop",
+		"https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&h=1000&fit=crop",
+	},
+	"running-gear": {
+		"https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=800&h=1000&fit=crop",
+		"https://images.unsplash.com/photo-1571019613914-85f342c6a11e?w=800&h=1000&fit=crop",
+	},
+	"training-apparel": {
+		"https://images.unsplash.com/photo-1576678927484-cc907957088c?w=800&h=1000&fit=crop",
+		"https://images.unsplash.com/photo-1550259979-ed79b48d2a30?w=800&h=1000&fit=crop",
+	},
+	"team-uniforms": {
+		"https://images.unsplash.com/photo-1517649763962-0c623066013b?w=800&h=1000&fit=crop",
+		"https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&h=1000&fit=crop",
+	},
+	"custom-design": {
+		"https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=800&h=1000&fit=crop",
+		"https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=800&h=1000&fit=crop",
+	},
+}
+
+// humanizeSlug 将 slug 转成可读英文名："premium-yoga-leggings" -> "Premium Yoga Leggings"
+func humanizeSlug(slug string) string {
+	parts := strings.Split(slug, "-")
+	for i, p := range parts {
+		if p == "" {
+			continue
+		}
+		parts[i] = strings.ToUpper(p[:1]) + p[1:]
+	}
+	return strings.Join(parts, " ")
+}
+
+// localizedDemoCopy 按语言生成演示文案（brief/description/features/usage）
+func localizedDemoCopy(lang, catSlug, material, enBrief, enDesc string) (string, string, string, string) {
+	cat := demoCatWord(lang, catSlug)
+	switch lang {
+	case "zh":
+		return fmt.Sprintf("专业%s定制运动服装，采用%s面料，支持颜色、尺码、Logo 等全维度定制，低起订量。", cat, material),
+			fmt.Sprintf("我们提供高品质%s定制制造服务。本产品采用 %s 面料，支持颜色、尺码、Logo、版型等定制，欢迎索取样品与报价。", cat, material),
+			fmt.Sprintf("- 高品质 %s 面料\n- 支持 OEM/ODM 全定制\n- 低起订量，快速打样\n- 15 年以上制造经验", material),
+			"适用于运动健身、团队训练、瑜伽、跑步等场景。"
+	case "es":
+		return fmt.Sprintf("Ropa deportiva personalizada de %s con tejido %s. Personalización total de color, talla y logo, MOQ bajo.", cat, material),
+			fmt.Sprintf("Ofrecemos fabricación personalizada de %s de alta calidad. Este producto utiliza %s, con personalización de color, talla, logo y patrón.", cat, material),
+			fmt.Sprintf("- Tejido %s de alta calidad\n- Personalización OEM/ODM completa\n- MOQ bajo con muestras rápidas\n- Más de 15 años de experiencia", material),
+			"Ideal para fitness, entrenamiento en equipo, yoga, running y más."
+	case "fr":
+		return fmt.Sprintf("Vêtements de sport personnalisés (%s) en tissu %s. Personnalisation complète couleur, taille et logo, MOQ bas.", cat, material),
+			fmt.Sprintf("Nous offrons une fabrication personnalisée de %s de haute qualité. Ce produit utilise %s, avec personnalisation couleur, taille, logo et patron.", cat, material),
+			fmt.Sprintf("- Tissu %s de haute qualité\n- Personnalisation OEM/ODM complète\n- MOQ bas avec échantillons rapides\n- Plus de 15 ans d'expérience", material),
+			"Idéal pour fitness, entraînement en équipe, yoga, course et plus."
+	default: // en
+		return enBrief, enDesc,
+			fmt.Sprintf("- High-quality %s fabric\n- Full OEM/ODM customization\n- Low MOQ with fast sampling\n- 15+ years manufacturing experience", material),
+			"Ideal for fitness, team training, yoga, running and more."
+	}
+}
+
+// buildDemoTranslation 构造一条演示翻译
+func buildDemoTranslation(lang, catSlug, material, enName, enBrief, enDesc string) models.ProductTranslation {
+	brief, desc, features, usage := localizedDemoCopy(lang, catSlug, material, enBrief, enDesc)
+	return models.ProductTranslation{
+		Language: lang, Name: enName, Brief: brief, Description: desc,
+		Features: features, Usage: usage, Status: models.TranslationStatusPublished,
+	}
+}
+
+// ensureProductTranslation 缺失则创建；已存在但为裸种子数据（name=SKU 或关键字段空）则补缺修正
+func ensureProductTranslation(db *gorm.DB, productID uuid.UUID, sku string, t models.ProductTranslation) {
+	var existing models.ProductTranslation
+	if err := db.Where("product_id = ? AND language = ?", productID, t.Language).First(&existing).Error; err != nil {
+		t.ProductID = productID
+		db.Create(&t)
+		return
+	}
+	updates := map[string]interface{}{}
+	if existing.Name == "" || existing.Name == sku {
+		updates["name"] = t.Name
+	}
+	if existing.Brief == "" {
+		updates["brief"] = t.Brief
+	}
+	if existing.Description == "" {
+		updates["description"] = t.Description
+	}
+	if existing.Features == "" {
+		updates["features"] = t.Features
+	}
+	if existing.Usage == "" {
+		updates["usage"] = t.Usage
+	}
+	if existing.Status != models.TranslationStatusPublished {
+		updates["status"] = models.TranslationStatusPublished
+	}
+	if len(updates) > 0 {
+		db.Model(&existing).Updates(updates)
+	}
+}
+
+// ensureDemoSeries 确保各分类演示系列存在，返回 category-slug -> series-id 映射
+func ensureDemoSeries(db *gorm.DB) map[string]string {
+	seriesByCat := map[string]string{}
+	defs := []struct{ cat, name, slug string }{
+		{"yoga-wear", "Zen Studio Collection", "zen-studio-collection"},
+		{"running-gear", "Aero Run Series", "aero-run-series"},
+		{"training-apparel", "Pro Training Line", "pro-training-line"},
+		{"team-uniforms", "Team Pro Series", "team-pro-series"},
+		{"custom-design", "Custom Atelier", "custom-atelier"},
+	}
+	for _, d := range defs {
+		var s models.Series
+		if err := db.Where("slug = ?", d.slug).First(&s).Error; err != nil {
+			s = models.Series{Name: d.name, Slug: d.slug, SortOrder: 1, Status: models.ProductStatusPublished, IsActive: true}
+			db.Create(&s)
+		} else if s.Status != models.ProductStatusPublished {
+			db.Model(&s).Update("status", models.ProductStatusPublished)
+		}
+		seriesByCat[d.cat] = s.ID.String()
+	}
+	return seriesByCat
+}
+
+// enrichDemoProduct 为单个演示产品补齐主表属性、多语言翻译、规格、定制、图集与系列
+func enrichDemoProduct(db *gorm.DB, p *models.Product, catSlug, seriesID string) {
+	material := p.Material
+	if material == "" {
+		material = "high-performance fabric"
+	}
+	enName := humanizeSlug(p.Slug)
+	_, _, enFeatures, enUsage := localizedDemoCopy("en", catSlug, material, p.Brief, p.Description)
+
+	// 1) 主表标量属性：缺失时补齐
+	updates := map[string]interface{}{}
+	if p.Features == "" {
+		updates["features"] = enFeatures
+	}
+	if p.Usage == "" {
+		updates["usage"] = enUsage
+	}
+	if p.Composition == "" {
+		updates["composition"] = material
+	}
+	if p.Weight == "" {
+		updates["weight"] = demoWeight[catSlug]
+	}
+	if p.Elasticity == "" {
+		updates["elasticity"] = "4-Way Stretch"
+	}
+	if p.Fit == "" {
+		updates["fit"] = "Regular Fit"
+	}
+	if p.SupportLevel == "" {
+		updates["support_level"] = "Medium"
+	}
+	if p.Season == "" {
+		updates["season"] = "All Season"
+	}
+	if p.SizeRange == "" {
+		updates["size_range"] = "XS-XXL"
+	}
+	if len(updates) > 0 {
+		db.Model(p).Updates(updates)
+	}
+
+	// 2) 多语言翻译（en/zh/es/fr）
+	for _, lang := range []string{"en", "zh", "es", "fr"} {
+		ensureProductTranslation(db, p.ID, p.SKU, buildDemoTranslation(lang, catSlug, material, enName, p.Brief, p.Description))
+	}
+
+	// 3) 规格：缺失时补齐
+	var specCount int64
+	db.Model(&models.ProductSpec{}).Where("product_id = ?", p.ID).Count(&specCount)
+	if specCount == 0 {
+		specs := []models.ProductSpec{
+			{Name: "Fabric", Value: material},
+			{Name: "Composition", Value: material},
+			{Name: "Weight", Value: demoWeight[catSlug]},
+			{Name: "Fit", Value: "Regular Fit"},
+			{Name: "Size Range", Value: "XS-XXL"},
+			{Name: "MOQ", Value: fmt.Sprintf("%d pcs", p.ProductionMOQ)},
+		}
+		for i := range specs {
+			specs[i].ProductID = p.ID
+			specs[i].SortOrder = i
+			db.Create(&specs[i])
+		}
+	}
+
+	// 4) 定制能力：缺失时补齐
+	var cusCount int64
+	db.Model(&models.ProductCustomization{}).Where("product_id = ?", p.ID).Count(&cusCount)
+	if cusCount == 0 {
+		customizations := []models.ProductCustomization{
+			{Type: "logo", IsEnabled: true, Note: "Custom logo via embroidery, print or heat transfer"},
+			{Type: "color", IsEnabled: true, Note: "Custom colors with Pantone matching"},
+			{Type: "fabric", IsEnabled: true, Note: "Fabric sourcing & custom blends"},
+			{Type: "pattern", IsEnabled: true, Note: "Custom patterns & cuts"},
+			{Type: "packaging", IsEnabled: true, Note: "Private label & custom packaging"},
+		}
+		for i := range customizations {
+			customizations[i].ProductID = p.ID
+			db.Create(&customizations[i])
+		}
+	}
+
+	// 5) 图集：主图之外补齐画廊图
+	var imgCount int64
+	db.Model(&models.ProductImage{}).Where("product_id = ?", p.ID).Count(&imgCount)
+	if imgCount < 3 {
+		for _, u := range demoGallery[catSlug] {
+			db.Create(&models.ProductImage{ProductID: p.ID, Type: "gallery", URL: u, Alt: p.SKU, SortOrder: int(imgCount) + 1})
+			imgCount++
+		}
+	}
+
+	// 6) 系列关联
+	if seriesID != "" {
+		db.Exec("INSERT INTO product_series (product_id, series_id) VALUES (?, ?) ON CONFLICT DO NOTHING", p.ID, seriesID)
+	}
+}
+
+// ensureDemoProductContent 为所有演示产品（SKU 前缀 SW-）幂等回填多语言与下级页面内容
+func ensureDemoProductContent(db *gorm.DB) {
+	var products []models.Product
+	if err := db.Where("sku LIKE ?", "SW-%").Find(&products).Error; err != nil {
+		return
+	}
+	if len(products) == 0 {
+		return
+	}
+
+	var cats []models.Category
+	db.Find(&cats)
+	catSlugByID := map[string]string{}
+	for _, c := range cats {
+		catSlugByID[c.ID.String()] = c.Slug
+	}
+
+	seriesByCat := ensureDemoSeries(db)
+
+	for i := range products {
+		p := &products[i]
+		catSlug := "custom-design"
+		if p.CategoryID != nil {
+			if s, ok := catSlugByID[p.CategoryID.String()]; ok && s != "" {
+				catSlug = s
+			}
+		}
+		enrichDemoProduct(db, p, catSlug, seriesByCat[catSlug])
+	}
+	log.Printf("[Seed] 演示产品多语言/下级页面内容已就绪（共 %d 个）", len(products))
 }
 
 // strToUUIDPtr 转换字符串为*uuid.UUID

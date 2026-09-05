@@ -47,6 +47,11 @@
           </button>
         </div>
 
+        <select v-model="selectedCategory" @change="fetchProducts" class="px-4 py-2.5 rounded-full text-sm font-medium border border-gray-200 bg-white text-gray-600 focus:outline-none focus:border-black transition min-h-[40px]">
+          <option value="">{{ $t('product.all_categories') }}</option>
+          <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+        </select>
+
         <select v-model="selectedGender" @change="fetchProducts" class="px-4 py-2.5 rounded-full text-sm font-medium border border-gray-200 bg-white text-gray-600 focus:outline-none focus:border-black transition min-h-[40px]">
           <option value="">{{ $t('product.detail.gender') }}: {{ $t('product.all_categories') }}</option>
           <option value="unisex">Unisex</option>
@@ -69,7 +74,7 @@
         <p class="text-gray-400 text-base md:text-lg">{{ $t('product.no_products') }}</p>
       </div>
 
-      <div v-if="loading" class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
+      <div v-if="loading" class="grid grid-cols-2 gap-3 md:gap-6">
         <div v-for="i in 8" :key="i" class="animate-pulse">
           <div class="aspect-[4/5] bg-gray-100 rounded-xl md:rounded-2xl mb-3 md:mb-4"></div>
           <div class="h-4 bg-gray-100 rounded w-3/4 mb-2"></div>
@@ -77,7 +82,7 @@
         </div>
       </div>
 
-      <div v-show="!loading" class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
+      <div v-show="!loading" class="grid grid-cols-2 gap-3 md:gap-6">
         <NuxtLink
           v-for="p in products"
           :key="p.id"
@@ -88,29 +93,10 @@
             <img v-if="p.cover_image" :src="imgUrl(p.cover_image)" :alt="p.sku"
               class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
               loading="lazy" />
-            <img v-if="hoverImg(p)" :src="hoverImg(p)" :alt="`${p.sku} - detail`"
-              class="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-              loading="lazy" />
-            <div v-if="!p.cover_image" class="absolute inset-0 flex items-center justify-center text-6xl opacity-30 group-hover:scale-110 transition-transform duration-500">🏋️</div>
-            <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
-            <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2">
-              <span class="inline-block px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium text-gray-700">{{ p.type || p.category }}</span>
-              <span v-if="galleryImgCount(p) > 1" class="inline-flex items-center gap-1 px-2 py-1 bg-black/60 text-white rounded-full text-[10px] font-medium">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                {{ galleryImgCount(p) }}
-              </span>
-            </div>
+            <div v-if="!p.cover_image" class="absolute inset-0 flex items-center justify-center text-6xl opacity-30">🏋️</div>
           </div>
           <div class="p-3 md:p-4">
-            <div class="flex items-start justify-between mb-2">
-              <h3 class="font-semibold text-gray-900 group-hover:text-black transition-colors text-xs md:text-sm">{{ p.name || p.sku }}</h3>
-              <span class="text-[10px] md:text-xs bg-gray-100 px-2 py-0.5 rounded font-medium text-gray-600">{{ p.gender }}</span>
-            </div>
-            <p class="text-[10px] md:text-xs text-gray-500 line-clamp-2">{{ p.brief?.slice(0, 60) || p.description?.slice(0, 60) }}</p>
-            <div class="mt-2 md:mt-3 flex items-center gap-2 text-[10px] md:text-xs text-gray-400">
-              <span v-if="p.material">🧵 {{ p.material }}</span>
-              <span class="ml-auto font-medium text-gray-500">MOQ {{ p.production_moq || 300 }}</span>
-            </div>
+            <h3 class="font-semibold text-gray-900 group-hover:text-black transition-colors text-sm md:text-base text-center">{{ p.name || p.sku }}</h3>
           </div>
         </NuxtLink>
       </div>
@@ -158,14 +144,6 @@ const pageSize = ref(Number(route.query._pageSize) || 20)
 const hasMore = ref(true)
 const total = ref(0)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
-
-// 产品卡片 hover 第二张图 / 图集数量（复用 useImageUrl 的 galleryImageUrls）
-function hoverImg(p: any): string {
-  return galleryImageUrls(p)[1] || ''
-}
-function galleryImgCount(p: any): number {
-  return galleryImageUrls(p).length
-}
 
 // SSR 首屏加载产品数据（内联到 HTML）
 const { data: ssrData } = await useAsyncData<any>(
