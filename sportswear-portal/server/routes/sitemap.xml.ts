@@ -81,6 +81,62 @@ export default defineEventHandler(async (event) => {
     console.error('Sitemap: failed to fetch products', e)
   }
 
+  // 2.5 动态分类页面（含子分类，递归展平）
+  try {
+    const catRes = await $fetch<{ success: boolean; data: any }>(
+      `${apiBase}/public/categories`
+    )
+    const raw = catRes?.data
+    const cats: any[] = []
+    const flatten = (list: any[]) => {
+      for (const c of list || []) {
+        if (c.slug) cats.push(c)
+        if (c.children?.length) flatten(c.children)
+      }
+    }
+    flatten(Array.isArray(raw) ? raw : (raw?.items || []))
+    for (const locale of LOCALES) {
+      for (const c of cats) {
+        urls.push({
+          loc: `${SITE_URL}/${locale.code}/categories/${c.slug}`,
+          changefreq: 'weekly',
+          priority: '0.7' as any,
+          alternates: LOCALES.map((l) => ({
+            href: `${SITE_URL}/${l.code}/categories/${c.slug}`,
+            hreflang: l.iso,
+          })),
+        })
+      }
+    }
+  } catch (e) {
+    console.error('Sitemap: failed to fetch categories', e)
+  }
+
+  // 2.6 动态系列页面
+  try {
+    const seriesRes = await $fetch<{ success: boolean; data: any }>(
+      `${apiBase}/public/series`
+    )
+    const rawSeries = seriesRes?.data
+    const series = Array.isArray(rawSeries) ? rawSeries : (rawSeries?.items || [])
+    for (const locale of LOCALES) {
+      for (const s of series) {
+        if (!s.slug) continue
+        urls.push({
+          loc: `${SITE_URL}/${locale.code}/series/${s.slug}`,
+          changefreq: 'weekly',
+          priority: '0.7' as any,
+          alternates: LOCALES.map((l) => ({
+            href: `${SITE_URL}/${l.code}/series/${s.slug}`,
+            hreflang: l.iso,
+          })),
+        })
+      }
+    }
+  } catch (e) {
+    console.error('Sitemap: failed to fetch series', e)
+  }
+
   // 3. 动态博客页面
   try {
     const blogRes = await $fetch<{ success: boolean; data: { items?: any[]; total?: number } }>(
