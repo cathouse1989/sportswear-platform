@@ -28,7 +28,7 @@ func WarmUpPublicCache(db *gorm.DB, cache *CacheService) {
 		}
 
 		// 无需本地化的静态列表（key 与 public handler 保持一致）
-		if list, err := productSvc.ListCategories(); err == nil {
+		if list, err := productSvc.ListActiveCategories(); err == nil {
 			cache.Set("cache:categories:"+lang, list, CacheTTLMedium)
 		}
 		if list, err := productSvc.ListPublishedSeries(); err == nil {
@@ -77,7 +77,7 @@ func buildHomeData(cmsSvc *CMSService, productSvc *ProductService, lang string) 
 
 	wg.Add(6)
 	go func() { defer wg.Done(); products, _ = productSvc.ListFeaturedProducts(8, lang) }()
-	go func() { defer wg.Done(); categories, _ = productSvc.ListCategories() }()
+	go func() { defer wg.Done(); categories, _ = productSvc.ListActiveCategories() }()
 	go func() { defer wg.Done(); blogs, _, _ = cmsSvc.ListBlogs(1, 4, "", "published", "") }()
 	go func() { defer wg.Done(); cases, _, _ = cmsSvc.ListPublishedCases(1, 4, "", "") }()
 	go func() { defer wg.Done(); certifications, _ = cmsSvc.ListPublishedCertifications() }()

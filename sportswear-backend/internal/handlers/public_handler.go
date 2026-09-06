@@ -109,7 +109,7 @@ func (h *PublicHandler) GetHome(c *gin.Context) {
 
 		wg.Add(6)
 		go func() { defer wg.Done(); products, _ = h.productService.ListFeaturedProducts(8, lang) }()
-		go func() { defer wg.Done(); categories, _ = h.productService.ListCategories() }()
+		go func() { defer wg.Done(); categories, _ = h.productService.ListActiveCategories() }()
 		go func() { defer wg.Done(); blogs, _, _ = h.cmsService.ListBlogs(1, 4, "", "published", "") }()
 		go func() { defer wg.Done(); cases, _, _ = h.cmsService.ListPublishedCases(1, 4, "", "") }()
 		go func() { defer wg.Done(); certifications, _ = h.cmsService.ListPublishedCertifications() }()
@@ -361,7 +361,7 @@ func (h *PublicHandler) ListCategories(c *gin.Context) {
 	key := "cache:categories:" + lang
 
 	categories, err := cached[[]models.Category](h, key, services.CacheTTLMedium, !h.previewMode(c), func() ([]models.Category, error) {
-		return h.productService.ListCategories()
+		return h.productService.ListActiveCategories()
 	})
 	if err != nil {
 		utils.InternalError(c, "获取分类列表失败")

@@ -762,10 +762,21 @@ func (s *ProductService) UnpublishProduct(id string) error {
 	return s.db.Model(&models.Product{}).Where("id = ?", id).Update("status", models.ProductStatusOffline).Error
 }
 
-// ListCategories 分类列表
+// ListCategories 分类列表（后台管理用：返回全部，含停用）
 func (s *ProductService) ListCategories() ([]models.Category, error) {
 	var categories []models.Category
 	err := s.db.Preload("Children").Order("sort_order ASC").Find(&categories).Error
+	return categories, err
+}
+
+// ListActiveCategories 启用的分类列表（门户公开接口用：仅返回启用分类及其启用子级）
+func (s *ProductService) ListActiveCategories() ([]models.Category, error) {
+	var categories []models.Category
+	err := s.db.
+		Preload("Children", "is_active = ?", true).
+		Where("is_active = ?", true).
+		Order("sort_order ASC").
+		Find(&categories).Error
 	return categories, err
 }
 

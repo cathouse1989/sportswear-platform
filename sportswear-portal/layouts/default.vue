@@ -220,8 +220,8 @@
           <div>
             <h4 class="text-xs font-semibold uppercase tracking-[0.15em] text-[#D4A853] mb-5">{{ $t('footer.products') }}</h4>
             <ul class="space-y-3">
-              <li v-for="cat in footerCategories" :key="cat.key">
-                <NuxtLink :to="localePath('/products')" class="text-sm text-[#9A8C7A] hover:text-white transition">{{ catLabel(cat) }}</NuxtLink>
+              <li v-for="cat in footerCategories" :key="cat.slug">
+                <NuxtLink :to="localePath('/categories/' + cat.slug)" class="text-sm text-[#9A8C7A] hover:text-white transition">{{ cat.label }}</NuxtLink>
               </li>
             </ul>
           </div>
@@ -305,7 +305,7 @@ const DEFAULT_FOOTER = [
 ]
 
 // 动态导航数据（SSR + 客户端）
-const { getNavigations, getTheme, getSelfMedias, trackClick, subscribe } = useApi()
+const { getNavigations, getTheme, getSelfMedias, getCategories, trackClick, subscribe } = useApi()
 const { data: headerNavData } = await useAsyncData<any[]>(
   'nav-header',
   () => getNavigations('header').catch(() => null),
@@ -408,15 +408,23 @@ const footerLinks = computed(() => {
   return DEFAULT_FOOTER.map(n => ({ ...n, label: navLabel(n.label, n.path) }))
 })
 
-// Footer 产品分类：走词条（footer.cat_*），后台词条管理可覆盖；无词条时回退英文默认
-const footerCategories = [
-  { key: 'footer.cat_yoga_wear', fallback: 'Yoga Wear' },
-  { key: 'footer.cat_running_gear', fallback: 'Running Gear' },
-  { key: 'footer.cat_training_apparel', fallback: 'Training Apparel' },
-  { key: 'footer.cat_team_uniforms', fallback: 'Team Uniforms' },
-  { key: 'footer.cat_custom_design', fallback: 'Custom Design' },
-]
-const catLabel = (c: { key: string; fallback: string }) => (te(c.key) ? t(c.key) : c.fallback)
+// Footer 产品分类：动态读取 /public/categories（后台「产品管理 → 分类管理」为唯一配置入口），
+// 与产品列表页/分类页共用同一数据源；仅展示启用的顶级分类，名称走 product.categories.<slug> 词条本地化。
+const { localizedCategory } = useLocalized()
+const { data: footerCategoriesData } = await useAsyncData<any[]>(
+  'footer-categories',
+  () => getCategories().catch(() => []),
+  {
+    getCachedData(key, nuxtApp) {
+      return nuxtApp.isHydrating ? nuxtApp.payload.data[key] : undefined
+    },
+  },
+)
+const footerCategories = computed(() =>
+  (footerCategoriesData.value || [])
+    .filter((c: any) => !c.parent_id && c.is_active !== false)
+    .map((c: any) => ({ slug: c.slug, label: localizedCategory(c.name, c.slug) })),
+)
 
 // 自媒体账号（Footer 社交图标 + 首页「关注我们」共用同一数据源，唯一配置入口在「自媒体管理」）
 const { data: selfMediasData } = await useAsyncData<any[]>(
