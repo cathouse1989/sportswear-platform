@@ -222,14 +222,7 @@
                 </el-col>
               </el-row>
               <el-form-item label="封面图片">
-                <div class="cover-upload">
-                  <el-image v-if="form.cover_image" :src="form.cover_image" fit="cover" class="cover-preview" />
-                  <div v-else class="cover-placeholder">点击选择图片</div>
-                  <div class="cover-actions">
-                    <el-button size="small" @click="selectCoverImage">从媒体库选择</el-button>
-                    <el-button v-if="form.cover_image" size="small" type="danger" plain @click="form.cover_image = ''">移除</el-button>
-                  </div>
-                </div>
+                <MediaPicker v-model="form.cover_image" />
               </el-form-item>
               <el-form-item label="简述">
                 <el-input v-model="form.brief" type="textarea" :rows="2" placeholder="产品简短描述" />
@@ -338,93 +331,23 @@
                 :closable="false"
                 show-icon
                 class="translation-alert"
-                title="英文为源语言：上方「基本信息 / 详细信息」中的内容即英文源，保存时自动写入英文翻译；其他语言可一键同步英文内容后微调。"
+                title="英文为源语言：上方「基本信息 / 详细信息」中的内容即英文源，保存时自动写入英文翻译；其他语言可从英文一键复制后微调。"
               />
-              <div v-for="(t, idx) in form.translations" :key="idx" class="translation-item">
-                <div class="translation-header">
-                  <span class="translation-lang-badge">{{ t.language === 'zh' ? '中文' : t.language === 'es' ? 'Español' : t.language === 'fr' ? 'Français' : 'English' }}</span>
-                  <el-tag :type="t.name ? 'success' : 'info'" size="small" effect="plain">{{ t.name ? '已翻译' : '未翻译' }}</el-tag>
-                  <el-button size="small" text type="primary" @click="syncTranslationFromEn(idx)">同步英文内容</el-button>
-                  <span class="translation-sort-label">该语言排序</span>
-                  <el-input-number v-model="t.sort_order" :min="0" size="small" controls-position="right" style="width: 110px" />
-                  <el-tooltip content="该语言站点中的展示顺序（越小越靠前），0 = 跟随全局排序" placement="top">
-                    <span class="translation-sort-help">?</span>
-                  </el-tooltip>
-                  <el-button v-if="t.language !== 'en'" size="small" type="danger" text @click="removeTranslation(idx)">移除</el-button>
-                </div>
-                <el-form-item :label="'名称'">
-                  <el-input v-model="t.name" />
-                </el-form-item>
-                <el-row :gutter="12">
-                  <el-col :span="12">
-                    <el-form-item :label="'简述'">
-                      <el-input v-model="t.brief" type="textarea" :rows="2" />
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item :label="'特性'">
-                      <el-input v-model="t.features" type="textarea" :rows="2" />
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-                <el-form-item :label="'描述'">
-                  <el-input v-model="t.description" type="textarea" :rows="3" />
-                </el-form-item>
-                <el-form-item :label="'用途'">
-                  <el-input v-model="t.usage" type="textarea" :rows="2" />
-                </el-form-item>
-                <div class="section-subtitle">规格字段（面料/成分/重量等）</div>
-                <el-row :gutter="12">
-                  <el-col :span="12">
-                    <el-form-item :label="'面料'">
-                      <el-input v-model="t.material" />
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item :label="'成分'">
-                      <el-input v-model="t.composition" />
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-                <el-row :gutter="12">
-                  <el-col :span="12">
-                    <el-form-item :label="'重量'">
-                      <el-input v-model="t.weight" />
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item :label="'弹性'">
-                      <el-input v-model="t.elasticity" />
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-                <el-row :gutter="12">
-                  <el-col :span="12">
-                    <el-form-item :label="'合身度'">
-                      <el-input v-model="t.fit" />
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item :label="'支撑等级'">
-                      <el-input v-model="t.support_level" />
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-                <el-row :gutter="12">
-                  <el-col :span="12">
-                    <el-form-item :label="'季节'">
-                      <el-input v-model="t.season" />
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item :label="'尺码范围'">
-                      <el-input v-model="t.size_range" />
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-                <el-divider v-if="idx < form.translations.length - 1" />
-              </div>
-              <el-button size="small" @click="addTranslation" class="add-translation-btn">+ 添加语言翻译</el-button>
+              <TransEditor
+                v-model="translations"
+                :fields="TRANS_FIELDS"
+                :source="transSource"
+                :langs="TRANS_LANGS"
+                source-label="English"
+              />
+              <el-divider content-position="left">各语言排序（越小越靠前，0 = 跟随全局排序）</el-divider>
+              <el-row :gutter="12">
+                <el-col v-for="l in TRANS_LANGS" :key="l.value" :span="8">
+                  <el-form-item :label="l.label + '排序'">
+                    <el-input-number v-model="transSortOrders[l.value]" :min="0" controls-position="right" style="width: 100%" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
             </div>
           </el-tab-pane>
 
@@ -470,7 +393,7 @@
                 </el-col>
                 <el-col :span="12">
                   <el-form-item label="OG Image">
-                    <el-input v-model="form.seo.og_image" placeholder="社交分享图片 URL" />
+                    <MediaPicker v-model="form.seo.og_image" />
                   </el-form-item>
                 </el-col>
               </el-row>
@@ -592,9 +515,7 @@
               </el-button>
             </div>
             <div class="spec-trans">
-              <el-input v-model="spec.value_zh" placeholder="值 (中文)" />
-              <el-input v-model="spec.value_es" placeholder="值 (西语)" />
-              <el-input v-model="spec.value_fr" placeholder="值 (法语)" />
+              <InlineTrans v-model="spec.value_trans" prefix="值" />
             </div>
           </div>
         </div>
@@ -620,15 +541,16 @@
               </el-select>
               <el-input v-model="v.title" placeholder="标题 (英文)" style="width: 140px" />
               <el-input v-model="v.url" placeholder="视频 URL（支持 YouTube 链接）" style="width: 220px" />
-              <el-input v-model="v.cover" placeholder="封面 URL" style="width: 140px" />
               <el-button type="danger" size="small" @click="removeVideo(idx)" circle>
                 <template #icon><el-icon><Delete /></el-icon></template>
               </el-button>
             </div>
+            <div class="video-cover">
+              <span class="video-cover-label">封面图</span>
+              <MediaPicker v-model="v.cover" class="video-cover-picker" />
+            </div>
             <div class="video-trans">
-              <el-input v-model="v.title_zh" placeholder="标题 (中文)" />
-              <el-input v-model="v.title_es" placeholder="标题 (西语)" />
-              <el-input v-model="v.title_fr" placeholder="标题 (法语)" />
+              <InlineTrans v-model="v.title_trans" prefix="标题" />
             </div>
           </div>
         </div>
@@ -659,9 +581,7 @@
             </div>
             <div class="custom-trans">
               <el-input v-model="c.note" placeholder="备注 (英文)" />
-              <el-input v-model="c.note_zh" placeholder="备注 (中文)" />
-              <el-input v-model="c.note_es" placeholder="备注 (西语)" />
-              <el-input v-model="c.note_fr" placeholder="备注 (法语)" />
+              <InlineTrans v-model="c.note_trans" prefix="备注" />
             </div>
           </div>
         </div>
@@ -676,47 +596,22 @@
       </template>
     </el-dialog>
 
-    <!-- 媒体选择对话框 -->
-    <el-dialog v-model="mediaDialogVisible" title="选择图片" width="780px" top="5vh" class="media-dialog" destroy-on-close>
-      <div class="media-select-container">
-        <div class="media-select-toolbar">
-          <span class="media-select-hint">选择已有图片或上传新图片</span>
-          <el-upload :show-file-list="false" :before-upload="handleMediaUpload" accept="image/*">
-            <el-button size="small" type="primary">上传新图片</el-button>
-          </el-upload>
-        </div>
-        <div v-loading="mediaLoading" class="media-grid">
-          <div v-for="m in mediaList" :key="m.id" class="media-item" :class="{ 'media-item-selected': selectedMediaId === m.id }" @click="selectedMediaId = m.id">
-            <el-image :src="m.url" fit="cover" class="media-thumb" />
-            <div class="media-item-check" v-if="selectedMediaId === m.id">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
-            </div>
-            <div class="media-item-label">{{ m.original_name?.slice(0, 20) }}</div>
-          </div>
-        </div>
-        <div v-if="!mediaLoading && !mediaList.length" class="media-empty">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d0d5dd" stroke-width="1.5"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-          <p>暂无媒体文件，请上传</p>
-        </div>
-        <el-pagination v-if="mediaTotal > mediaPageSize" v-model:current-page="mediaPage" :page-size="mediaPageSize" :total="mediaTotal" layout="prev, pager, next" small @current-change="loadMedia" class="media-pagination" />
-      </div>
-      <template #footer>
-        <el-button @click="mediaDialogVisible = false" size="large">取消</el-button>
-        <el-button type="primary" :disabled="!selectedMediaId" @click="confirmMediaSelect" size="large">选择图片</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Star, Delete, ArrowDown, ArrowUp, Search } from '@element-plus/icons-vue'
 import { productApi, mediaApi, categoryApi, seriesApi, fabricApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
 import { useEnumDict } from '@/composables/useEnumDict'
-import type { Product, Media, Category, Series, Fabric } from '@/types'
+import type { Product, Category, Series, Fabric } from '@/types'
 import { checkProductGate, gateAlertMessage } from '@/utils/publish-gate'
+import MediaPicker from '@/components/media/MediaPicker.vue'
+import TransEditor from '@/components/cms/TransEditor.vue'
+import InlineTrans from '@/components/cms/InlineTrans.vue'
+import { DEFAULT_TRANS_LANGS, createEmptyTranslations, translationsToRecord, translationsToPayload, parseJsonTrans, buildJsonTrans } from '@/composables/useTransRecord'
 
 const { ensureLoaded: loadEnumDict, options: enumOptions, label: enumLabel, tagType: enumTag } = useEnumDict()
 
@@ -781,7 +676,6 @@ const form = reactive({
   production_moq: 300,
   color_moq: 100,
   size_moq: 100,
-  translations: [] as Array<{ language: string; name: string; brief: string; description: string; features: string; usage: string; material: string; composition: string; weight: string; elasticity: string; fit: string; support_level: string; season: string; size_range: string; sort_order: number }>,
   seo: { title: '', description: '', keywords: '', og_title: '', og_description: '', og_image: '' },
   series_ids: [] as string[],
   fabric_ids: [] as string[],
@@ -800,33 +694,23 @@ const uploadProgress = ref(0)
 // 规格管理
 const specDialogVisible = ref(false)
 const specProductId = ref('')
-const specs = ref<Array<{ name: string; value: string; value_zh?: string; value_es?: string; value_fr?: string }>>([])
+const specs = ref<Array<{ name: string; value: string; value_trans: Record<string, string> }>>([])
 const specDetail = ref<any>(null)
 const savingSpecs = ref(false)
 
 // 视频管理
 const videoDialogVisible = ref(false)
 const videoProductId = ref('')
-const videos = ref<Array<{ type: string; title: string; url: string; cover: string; title_zh?: string; title_es?: string; title_fr?: string }>>([])
+const videos = ref<Array<{ type: string; title: string; url: string; cover: string; title_trans: Record<string, string> }>>([])
 const videoDetail = ref<any>(null)
 const savingVideos = ref(false)
 
 // 定制管理
 const customDialogVisible = ref(false)
 const customProductId = ref('')
-const customizations = ref<Array<{ type: string; is_enabled: boolean; note: string; note_zh?: string; note_es?: string; note_fr?: string }>>([])
+const customizations = ref<Array<{ type: string; is_enabled: boolean; note: string; note_trans: Record<string, string> }>>([])
 const customDetail = ref<any>(null)
 const savingCustom = ref(false)
-
-// 媒体选择
-const mediaDialogVisible = ref(false)
-const mediaList = ref<Media[]>([])
-const mediaLoading = ref(false)
-const mediaPage = ref(1)
-const mediaPageSize = ref(20)
-const mediaTotal = ref(0)
-const selectedMediaId = ref('')
-let mediaResolve: ((url: string) => void) | null = null
 
 async function loadData() {
   loading.value = true
@@ -896,11 +780,12 @@ function resetForm() {
     production_moq: 300,
     color_moq: 100,
     size_moq: 100,
-    translations: [],
     seo: { title: '', description: '', keywords: '', og_title: '', og_description: '', og_image: '' },
     series_ids: [],
     fabric_ids: [],
   })
+  translations.value = createEmptyTranslations(PRODUCT_TRANS_FIELDS)
+  transSortOrders.value = { zh: 0, es: 0, fr: 0 }
   activeTab.value = 'basic'
 }
 
@@ -944,26 +829,15 @@ async function openEditDialog(row: Product) {
       production_moq: detail.production_moq || 300,
       color_moq: detail.color_moq || 100,
       size_moq: detail.size_moq || 100,
-      translations: (detail.translations || []).filter((t: any) => t.language !== 'en').map((t: any) => ({
-        language: t.language,
-        name: t.name,
-        brief: t.brief || '',
-        description: t.description || '',
-        features: t.features || '',
-        usage: t.usage || '',
-        material: t.material || '',
-        composition: t.composition || '',
-        weight: t.weight || '',
-        elasticity: t.elasticity || '',
-        fit: t.fit || '',
-        support_level: t.support_level || '',
-        season: t.season || '',
-        size_range: t.size_range || '',
-        sort_order: t.sort_order || 0,
-      })),
       series_ids: (detail.series || []).map((s: any) => s.id),
       fabric_ids: (detail.fabrics || []).map((f: any) => f.id),
     })
+    const transList = (detail.translations || []).filter((t: any) => t.language !== 'en')
+    translations.value = translationsToRecord(transList, PRODUCT_TRANS_FIELDS)
+    transSortOrders.value = { zh: 0, es: 0, fr: 0 }
+    for (const t of transList) {
+      if (t.language && transSortOrders.value[t.language] !== undefined) transSortOrders.value[t.language] = t.sort_order || 0
+    }
     if (detail.seo) {
       form.seo = {
         title: detail.seo.title || '',
@@ -997,7 +871,8 @@ async function handleSave() {
     const data = { ...form }
     // 产品主表无 name 列，英文名存储于 product_translations(language=en)。
     // 提交时自动并入 en 翻译，保证名称可被门户解析、发布质检可通过。
-    const translations = [...form.translations]
+    const translations = translationsToPayload(translations.value, PRODUCT_TRANS_FIELDS, TRANS_LANGS)
+      .map((t) => ({ ...t, sort_order: transSortOrders.value[t.language] ?? 0 }))
     if (String(form.name || '').trim()) {
       const enEntry = {
         language: 'en',
@@ -1017,9 +892,7 @@ async function handleSave() {
         // en 为源语言，语言维度排序 0 = 跟随全局 sort_order
         sort_order: 0,
       }
-      const enIdx = translations.findIndex(t => t.language === 'en')
-      if (enIdx >= 0) translations[enIdx] = enEntry
-      else translations.unshift(enEntry)
+      translations.unshift(enEntry)
     }
     data.translations = translations
     if (editingId.value) {
@@ -1045,57 +918,38 @@ function handleMoreAction(cmd: string, row: Product) {
 }
 
 // 翻译管理
-// 英文为源语言：主表单「基本信息/详细信息」中的内容即英文源，
-// 保存时自动写入 en 翻译（见 handleSave）；其他语言从这里同步后微调。
-function addTranslation() {
-  const langs = ['zh', 'es', 'fr'].filter(l => !form.translations.find(t => t.language === l))
-  if (langs.length === 0) {
-    ElMessage.warning('所有语言已添加')
-    return
-  }
-  // 新增语言时自动同步英文源内容，避免从零录入
-  form.translations.push({
-    language: langs[0],
-    name: form.name,
-    brief: form.brief,
-    description: form.description,
-    features: form.features,
-    usage: form.usage,
-    material: form.material,
-    composition: form.composition,
-    weight: form.weight,
-    elasticity: form.elasticity,
-    fit: form.fit,
-    support_level: form.support_level,
-    season: form.season,
-    size_range: form.size_range,
-    sort_order: 0,
-  })
-}
-
-// 一键同步英文源到指定语言词条（同步后可人工微调）
-function syncTranslationFromEn(idx: number) {
-  const t = form.translations[idx]
-  if (!t) return
-  t.name = form.name
-  t.brief = form.brief
-  t.description = form.description
-  t.features = form.features
-  t.usage = form.usage
-  t.material = form.material
-  t.composition = form.composition
-  t.weight = form.weight
-  t.elasticity = form.elasticity
-  t.fit = form.fit
-  t.support_level = form.support_level
-  t.season = form.season
-  t.size_range = form.size_range
-  ElMessage.success('已同步英文内容，可在此基础上修改')
-}
-
-function removeTranslation(idx: number) {
-  form.translations.splice(idx, 1)
-}
+// 英文为源语言：主表单「基本信息 / 详细信息」中的内容即英文源，保存时自动写入 en 翻译（见 handleSave）；
+// zh/es/fr 翻译统一走 TransEditor 组件维护，交互与博客/案例/工厂等页面一致。
+const PRODUCT_TRANS_FIELDS = [
+  'name', 'brief', 'description', 'features', 'usage',
+  'material', 'composition', 'weight', 'elasticity', 'fit',
+  'support_level', 'season', 'size_range',
+]
+const TRANS_LANGS = DEFAULT_TRANS_LANGS
+const TRANS_FIELDS = [
+  { key: 'name', label: '名称' },
+  { key: 'brief', label: '简述', type: 'textarea' as const, rows: 2 },
+  { key: 'description', label: '描述', type: 'textarea' as const, rows: 3 },
+  { key: 'features', label: '特性', type: 'textarea' as const, rows: 2 },
+  { key: 'usage', label: '用途', type: 'textarea' as const, rows: 2 },
+  { key: 'material', label: '面料' },
+  { key: 'composition', label: '成分' },
+  { key: 'weight', label: '重量' },
+  { key: 'elasticity', label: '弹性' },
+  { key: 'fit', label: '合身度' },
+  { key: 'support_level', label: '支撑等级' },
+  { key: 'season', label: '季节' },
+  { key: 'size_range', label: '尺码范围' },
+]
+const translations = ref<Record<string, Record<string, string>>>({})
+const transSortOrders = ref<Record<string, number>>({ zh: 0, es: 0, fr: 0 })
+const transSource = computed(() => ({
+  name: form.name, brief: form.brief, description: form.description,
+  features: form.features, usage: form.usage, material: form.material,
+  composition: form.composition, weight: form.weight, elasticity: form.elasticity,
+  fit: form.fit, support_level: form.support_level, season: form.season,
+  size_range: form.size_range,
+}))
 
 // 图片管理
 // 构建完整的产品 PUT payload：子资源保存时携带全部标量字段，
@@ -1192,11 +1046,6 @@ async function openImageDialog(row: Product) {
   } catch {}
 }
 
-async function selectCoverImage() {
-  const url = await openMediaSelector()
-  if (url) form.cover_image = url
-}
-
 async function beforeCoverUpload(file: File) {
   try {
     const formData = new FormData()
@@ -1290,21 +1139,17 @@ async function openSpecDialog(row: Product) {
     const detail = await productApi.get(row.id)
     specDetail.value = detail
     if (detail.specs?.length) {
-      specs.value = detail.specs.map(s => {
-        let t: Record<string, string> = {}
-        try { t = s.translations ? JSON.parse(s.translations) : {} } catch { t = {} }
-        return { name: s.name, value: s.value, value_zh: t.zh || '', value_es: t.es || '', value_fr: t.fr || '' }
-      })
+      specs.value = detail.specs.map(s => ({ name: s.name, value: s.value, value_trans: parseJsonTrans(s.translations) }))
     }
   } catch {}
 }
 
 function addSpec() {
-  specs.value.push({ name: '', value: '', value_zh: '', value_es: '', value_fr: '' })
+  specs.value.push({ name: '', value: '', value_trans: {} })
 }
 
 function addSpecPreset(name: string, value: string) {
-  specs.value.push({ name, value, value_zh: '', value_es: '', value_fr: '' })
+  specs.value.push({ name, value, value_trans: {} })
 }
 
 function removeSpec(idx: number) {
@@ -1324,12 +1169,8 @@ async function saveSpecs() {
   savingSpecs.value = true
   try {
     await productApi.update(specProductId.value, { ...productPayload(specDetail.value), specs: specs.value.map((s: any, i) => {
-      const { value_zh, value_es, value_fr, ...rest } = s
-      const translations: Record<string, string> = {}
-      if (value_zh) translations.zh = value_zh
-      if (value_es) translations.es = value_es
-      if (value_fr) translations.fr = value_fr
-      return { ...rest, sort_order: i, translations: JSON.stringify(translations) }
+      const { value_trans, ...rest } = s
+      return { ...rest, sort_order: i, translations: buildJsonTrans(value_trans) }
     }) })
     ElMessage.success('规格保存成功')
     specDialogVisible.value = false
@@ -1351,25 +1192,19 @@ async function openVideoDialog(row: Product) {
     const detail = await productApi.get(row.id)
     videoDetail.value = detail
     if (detail.videos?.length) {
-      videos.value = detail.videos.map((v: any) => {
-        let t: Record<string, string> = {}
-        try { t = v.translations ? JSON.parse(v.translations) : {} } catch { t = {} }
-        return {
-          type: v.type || 'product',
-          title: v.title || '',
-          url: v.url || '',
-          cover: v.cover || '',
-          title_zh: t.zh || '',
-          title_es: t.es || '',
-          title_fr: t.fr || '',
-        }
-      })
+      videos.value = detail.videos.map((v: any) => ({
+        type: v.type || 'product',
+        title: v.title || '',
+        url: v.url || '',
+        cover: v.cover || '',
+        title_trans: parseJsonTrans(v.translations),
+      }))
     }
   } catch {}
 }
 
 function addVideo() {
-  videos.value.push({ type: 'product', title: '', url: '', cover: '', title_zh: '', title_es: '', title_fr: '' })
+  videos.value.push({ type: 'product', title: '', url: '', cover: '', title_trans: {} })
 }
 
 function removeVideo(idx: number) {
@@ -1387,12 +1222,8 @@ async function saveVideos() {
     await productApi.update(videoProductId.value, {
       ...productPayload(videoDetail.value),
       videos: videos.value.map((v: any, i) => {
-        const { title_zh, title_es, title_fr, ...rest } = v
-        const translations: Record<string, string> = {}
-        if (title_zh) translations.zh = title_zh
-        if (title_es) translations.es = title_es
-        if (title_fr) translations.fr = title_fr
-        return { ...rest, sort_order: i, translations: JSON.stringify(translations) }
+        const { title_trans, ...rest } = v
+        return { ...rest, sort_order: i, translations: buildJsonTrans(title_trans) }
       }),
     })
     ElMessage.success('视频保存成功')
@@ -1415,24 +1246,18 @@ async function openCustomizationDialog(row: Product) {
     const detail = await productApi.get(row.id)
     customDetail.value = detail
     if (detail.customizations?.length) {
-      customizations.value = detail.customizations.map(c => {
-        let t: Record<string, string> = {}
-        try { t = c.translations ? JSON.parse(c.translations) : {} } catch { t = {} }
-        return {
-          type: c.type,
-          is_enabled: c.is_enabled,
-          note: c.note || '',
-          note_zh: t.zh || '',
-          note_es: t.es || '',
-          note_fr: t.fr || '',
-        }
-      })
+      customizations.value = detail.customizations.map(c => ({
+        type: c.type,
+        is_enabled: c.is_enabled,
+        note: c.note || '',
+        note_trans: parseJsonTrans(c.translations),
+      }))
     }
   } catch {}
 }
 
 function addCustomization() {
-  customizations.value.push({ type: 'logo', is_enabled: true, note: '', note_zh: '', note_es: '', note_fr: '' })
+  customizations.value.push({ type: 'logo', is_enabled: true, note: '', note_trans: {} })
 }
 
 function removeCustomization(idx: number) {
@@ -1442,14 +1267,10 @@ function removeCustomization(idx: number) {
 async function saveCustomizations() {
   savingCustom.value = true
   try {
-    // 将多语言 note（note_zh/es/fr）序列化为 JSONB translations 字段提交
+    // 将多语言 note 序列化为 JSONB translations 字段提交
     const payload = customizations.value.map((c: any) => {
-      const { note_zh, note_es, note_fr, ...rest } = c
-      const translations: Record<string, string> = {}
-      if (note_zh) translations.zh = note_zh
-      if (note_es) translations.es = note_es
-      if (note_fr) translations.fr = note_fr
-      return { ...rest, translations: JSON.stringify(translations) }
+      const { note_trans, ...rest } = c
+      return { ...rest, translations: buildJsonTrans(note_trans) }
     })
     await productApi.update(customProductId.value, { ...productPayload(customDetail.value), customizations: payload })
     ElMessage.success('定制选项保存成功')
@@ -1460,50 +1281,6 @@ async function saveCustomizations() {
   } finally {
     savingCustom.value = false
   }
-}
-
-// 媒体选择器
-function openMediaSelector(): Promise<string> {
-  return new Promise((resolve) => {
-    mediaResolve = resolve
-    selectedMediaId.value = ''
-    mediaPage.value = 1
-    mediaList.value = []
-    mediaDialogVisible.value = true
-    loadMedia()
-  })
-}
-
-async function loadMedia() {
-  mediaLoading.value = true
-  try {
-    const result = await mediaApi.list({ page: mediaPage.value, pageSize: mediaPageSize.value, type: 'image' })
-    mediaList.value = result.items
-    mediaTotal.value = result.total
-  } catch {}
-  finally { mediaLoading.value = false }
-}
-
-async function handleMediaUpload(file: File) {
-  try {
-    const formData = new FormData()
-    formData.append('file', file)
-    await mediaApi.upload(formData)
-    ElMessage.success('上传成功')
-    loadMedia()
-  } catch {
-    ElMessage.error('上传失败')
-  }
-  return false
-}
-
-function confirmMediaSelect() {
-  const media = mediaList.value.find(m => m.id === selectedMediaId.value)
-  if (media && mediaResolve) {
-    mediaResolve(media.url)
-    mediaResolve = null
-  }
-  mediaDialogVisible.value = false
 }
 
 async function handlePublish(row: Product) {
@@ -1878,6 +1655,14 @@ onMounted(() => {
   flex: 1;
   min-width: 140px;
 }
+.video-cover {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.video-cover-label { font-size: 12px; color: #909399; flex-shrink: 0; }
+.video-cover-picker { flex: 1; min-width: 0; }
 .video-row {
   display: flex;
   gap: 8px;

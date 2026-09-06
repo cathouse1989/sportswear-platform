@@ -142,7 +142,7 @@
               <el-input v-model="form.seo.og_description" type="textarea" :rows="2" placeholder="社交分享描述" />
             </el-form-item>
             <el-form-item label="OG 图片">
-              <el-input v-model="form.seo.og_image" placeholder="社交分享图片 URL" />
+              <MediaPicker v-model="form.seo.og_image" />
             </el-form-item>
           </el-form>
         </el-tab-pane>
@@ -167,6 +167,7 @@ import { usePortalPreview } from '@/composables/usePortalPreview'
 import MediaPicker from '@/components/media/MediaPicker.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
 import TransEditor from '@/components/cms/TransEditor.vue'
+import { createEmptyTranslations, translationsToRecord, translationsToPayload } from '@/composables/useTransRecord'
 import type { Case } from '@/types'
 import { checkCaseGate, gateAlertMessage } from '@/utils/publish-gate'
 
@@ -211,20 +212,7 @@ const TRANS_FIELDS = [
   { key: 'process', label: '实施过程', type: 'richtext' as const, minHeight: '90px' },
   { key: 'result', label: '项目成果', type: 'richtext' as const, minHeight: '90px' },
 ]
-function emptyTranslations(): Record<string, Record<string, string>> {
-  const blank = { title: '', client_need: '', problem: '', solution: '', process: '', result: '' }
-  return { zh: { ...blank }, es: { ...blank }, fr: { ...blank } }
-}
-function translationsToRecord(list: Array<any>) {
-  const next = emptyTranslations()
-  for (const t of list || []) {
-    const lang = t.language
-    if (lang && lang !== 'en' && next[lang]) {
-      next[lang] = { title: t.title || '', client_need: t.client_need || '', problem: t.problem || '', solution: t.solution || '', process: t.process || '', result: t.result || '' }
-    }
-  }
-  return next
-}
+const TRANS_KEYS = TRANS_FIELDS.map((f) => f.key)
 const rules: FormRules = {
   title: [
     { required: true, message: '请输入标题', trigger: 'blur' },
@@ -236,10 +224,6 @@ const rules: FormRules = {
   ],
 }
 function hasText(v?: string) { return Boolean((v || '').trim()) }
-function hasHtmlContent(v?: string) { return Boolean((v || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim()) }
-function translationHasContent(t: Record<string, string>) {
-  return hasText(t.title) || hasHtmlContent(t.client_need) || hasHtmlContent(t.problem) || hasHtmlContent(t.solution) || hasHtmlContent(t.process) || hasHtmlContent(t.result)
-}
 
 // 列表分页/搜索 + 保存（校验 + 翻译/SEO payload）复用 useCrud
 const {
@@ -260,9 +244,7 @@ const {
     const seoHasContent = ['title', 'description', 'keywords', 'og_title', 'og_description', 'og_image'].some((f) => hasText((form.seo as any)[f]))
     return {
       ...form,
-      translations: Object.entries(translations.value)
-        .filter(([, t]) => translationHasContent(t))
-        .map(([language, t]) => ({ language, ...t })),
+      translations: translationsToPayload(translations.value, TRANS_KEYS, TRANSLATABLE_LANGS),
       seo: seoHasContent ? { ...form.seo } : null,
     }
   },
@@ -279,7 +261,7 @@ function openCreateDialog() {
   editingId.value = ''
   activeTab.value = 'basic'
   resetForm()
-  translations.value = emptyTranslations()
+  translations.value = createEmptyTranslations(TRANS_KEYS)
   dialogVisible.value = true
 }
 async function openEditDialog(row: Case) {
@@ -298,10 +280,10 @@ async function openEditDialog(row: Case) {
     result: row.result || '',
   })
   // 翻译先用列表预加载值，随后用详情覆盖（同时回填 SEO）
-  translations.value = translationsToRecord(row.translations || [])
+  translations.value = translationsToRecord(row.translations || [], TRANS_KEYS)
   try {
     const detail = await caseApi.get(row.id)
-    translations.value = translationsToRecord(detail.translations || [])
+    translations.value = translationsToRecord(detail.translations || [], TRANS_KEYS)
     Object.assign(form.seo, {
       language: detail.seo?.language || 'en',
       title: detail.seo?.title || '',

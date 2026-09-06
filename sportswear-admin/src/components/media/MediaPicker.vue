@@ -9,7 +9,8 @@
     </div>
 
     <div v-if="modelValue" class="mp-preview">
-      <el-image :src="modelValue" fit="cover" class="mp-preview-img" :preview-src-list="[modelValue]" preview-teleported />
+      <el-image v-if="kind === 'image'" :src="modelValue" fit="cover" class="mp-preview-img" :preview-src-list="[modelValue]" preview-teleported />
+      <div v-else class="mp-file-name" :title="modelValue">{{ modelValue }}</div>
       <el-button size="small" text type="danger" @click="emit('update:modelValue', '')">清空</el-button>
     </div>
 
@@ -51,9 +52,11 @@ import { mediaApi } from '@/api'
 const props = defineProps<{ modelValue: string; mediaType?: string; accept?: string }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: string): void }>()
 
-const mediaTypes = props.mediaType === 'video'
-const dialogTitle = mediaTypes ? '从媒体库选择视频' : '从媒体库选择图片'
-const uploadAccept = props.accept || (mediaTypes
+const kind = props.mediaType || 'image'
+const isVideo = kind === 'video'
+const isFile = kind === 'file'
+const dialogTitle = isVideo ? '从媒体库选择视频' : isFile ? '从媒体库选择文件' : '从媒体库选择图片'
+const uploadAccept = props.accept || (isVideo || isFile
   ? '.jpg,.jpeg,.png,.gif,.webp,.avif,.svg,.mp4,.webm,.pdf,.doc,.docx,.xls,.xlsx,.zip'
   : '.jpg,.jpeg,.png,.gif,.webp,.avif,.svg')
 
@@ -80,7 +83,7 @@ async function loadMedia() {
 
 function searchMedia() { mediaPage.value = 1; loadMedia() }
 function openPicker() { mediaPage.value = 1; dialogVisible.value = true; loadMedia() }
-function pickMedia(m: any) { emit('update:modelValue', m.url); dialogVisible.value = false; ElMessage.success('已选用媒体图片') }
+function pickMedia(m: any) { emit('update:modelValue', m.url); dialogVisible.value = false; ElMessage.success('已选用媒体') }
 
 async function customUpload(options: any) {
   const fd = new FormData()
@@ -103,6 +106,7 @@ async function customUpload(options: any) {
 .mp-row .el-input { flex: 1; }
 .mp-preview { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
 .mp-preview-img { width: 120px; height: 80px; border-radius: 6px; border: 1px solid #eae5dd; }
+.mp-file-name { flex: 1; min-width: 0; font-size: 12px; color: #909399; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mp-toolbar { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; }
 .mp-spacer { flex: 1; }
 .mp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; min-height: 80px; }

@@ -104,6 +104,7 @@ import { usePortalPreview } from '@/composables/usePortalPreview'
 import MediaPicker from '@/components/media/MediaPicker.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
 import TransEditor from '@/components/cms/TransEditor.vue'
+import { createEmptyTranslations, translationsToRecord, translationsToPayload } from '@/composables/useTransRecord'
 import type { Blog } from '@/types'
 import { checkBlogGate, gateAlertMessage } from '@/utils/publish-gate'
 
@@ -131,19 +132,7 @@ const TRANS_FIELDS = [
   { key: 'title', label: '标题' },
   { key: 'content', label: '正文', type: 'richtext' as const, minHeight: '120px' },
 ]
-function emptyTranslations(): Record<string, Record<string, string>> {
-  return { zh: { title: '', content: '' }, es: { title: '', content: '' }, fr: { title: '', content: '' } }
-}
-function translationsToRecord(list: Array<{ language: string; title?: string; content?: string }>) {
-  const next = emptyTranslations()
-  for (const t of list || []) {
-    const lang = t.language
-    if (lang && lang !== 'en' && next[lang]) {
-      next[lang] = { title: t.title || '', content: t.content || '' }
-    }
-  }
-  return next
-}
+const TRANS_KEYS = TRANS_FIELDS.map((f) => f.key)
 const rules: FormRules = {
   title: [
     { required: true, message: '请输入标题', trigger: 'blur' },
@@ -178,24 +167,22 @@ const {
   },
   buildPayload: () => ({
     ...form,
-    translations: Object.entries(translations.value)
-      .filter(([, t]) => (t.title || '').trim() || hasContent(t.content))
-      .map(([language, t]) => ({ language, title: t.title || '', content: t.content || '' })),
+    translations: translationsToPayload(translations.value, TRANS_KEYS, TRANSLATABLE_LANGS),
   }),
 })
 
 function resetForm() { Object.assign(form, { title: '', slug: '', category: '', author: '', tags: '', cover_image: '', content: '' }) }
-function openCreateDialog() { editingId.value = ''; activeTab.value = 'basic'; resetForm(); translations.value = emptyTranslations(); dialogVisible.value = true }
+function openCreateDialog() { editingId.value = ''; activeTab.value = 'basic'; resetForm(); translations.value = createEmptyTranslations(TRANS_KEYS); dialogVisible.value = true }
 async function openEditDialog(row: Blog) {
   editingId.value = row.id
   activeTab.value = 'basic'
   Object.assign(form, { title: row.title, slug: row.slug, category: row.category, author: row.author || '', tags: row.tags || '', cover_image: row.cover_image || '', content: row.content || '' })
   // 优先用列表已预加载的翻译；为空时回拉详情确保完整回填
-  translations.value = translationsToRecord(row.translations || [])
+  translations.value = translationsToRecord(row.translations || [], TRANS_KEYS)
   if (!(row.translations || []).length) {
     try {
       const detail = await blogApi.get(row.id)
-      translations.value = translationsToRecord(detail.translations || [])
+      translations.value = translationsToRecord(detail.translations || [], TRANS_KEYS)
     } catch { /* 忽略：翻译为空也不影响主表编辑 */ }
   }
   dialogVisible.value = true

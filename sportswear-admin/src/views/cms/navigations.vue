@@ -108,6 +108,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { navigationApi, pageApi } from '@/api'
 import TransEditor from '@/components/cms/TransEditor.vue'
+import { DEFAULT_TRANS_LANGS, createEmptyTranslations, translationsToRecord, translationsToPayload } from '@/composables/useTransRecord'
 import type { Navigation, Page } from '@/types'
 import { useEnumDict } from '@/composables/useEnumDict'
 
@@ -202,30 +203,16 @@ const form = reactive({
   name: '', url: '', type: 'header', target: '_self',
   sort_order: 0, is_visible: true, page_id: '',
 })
-const TRANS_LANGS = [
-  { value: 'zh', label: '中文' },
-  { value: 'es', label: 'Español' },
-  { value: 'fr', label: 'Français' },
-]
+const TRANS_LANGS = DEFAULT_TRANS_LANGS
 const TRANS_FIELDS = [{ key: 'name', label: '名称' }]
+const TRANS_KEYS = TRANS_FIELDS.map((f) => f.key)
 const translations = ref<Record<string, Record<string, string>>>({})
-function emptyTranslations(): Record<string, Record<string, string>> {
-  return { zh: { name: '' }, es: { name: '' }, fr: { name: '' } }
-}
-function translationsToRecord(list: any[]) {
-  const next = emptyTranslations()
-  for (const t of list || []) {
-    const lang = t.language
-    if (lang && lang !== 'en' && next[lang]) next[lang] = { name: t.name || '' }
-  }
-  return next
-}
 
 function resetForm() {
   editingId.value = ''
   parentId.value = null
   Object.assign(form, { name: '', url: '', type: navType.value, target: '_self', sort_order: 0, is_visible: true, page_id: '' })
-  translations.value = emptyTranslations()
+  translations.value = createEmptyTranslations(TRANS_KEYS)
 }
 
 function openCreateDialog(pid: string | null) {
@@ -250,7 +237,7 @@ async function openEditDialog(row: Navigation) {
     name: row.name, url: row.url, type: row.type, target: row.target || '_self',
     sort_order: row.sort_order, is_visible: row.is_visible, page_id: row.page_id || '',
   })
-  translations.value = translationsToRecord(row.translations || [])
+  translations.value = translationsToRecord(row.translations || [], TRANS_KEYS)
   dialogVisible.value = true
 }
 
@@ -262,9 +249,7 @@ async function handleSave() {
     name: form.name, url: form.url, type: form.type, target: form.target,
     sort_order: form.sort_order, is_visible: form.is_visible,
     page_id: form.page_id || null,
-    translations: Object.entries(translations.value)
-      .filter(([, t]) => (t.name || '').trim())
-      .map(([language, t]) => ({ language, name: t.name || '' })),
+    translations: translationsToPayload(translations.value, TRANS_KEYS, TRANS_LANGS),
   }
   if (parentId.value) payload.parent_id = parentId.value
   try {

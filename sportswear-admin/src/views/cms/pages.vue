@@ -148,20 +148,13 @@
         </el-tab-pane>
 
         <el-tab-pane label="多语言翻译" name="translations">
-          <div class="module-toolbar">
-            <el-button size="small" type="primary" @click="addTranslation">添加翻译</el-button>
-          </div>
-          <div v-for="(t, i) in translations" :key="i" class="translation-item">
-            <div class="translation-head">
-              <el-select v-model="t.language" size="small" placeholder="语言" style="width: 120px">
-                <el-option v-for="lang in languages" :key="lang" :label="lang" :value="lang" />
-              </el-select>
-              <el-input v-model="t.title" size="small" placeholder="翻译后的标题" style="flex: 1" />
-              <el-button size="small" type="danger" @click="removeTranslation(i)">删除</el-button>
-            </div>
-            <el-input v-model="t.content" type="textarea" :rows="3" placeholder="翻译后的正文内容（可选）" />
-          </div>
-          <el-empty v-if="!translations.length" description="暂无翻译，点击「添加翻译」维护多语言内容" :image-size="60" />
+          <TransEditor
+            v-model="translations"
+            :fields="TRANS_FIELDS"
+            :source="{ title: form.title }"
+            :langs="TRANS_LANGS"
+            source-label="English"
+          />
         </el-tab-pane>
 
         <el-tab-pane v-if="editingId" label="版本历史" name="versions" lazy>
@@ -207,11 +200,13 @@
 import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { pageApi, portalApi, publicApi, navigationApi } from '@/api'
+import { pageApi, portalApi, navigationApi } from '@/api'
 import { useCrud } from '@/composables/useCrud'
 import { useEnumDict } from '@/composables/useEnumDict'
 import { formatDateTime } from '@/utils/format'
 import type { Page, Navigation } from '@/types'
+import TransEditor from '@/components/cms/TransEditor.vue'
+import { DEFAULT_TRANS_LANGS, createEmptyTranslations, translationsToRecord, translationsToPayload } from '@/composables/useTransRecord'
 
 const router = useRouter()
 const navStatusMap = ref<Record<string, Navigation[]>>({})   // page_id → nav items
@@ -230,7 +225,6 @@ const {
 
 // 模块类型/状态标签由「字典管理」驱动（page.module.type / content.status）
 const { ensureLoaded: loadEnumDict, options: enumOptions, label: enumLabel, tagType: enumTag } = useEnumDict()
-const languages = ref<string[]>(['en', 'zh', 'es', 'fr'])
 
 // ---------- 编辑器状态 ----------
 const dialogVisible = ref(false)
@@ -239,7 +233,14 @@ const activeTab = ref('basic')
 const saving = ref(false)
 const form = reactive({ title: '', slug: '', type: 'normal', template: '', sort_order: 0 })
 const modules = ref<any[]>([])
-const translations = ref<any[]>([])
+// 多语言翻译统一走 TransEditor（source = 英文标题 form.title）
+const PAGE_TRANS_FIELDS = ['title', 'content']
+const TRANS_LANGS = DEFAULT_TRANS_LANGS
+const TRANS_FIELDS = [
+  { key: 'title', label: '标题' },
+  { key: 'content', label: '正文', type: 'textarea' as const, rows: 3 },
+]
+const translations = ref<Record<string, Record<string, string>>>({})
 
 async function loadNavStatus() {
   try {
@@ -288,7 +289,7 @@ function resetEditor() {
   activeTab.value = 'basic'
   Object.assign(form, { title: '', slug: '', type: 'normal', template: '', sort_order: 0 })
   modules.value = []
-  translations.value = []
+  translations.value = createEmptyTranslations(PAGE_TRANS_FIELDS)
   versions.value = []
   draftNote.value = ''
 }
@@ -301,7 +302,7 @@ async function openEditDialog(row: Page) {
     const detail: any = await pageApi.get(row.id)
     Object.assign(form, { title: detail.title, slug: detail.slug, type: detail.type, template: detail.template || '', sort_order: detail.sort_order ?? 0 })
     modules.value = (detail.modules || []).map((m: any) => ({ type: m.type, title: m.title || '', sort_order: m.sort_order ?? 0, is_visible: m.is_visible !== false, config: m.config || '' }))
-    translations.value = (detail.translations || []).map((t: any) => ({ language: t.language, title: t.title || '', content: t.content || '' }))
+    translations.value = translationsToRecord(detail.translations || [], PAGE_TRANS_FIELDS)
   } catch { /* error handled */ }
 }
 function addModule() {
@@ -317,13 +318,6 @@ function moveModule(i: number, dir: number) {
 }
 function reindexModules() { modules.value.forEach((m: any, idx: number) => { m.sort_order = idx + 1 }) }
 
-function addTranslation() {
-  const used = new Set(translations.value.map((t: any) => t.language))
-  const lang = languages.value.find(l => !used.has(l)) || ''
-  translations.value.push({ language: lang, title: '', content: '' })
-}
-function removeTranslation(i: number) { translations.value.splice(i, 1) }
-
 function validate(): boolean {
   if (!form.title.trim()) { ElMessage.warning('请输入标题'); activeTab.value = 'basic'; return false }
   if (!form.slug.trim()) { ElMessage.warning('请输入 Slug'); activeTab.value = 'basic'; return false }
@@ -335,9 +329,6 @@ function validate(): boolean {
       }
     }
   }
-  for (const t of translations.value) {
-    if (!t.language) { ElMessage.warning('翻译语言不能为空'); activeTab.value = 'translations'; return false }
-  }
   return true
 }
 function buildPayload() {
@@ -348,7 +339,7 @@ function buildPayload() {
       type: m.type, title: m.title || '', sort_order: m.sort_order ?? 0,
       is_visible: m.is_visible !== false, config: (m.config || '').trim(),
     })),
-    translations: translations.value.map((t: any) => ({ language: t.language, title: t.title || '', content: t.content || '' })),
+    translations: translationsToPayload(translations.value, PAGE_TRANS_FIELDS, TRANS_LANGS),
   }
 }
 async function handleSave() {
@@ -428,13 +419,8 @@ async function rollbackVersion(v: any) {
   ElMessage.success('已回滚'); loadVersions(); loadData()
 }
 
-async function init() {
+function init() {
   loadData()
-  try {
-    const langs: any = await publicApi.languages()
-    const codes = (langs || []).map((l: any) => l.code).filter(Boolean)
-    if (codes.length) languages.value = codes
-  } catch { /* 使用默认语言列表 */ }
 }
 onMounted(() => { loadEnumDict(); init() })
 </script>

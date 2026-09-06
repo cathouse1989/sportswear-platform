@@ -37,7 +37,7 @@
     <ProFormDialog v-model="dialogVisible" :title="editingId ? '编辑流程' : '新建流程'" :form="form" :rules="rules" @submit="handleSave" width="720px">
       <el-form-item label="名称" prop="name"><el-input v-model="form.name" /></el-form-item>
       <el-form-item label="图片"><MediaPicker v-model="form.image" /></el-form-item>
-      <el-form-item label="视频"><el-input v-model="form.video" placeholder="视频 URL（可选）" /></el-form-item>
+      <el-form-item label="视频"><MediaPicker v-model="form.video" media-type="video" /></el-form-item>
       <el-form-item label="排序"><el-input-number v-model="form.sort_order" :min="0" /></el-form-item>
       <el-form-item label="描述"><el-input v-model="form.description" type="textarea" /></el-form-item>
       <el-divider content-position="left">多语言翻译（未填写回退英文）</el-divider>
@@ -52,36 +52,21 @@ import { productionProcessApi } from '@/api'
 import MediaPicker from '@/components/media/MediaPicker.vue'
 import ProFormDialog from '@/components/pro/ProFormDialog.vue'
 import TransEditor from '@/components/cms/TransEditor.vue'
+import { DEFAULT_TRANS_LANGS, createEmptyTranslations, translationsToRecord, translationsToPayload } from '@/composables/useTransRecord'
 import { useCrud } from '@/composables/useCrud'
 import { useEnumDict } from '@/composables/useEnumDict'
 
 // 状态标签由「字典管理」驱动（content.status）
 const { ensureLoaded: loadEnumDict, label: enumLabel, tagType: enumTag } = useEnumDict()
 
-const TRANS_LANGS = [
-  { value: 'zh', label: '中文' },
-  { value: 'es', label: 'Español' },
-  { value: 'fr', label: 'Français' },
-]
+const TRANS_LANGS = DEFAULT_TRANS_LANGS
 const TRANS_FIELDS = [
   { key: 'name', label: '名称' },
   { key: 'description', label: '描述', type: 'textarea' as const, rows: 2 },
 ]
+const TRANS_KEYS = TRANS_FIELDS.map((f) => f.key)
 const emptyForm = () => ({ name: '', description: '', image: '', video: '', sort_order: 0 })
 const translations = ref<Record<string, Record<string, string>>>({})
-function emptyTranslations(): Record<string, Record<string, string>> {
-  return { zh: { name: '', description: '' }, es: { name: '', description: '' }, fr: { name: '', description: '' } }
-}
-function translationsToRecord(list: any[]) {
-  const next = emptyTranslations()
-  for (const t of list || []) {
-    const lang = t.language
-    if (lang && lang !== 'en' && next[lang]) {
-      next[lang] = { name: t.name || '', description: t.description || '' }
-    }
-  }
-  return next
-}
 
 const {
   items, total, loading, page, pageSize, keyword,
@@ -95,13 +80,11 @@ const {
   serverPagination: true,
   buildPayload: (): Record<string, any> => ({
     ...(form as any),
-    translations: Object.entries(translations.value)
-      .filter(([, t]) => (t.name || '').trim() || (t.description || '').trim())
-      .map(([language, t]) => ({ language, name: t.name || '', description: t.description || '' })),
+    translations: translationsToPayload(translations.value, TRANS_KEYS, TRANS_LANGS),
   }),
 })
-function openCreateDialog() { crudCreate(); translations.value = emptyTranslations() }
-function openEditDialog(row: any) { crudEdit(row); translations.value = translationsToRecord(row.translations || []) }
+function openCreateDialog() { crudCreate(); translations.value = createEmptyTranslations(TRANS_KEYS) }
+function openEditDialog(row: any) { crudEdit(row); translations.value = translationsToRecord(row.translations || [], TRANS_KEYS) }
 const rules: FormRules = { name: [{ required: true, message: '请输入名称', trigger: 'blur' }] }
 onMounted(() => { loadEnumDict(); loadData() })
 </script>

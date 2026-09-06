@@ -69,6 +69,7 @@ import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import RichTextEditor from '@/components/RichTextEditor.vue'
 import { aiTranslateApi } from '@/api'
+import { DEFAULT_TRANS_LANGS } from '@/composables/useTransRecord'
 
 interface TransField {
   key: string
@@ -93,11 +94,7 @@ const props = withDefaults(
     showTip?: boolean
   }>(),
   {
-    langs: () => [
-      { value: 'zh', label: '中文' },
-      { value: 'es', label: 'Español' },
-      { value: 'fr', label: 'Français' },
-    ],
+    langs: () => DEFAULT_TRANS_LANGS,
     sourceLabel: 'English',
     showTip: true,
   },

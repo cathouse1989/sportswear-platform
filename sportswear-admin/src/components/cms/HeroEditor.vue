@@ -80,10 +80,7 @@
             <div class="slide-body">
               <div class="field">
                 <label>图片</label>
-                <div class="img-input">
-                  <el-input v-model="s.image" placeholder="图片 URL 或从媒体库选择" clearable />
-                  <el-button @click="openMediaPicker(idx)">媒体库</el-button>
-                </div>
+                <MediaPicker v-model="s.image" />
               </div>
               <div class="field">
                 <label>按钮链接</label>
@@ -120,37 +117,15 @@
       </template>
     </div>
 
-    <el-dialog v-model="mediaDialogVisible" title="从媒体库选择图片" width="780px" append-to-body>
-      <div class="media-toolbar">
-        <el-input v-model="mediaKeyword" placeholder="搜索文件名" style="width: 220px" clearable @keyup.enter="searchMedia" />
-        <el-button @click="searchMedia">查询</el-button>
-      </div>
-      <div class="media-grid" v-loading="mediaLoading">
-        <div v-for="m in mediaItems" :key="m.id" class="media-cell">
-          <el-image v-if="m.type === 'image'" :src="m.url" fit="cover" class="media-img" />
-          <div v-else class="media-file">{{ m.type }}</div>
-          <div class="media-name" :title="m.original_name">{{ m.original_name }}</div>
-          <el-button size="small" type="primary" @click="pickMedia(m)">选用</el-button>
-        </div>
-        <div v-if="!mediaLoading && !mediaItems.length" class="media-empty">暂无图片，请先在「媒体管理」上传</div>
-      </div>
-      <el-pagination
-        class="pagination"
-        v-model:current-page="mediaPage"
-        v-model:page-size="mediaPageSize"
-        :total="mediaTotal"
-        layout="total, prev, pager, next"
-        @current-change="loadMedia"
-      />
-    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { pageApi, mediaApi, portalCacheApi, i18nApi } from '@/api'
+import { pageApi, portalCacheApi, i18nApi } from '@/api'
 import type { HeroSlide } from '@/types'
+import MediaPicker from '@/components/media/MediaPicker.vue'
 
 const props = defineProps<{ pageId: string }>()
 const emit = defineEmits<{ saved: [] }>()
@@ -337,35 +312,6 @@ async function handleCacheRefresh() {
   finally { cacheRefreshing.value = false }
 }
 
-const mediaDialogVisible = ref(false)
-const mediaKeyword = ref('')
-const mediaItems = ref<any[]>([])
-const mediaTotal = ref(0)
-const mediaPage = ref(1)
-const mediaPageSize = ref(12)
-const mediaLoading = ref(false)
-const editingSlideIndex = ref(-1)
-
-async function loadMedia() {
-  mediaLoading.value = true
-  try {
-    const res = await mediaApi.list({ page: mediaPage.value, pageSize: mediaPageSize.value, type: 'image', keyword: mediaKeyword.value || undefined })
-    mediaItems.value = (res as any).items || res || []
-    mediaTotal.value = (res as any).total ?? mediaItems.value.length
-  } finally { mediaLoading.value = false }
-}
-function searchMedia() { mediaPage.value = 1; loadMedia() }
-function openMediaPicker(idx: number) {
-  editingSlideIndex.value = idx
-  mediaPage.value = 1
-  mediaDialogVisible.value = true
-  loadMedia()
-}
-function pickMedia(m: any) {
-  if (editingSlideIndex.value >= 0) heroSlides.value[editingSlideIndex.value].image = m.url
-  mediaDialogVisible.value = false
-}
-
 onMounted(() => { loadHero(); loadCacheStatus() })
 </script>
 
@@ -501,29 +447,6 @@ onMounted(() => { loadHero(); loadCacheStatus() })
   line-height: 1.6;
 }
 .slide-ops { display: flex; flex-direction: column; gap: 8px; justify-content: center; }
-
-.media-toolbar { display: flex; gap: 10px; margin-bottom: 12px; }
-.media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; min-height: 80px; }
-.media-cell {
-  border: 1px solid #eae5dd;
-  border-radius: 8px;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-.media-img { width: 100%; height: 90px; border-radius: 6px; }
-.media-file {
-  width: 100%; height: 90px;
-  display: flex; align-items: center; justify-content: center;
-  background: #f5f5f5; border-radius: 6px; color: #999; font-size: 12px;
-}
-.media-name {
-  font-size: 11px; color: #666; width: 100%; text-align: center;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.media-empty { grid-column: 1 / -1; text-align: center; color: #999; padding: 30px 0; }
 
 @media (max-width: 960px) {
   .slide-card { grid-template-columns: 1fr; }

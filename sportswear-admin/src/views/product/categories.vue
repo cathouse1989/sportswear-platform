@@ -41,8 +41,8 @@
         <el-form-item label="排序">
           <el-input-number v-model="form.sort_order" :min="0" />
         </el-form-item>
-        <el-form-item label="图片 URL">
-          <el-input v-model="form.image" placeholder="分类图片 URL" />
+        <el-form-item label="图片">
+          <MediaPicker v-model="form.image" />
         </el-form-item>
         <el-form-item label="状态">
           <el-switch v-model="form.is_active" active-text="启用" />
@@ -62,6 +62,7 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { categoryApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
 import type { Category } from '@/types'
+import MediaPicker from '@/components/media/MediaPicker.vue'
 
 // 分类列表接口不分页，前端自行分页筛选
 const allCategories = ref<Category[]>([])
