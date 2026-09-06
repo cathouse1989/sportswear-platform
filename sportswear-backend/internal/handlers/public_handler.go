@@ -481,10 +481,11 @@ func (h *PublicHandler) ListFAQs(c *gin.Context) {
 	key := fmt.Sprintf("cache:faqs:%s:%d:%d:%s", lang, page, pageSize, category)
 
 	result, err := cached[cachedPage[models.FAQ]](h, key, services.CacheTTLMedium, !h.previewMode(c), func() (cachedPage[models.FAQ], error) {
-		faqs, total, err := h.cmsService.ListPublishedFAQsWithFallback(page, pageSize, category, lang)
+		faqs, total, err := h.cmsService.ListPublishedFAQs(page, pageSize, category)
 		if err != nil {
 			return cachedPage[models.FAQ]{}, err
 		}
+		services.LocalizeFAQs(faqs, lang)
 		return cachedPage[models.FAQ]{Items: faqs, Total: total}, nil
 	})
 	if err != nil {

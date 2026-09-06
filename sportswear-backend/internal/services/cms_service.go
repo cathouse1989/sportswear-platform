@@ -1238,17 +1238,14 @@ func (s *CMSService) UnpublishCase(id string) error {
 
 // ==================== FAQ 管理 ====================
 
-// ListFAQs FAQ 列表
-func (s *CMSService) ListFAQs(page, pageSize int, category, language, keyword string) ([]models.FAQ, int64, error) {
+// ListFAQs FAQ 列表（后台管理：一条 FAQ 一条记录，多语言在 translations 中）
+func (s *CMSService) ListFAQs(page, pageSize int, category, keyword string) ([]models.FAQ, int64, error) {
 	var faqs []models.FAQ
 	var total int64
 
 	query := s.db.Model(&models.FAQ{})
 	if category != "" {
 		query = query.Where("category = ?", category)
-	}
-	if language != "" {
-		query = query.Where("language = ?", language)
 	}
 	if keyword != "" {
 		query = query.Where("question LIKE ? OR answer LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
@@ -1261,17 +1258,14 @@ func (s *CMSService) ListFAQs(page, pageSize int, category, language, keyword st
 	return faqs, total, err
 }
 
-// ListPublishedFAQs 已启用 FAQ 列表（前台公开接口专用）
-func (s *CMSService) ListPublishedFAQs(page, pageSize int, category, language string) ([]models.FAQ, int64, error) {
+// ListPublishedFAQs 已启用 FAQ 列表（前台公开接口专用，语言由 LocalizeFAQ 覆盖）
+func (s *CMSService) ListPublishedFAQs(page, pageSize int, category string) ([]models.FAQ, int64, error) {
 	var faqs []models.FAQ
 	var total int64
 
 	query := s.db.Model(&models.FAQ{}).Where("is_active = ?", true)
 	if category != "" {
 		query = query.Where("category = ?", category)
-	}
-	if language != "" {
-		query = query.Where("language = ?", language)
 	}
 
 	query.Count(&total)
@@ -1281,19 +1275,7 @@ func (s *CMSService) ListPublishedFAQs(page, pageSize int, category, language st
 	return faqs, total, err
 }
 
-// ListPublishedFAQsWithFallback 已启用 FAQ 列表（语言回退：目标语言无内容时回退英文）
-func (s *CMSService) ListPublishedFAQsWithFallback(page, pageSize int, category, language string) ([]models.FAQ, int64, error) {
-	faqs, total, err := s.ListPublishedFAQs(page, pageSize, category, language)
-	if err != nil {
-		return nil, 0, err
-	}
-	if total == 0 && language != "en" {
-		return s.ListPublishedFAQs(page, pageSize, category, "en")
-	}
-	return faqs, total, nil
-}
-
-// CreateFAQ 创建 FAQ
+// CreateFAQ 创建 FAQ（主表存英文源，其他语言写入翻译表）
 func (s *CMSService) CreateFAQ(req *FAQRequest) (*models.FAQ, error) {
 	isActive := true
 	if req.IsActive != nil {
@@ -1303,27 +1285,51 @@ func (s *CMSService) CreateFAQ(req *FAQRequest) (*models.FAQ, error) {
 		Question:  req.Question,
 		Answer:    req.Answer,
 		Category:  req.Category,
-		Language:  req.Language,
+		Language:  "en",
 		SortOrder: req.SortOrder,
 		IsActive:  isActive,
 	}
 	if err := s.db.Create(&faq).Error; err != nil {
 		return nil, err
 	}
+
+	for _, t := range req.Translations {
+		if t.Language == "" || t.Language == "en" {
+			continue
+		}
+		if t.Question == "" && t.Answer == "" {
+			continue
+		}
+		s.db.Create(&models.FAQTranslation{
+			FAQID:    faq.ID,
+			Language: t.Language,
+			Question: t.Question,
+			Answer:   t.Answer,
+			Status:   models.TranslationStatusPublished,
+		})
+	}
 	return &faq, nil
 }
 
 // FAQRequest FAQ 请求
 type FAQRequest struct {
-	Question  string `json:"question" binding:"required"`
-	Answer    string `json:"answer"`
-	Category  string `json:"category"`
-	Language  string `json:"language"`
-	SortOrder int    `json:"sort_order"`
-	IsActive  *bool  `json:"is_active"`
+	Question     string                  `json:"question" binding:"required"`
+	Answer       string                  `json:"answer"`
+	Category     string                  `json:"category"`
+	Language     string                  `json:"language"` // 兼容保留；主表固定英文源
+	SortOrder    int                     `json:"sort_order"`
+	IsActive     *bool                   `json:"is_active"`
+	Translations []FAQTranslationRequest `json:"translations"`
 }
 
-// UpdateFAQ 更新 FAQ
+// FAQTranslationRequest FAQ 翻译请求
+type FAQTranslationRequest struct {
+	Language string `json:"language" binding:"required"`
+	Question string `json:"question"`
+	Answer   string `json:"answer"`
+}
+
+// UpdateFAQ 更新 FAQ（主表英文源 + 重建翻译表）
 func (s *CMSService) UpdateFAQ(id string, req *FAQRequest) (*models.FAQ, error) {
 	var faq models.FAQ
 	if err := s.db.First(&faq, "id = ?", id).Error; err != nil {
@@ -1334,7 +1340,7 @@ func (s *CMSService) UpdateFAQ(id string, req *FAQRequest) (*models.FAQ, error) 
 		"question":   req.Question,
 		"answer":     req.Answer,
 		"category":   req.Category,
-		"language":   req.Language,
+		"language":   "en",
 		"sort_order": req.SortOrder,
 	}
 	if req.IsActive != nil {
@@ -1342,6 +1348,27 @@ func (s *CMSService) UpdateFAQ(id string, req *FAQRequest) (*models.FAQ, error) 
 	}
 	if err := s.db.Model(&faq).Updates(updates).Error; err != nil {
 		return nil, err
+	}
+
+	if req.Translations != nil {
+		if err := s.db.Where("faq_id = ?", faq.ID).Delete(&models.FAQTranslation{}).Error; err != nil {
+			return nil, err
+		}
+		for _, t := range req.Translations {
+			if t.Language == "" || t.Language == "en" {
+				continue
+			}
+			if t.Question == "" && t.Answer == "" {
+				continue
+			}
+			s.db.Create(&models.FAQTranslation{
+				FAQID:    faq.ID,
+				Language: t.Language,
+				Question: t.Question,
+				Answer:   t.Answer,
+				Status:   models.TranslationStatusPublished,
+			})
+		}
 	}
 	return &faq, nil
 }

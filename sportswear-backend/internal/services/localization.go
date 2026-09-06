@@ -251,6 +251,31 @@ func LocalizeCases(cases []models.Case, lang string) {
 	}
 }
 
+// LocalizeFAQ 按语言解析 FAQ 翻译（目标语言翻译 → 回退英文主表）
+func LocalizeFAQ(f *models.FAQ, lang string) {
+	if f == nil || lang == "" || lang == "en" {
+		return
+	}
+	for _, t := range f.Translations {
+		if t.Language == lang && t.Status == models.TranslationStatusPublished {
+			if t.Question != "" {
+				f.Question = t.Question
+			}
+			if t.Answer != "" {
+				f.Answer = t.Answer
+			}
+			break
+		}
+	}
+}
+
+// LocalizeFAQs 批量本地化 FAQ
+func LocalizeFAQs(faqs []models.FAQ, lang string) {
+	for i := range faqs {
+		LocalizeFAQ(&faqs[i], lang)
+	}
+}
+
 // 摘要提取用正则（编译一次，供列表接口复用，避免逐条重复编译）。
 // 注意：Go regexp 基于 RE2，不支持反向引用（\1），故 script/style 分别匹配。
 var (

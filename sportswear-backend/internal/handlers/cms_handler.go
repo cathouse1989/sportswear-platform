@@ -457,10 +457,9 @@ func (h *CMSHandler) ListFAQs(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
 	category := c.Query("category")
-	language := c.Query("language")
 	keyword := c.Query("keyword")
 
-	faqs, total, err := h.cmsService.ListFAQs(page, pageSize, category, language, keyword)
+	faqs, total, err := h.cmsService.ListFAQs(page, pageSize, category, keyword)
 	if err != nil {
 		utils.InternalError(c, "获取 FAQ 列表失败")
 		return
