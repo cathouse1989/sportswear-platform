@@ -3,7 +3,7 @@
     <div class="toolbar">
       <el-input v-model="keyword" placeholder="搜索问题" clearable style="width: 240px" @keyup.enter="handleSearch" />
       <el-select v-model="category" placeholder="分类" clearable style="width: 160px" @change="handleSearch">
-        <el-option v-for="c in CATEGORIES" :key="c.value" :label="c.label" :value="c.value" />
+        <el-option v-for="c in enumOptions('faq.category')" :key="c.value" :label="c.label" :value="c.value" />
       </el-select>
       <el-select v-model="language" placeholder="语言" clearable style="width: 140px" @change="handleSearch">
         <el-option v-for="l in LANGUAGES" :key="l.value" :label="l.label" :value="l.value" />
@@ -15,7 +15,7 @@
     <el-table :data="faqs" v-loading="loading" stripe>
       <el-table-column prop="question" label="问题" min-width="300" />
       <el-table-column prop="category" label="分类" width="110">
-        <template #default="{ row }">{{ categoryLabel(row.category) }}</template>
+        <template #default="{ row }">{{ enumLabel('faq.category', row.category) }}</template>
       </el-table-column>
       <el-table-column prop="language" label="语言" width="80" />
       <el-table-column prop="sort_order" label="排序" width="80" />
@@ -44,7 +44,7 @@
         </el-form-item>
         <el-form-item label="分类">
           <el-select v-model="form.category" clearable style="width: 100%">
-            <el-option v-for="c in CATEGORIES" :key="c.value" :label="c.label" :value="c.value" />
+            <el-option v-for="c in enumOptions('faq.category')" :key="c.value" :label="c.label" :value="c.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="语言">
@@ -73,21 +73,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { faqApi } from '@/api'
 import { useCrud } from '@/composables/useCrud'
+import { useEnumDict } from '@/composables/useEnumDict'
 
-// 分类统一定义：列表筛选与表单共用
-const CATEGORIES = [
-  { label: 'MOQ', value: 'moq' },
-  { label: 'OEM', value: 'oem' },
-  { label: 'ODM', value: 'odm' },
-  { label: '打样', value: 'sample' },
-  { label: '支付', value: 'payment' },
-  { label: '生产', value: 'production' },
-  { label: '物流', value: 'logistics' },
-  { label: '面料', value: 'fabric' },
-  { label: '质量', value: 'quality' },
-  { label: '认证', value: 'certification' },
-]
-function categoryLabel(value: string) { return CATEGORIES.find((c) => c.value === value)?.label || value }
+// FAQ 分类由「字典管理」驱动（faq.category）
+const { ensureLoaded: loadEnumDict, options: enumOptions, label: enumLabel } = useEnumDict()
 
 // 与门户支持语言保持一致
 const LANGUAGES = [
@@ -129,7 +118,7 @@ async function handleDelete(row: any) {
   await faqApi.delete(row.id)
   ElMessage.success('已删除'); loadData()
 }
-onMounted(loadData)
+onMounted(() => { loadEnumDict(); loadData() })
 </script>
 <style scoped>
 .toolbar { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; }

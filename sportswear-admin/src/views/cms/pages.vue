@@ -28,7 +28,7 @@
       </el-table-column>
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
-          <el-tag :type="statusTag(row.status)" size="small">{{ row.status || 'draft' }}</el-tag>
+          <el-tag :type="enumTag('content.status', row.status)" size="small">{{ enumLabel('content.status', row.status) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="翻译" min-width="130">
@@ -126,7 +126,7 @@
             <div class="module-head">
               <span class="module-index">{{ i + 1 }}</span>
               <el-select v-model="m.type" size="small" style="width: 150px">
-                <el-option v-for="t in MODULE_TYPES" :key="t.value" :label="t.label" :value="t.value" />
+                <el-option v-for="t in enumOptions('page.module.type')" :key="t.value" :label="t.label" :value="t.value" />
               </el-select>
               <el-input v-model="m.title" size="small" placeholder="模块标题" style="flex: 1" />
               <el-switch v-model="m.is_visible" size="small" active-text="显示" />
@@ -175,7 +175,7 @@
             </el-table-column>
             <el-table-column prop="status" label="状态" width="100">
               <template #default="{ row }">
-                <el-tag size="small" :type="row.status === 'published' ? 'success' : row.status === 'draft' ? 'warning' : 'info'">{{ row.status }}</el-tag>
+                <el-tag size="small" :type="enumTag('content.status', row.status)">{{ enumLabel('content.status', row.status) }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="note" label="备注" min-width="150" show-overflow-tooltip />
@@ -209,6 +209,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { pageApi, portalApi, publicApi, navigationApi } from '@/api'
 import { useCrud } from '@/composables/useCrud'
+import { useEnumDict } from '@/composables/useEnumDict'
 import { formatDateTime } from '@/utils/format'
 import type { Page, Navigation } from '@/types'
 
@@ -227,22 +228,8 @@ const {
   extraParams: () => ({ status: status.value }),
 })
 
-// 模块类型（对齐需求文档 §5.5 与后端 PageModule 注释）
-const MODULE_TYPES = [
-  { value: 'banner', label: '轮播 Banner' },
-  { value: 'text', label: '富文本' },
-  { value: 'image', label: '图片' },
-  { value: 'video', label: '视频' },
-  { value: 'product_recommend', label: '产品推荐' },
-  { value: 'oem', label: 'OEM 服务' },
-  { value: 'odm', label: 'ODM 服务' },
-  { value: 'factory', label: '工厂展示' },
-  { value: 'production', label: '生产流程' },
-  { value: 'case', label: '案例' },
-  { value: 'certification', label: '认证' },
-  { value: 'blog', label: '博客' },
-  { value: 'contact', label: '联系表单' },
-]
+// 模块类型/状态标签由「字典管理」驱动（page.module.type / content.status）
+const { ensureLoaded: loadEnumDict, options: enumOptions, label: enumLabel, tagType: enumTag } = useEnumDict()
 const languages = ref<string[]>(['en', 'zh', 'es', 'fr'])
 
 // ---------- 编辑器状态 ----------
@@ -274,7 +261,6 @@ async function loadData() {
 }
 
 const isHome = (row: Page) => row.slug === 'home' || row.type === 'home'
-const statusTag = (s: string) => (s === 'published' ? 'success' : s === 'review' ? 'warning' : 'info')
 const navStatusLabel = (row: Page) => {
   const navs = navStatusMap.value[row.id]
   if (!navs || navs.length === 0) return ''
@@ -330,7 +316,6 @@ function moveModule(i: number, dir: number) {
   reindexModules()
 }
 function reindexModules() { modules.value.forEach((m: any, idx: number) => { m.sort_order = idx + 1 }) }
-function moduleTypeLabel(type: string) { return MODULE_TYPES.find(t => t.value === type)?.label || type }
 
 function addTranslation() {
   const used = new Set(translations.value.map((t: any) => t.language))
@@ -346,7 +331,7 @@ function validate(): boolean {
     if (!m.type) { ElMessage.warning('模块类型不能为空'); activeTab.value = 'modules'; return false }
     if (m.config && m.config.trim()) {
       try { JSON.parse(m.config) } catch {
-        ElMessage.warning(`模块「${moduleTypeLabel(m.type)}」的 Config 不是合法 JSON`); activeTab.value = 'modules'; return false
+        ElMessage.warning(`模块「${enumLabel('page.module.type', m.type)}」的 Config 不是合法 JSON`); activeTab.value = 'modules'; return false
       }
     }
   }
@@ -451,7 +436,7 @@ async function init() {
     if (codes.length) languages.value = codes
   } catch { /* 使用默认语言列表 */ }
 }
-onMounted(init)
+onMounted(() => { loadEnumDict(); init() })
 </script>
 <style scoped>
 .toolbar { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; }

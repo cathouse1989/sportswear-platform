@@ -26,8 +26,7 @@
           @keyup.enter="handleSearch"
         />
         <el-select v-model="status" placeholder="状态" clearable style="width: 160px" @change="handleSearch">
-          <el-option label="已订阅" value="subscribed" />
-          <el-option label="已退订" value="unsubscribed" />
+          <el-option v-for="o in enumOptions('subscriber.status')" :key="o.value" :label="o.label" :value="o.value" />
         </el-select>
         <el-button type="primary" @click="handleSearch">查询</el-button>
       </div>
@@ -37,8 +36,8 @@
         <el-table-column prop="language" label="语言" width="80" />
         <el-table-column prop="status" label="状态" width="110">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'subscribed' ? 'success' : 'info'" size="small">
-              {{ row.status === 'subscribed' ? '已订阅' : '已退订' }}
+            <el-tag :type="enumTag('subscriber.status', row.status)" size="small">
+              {{ enumLabel('subscriber.status', row.status) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -80,8 +79,12 @@ import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { subscriberApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
+import { useEnumDict } from '@/composables/useEnumDict'
 import { formatDateTime } from '@/utils/format'
 import type { Subscriber } from '@/types'
+
+// 订阅状态由「字典管理」驱动（subscriber.status）
+const { ensureLoaded: loadEnumDict, options: enumOptions, label: enumLabel, tagType: enumTag } = useEnumDict()
 
 const subscribers = ref<Subscriber[]>([])
 const loading = ref(false)
@@ -141,6 +144,7 @@ async function handleDelete(row: Subscriber) {
 }
 
 onMounted(() => {
+  loadEnumDict()
   loadData()
   loadStats()
 })

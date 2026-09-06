@@ -46,6 +46,8 @@
                 plain
                 @click="handleDeleteType"
               >删除类型</el-button>
+              <el-button v-if="currentType" size="small" @click="exportCsv">导出</el-button>
+              <el-button v-if="currentType" size="small" @click="triggerImport">导入</el-button>
               <el-button v-if="currentType" size="small" type="primary" @click="openItemDialog()">添加枚举项</el-button>
             </div>
           </div>
@@ -54,7 +56,11 @@
         <div v-loading="itemLoading">
           <el-empty v-if="!currentType" description="请在左侧选择枚举类型" :image-size="80" />
           <template v-else>
-            <el-table :data="items" stripe>
+            <div class="filter-row">
+              <el-switch v-model="onlyMissing" size="small" active-text="仅看缺译" />
+              <span v-if="onlyMissing" class="filter-count">{{ filteredItems.length }} / {{ items.length }} 项缺译</span>
+            </div>
+            <el-table :data="filteredItems" stripe>
               <el-table-column prop="value" label="存储值" min-width="140">
                 <template #default="{ row }"><code class="value-code">{{ row.value }}</code></template>
               </el-table-column>
@@ -67,7 +73,9 @@
                 <template #default="{ row }">
                   <div class="trans-cell">
                     <span v-for="l in LANG_TABS" :key="l" class="trans-item">
-                      <span class="trans-lang">{{ l }}</span>{{ row.translations?.[l] || '—' }}
+                      <span class="trans-lang">{{ l }}</span>
+                      <span v-if="row.translations?.[l]">{{ row.translations[l] }}</span>
+                      <span v-else class="trans-missing">缺译</span>
                     </span>
                   </div>
                 </template>
@@ -176,10 +184,11 @@
       </template>
     </el-dialog>
   </div>
+  <input ref="fileInput" type="file" accept=".csv,.txt" class="hidden-input" @change="onImportFile" />
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { enumApi } from '@/api'
 import type { SysEnumType, SysEnumItem } from '@/types'
@@ -273,6 +282,11 @@ async function handleDeleteType() {
 
 // ===== 条目 =====
 const items = ref<SysEnumItem[]>([])
+const onlyMissing = ref(false)
+function isMissingItem(it: SysEnumItem) {
+  return LANG_TABS.some((l) => !(it.translations?.[l]))
+}
+const filteredItems = computed(() => (onlyMissing.value ? items.value.filter(isMissingItem) : items.value))
 const itemLoading = ref(false)
 
 const itemDialogVisible = ref(false)
@@ -341,6 +355,104 @@ async function handleDeleteItem(row: any) {
   } catch { /* handled */ }
 }
 
+// ===== 批量导入 / 导出 =====
+const fileInput = ref<HTMLInputElement>()
+
+function csvEscape(v: string): string {
+  const s = v ?? ''
+  if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"'
+  return s
+}
+
+function exportCsv() {
+  if (!currentType.value) return
+  const header = ['value', 'label_en', 'zh', 'es', 'fr', 'color', 'sort_order', 'is_active', 'is_default']
+  const rows = items.value.map((it) => [
+    it.value, it.label,
+    it.translations?.zh || '', it.translations?.es || '', it.translations?.fr || '',
+    it.color || '', String(it.sort_order ?? 0), it.is_active ? '1' : '0', it.is_default ? '1' : '0',
+  ])
+  const csv = [header, ...rows].map((r) => r.map(csvEscape).join(',')).join('\r\n')
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${currentType.value.code.replace(/\./g, '_')}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+  ElMessage.success('已导出 CSV')
+}
+
+function triggerImport() {
+  fileInput.value?.click()
+}
+
+// 简易 CSV 解析（支持引号包裹与双引号转义）
+function parseCsvLine(line: string): string[] {
+  const out: string[] = []
+  let cur = ''
+  let inQuotes = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (inQuotes) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++ } else { inQuotes = false }
+      } else { cur += ch }
+    } else if (ch === '"') {
+      inQuotes = true
+    } else if (ch === ',') {
+      out.push(cur); cur = ''
+    } else {
+      cur += ch
+    }
+  }
+  out.push(cur)
+  return out
+}
+
+async function onImportFile(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file || !currentType.value) return
+  const text = await file.text()
+  const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+  if (lines.length < 2) { ElMessage.warning('CSV 内容为空'); return }
+  const header = parseCsvLine(lines[0])
+  const vi = header.indexOf('value')
+  const li = header.indexOf('label_en')
+  if (vi < 0 || li < 0) { ElMessage.warning('CSV 缺少 value / label_en 列'); return }
+  const zi = header.indexOf('zh'); const ei = header.indexOf('es'); const fi = header.indexOf('fr')
+  const ci = header.indexOf('color'); const si = header.indexOf('sort_order')
+  const ai = header.indexOf('is_active'); const di = header.indexOf('is_default')
+
+  let ok = 0; let skip = 0
+  for (let n = 1; n < lines.length; n++) {
+    const cells = parseCsvLine(lines[n])
+    const value = (cells[vi] || '').trim()
+    const label = (cells[li] || '').trim()
+    if (!value || !label) { skip++; continue }
+    const translations: Record<string, string> = {}
+    if (zi >= 0 && cells[zi]?.trim()) translations.zh = cells[zi].trim()
+    if (ei >= 0 && cells[ei]?.trim()) translations.es = cells[ei].trim()
+    if (fi >= 0 && cells[fi]?.trim()) translations.fr = cells[fi].trim()
+    try {
+      await enumApi.upsertItem({
+        type_id: currentType.value.id,
+        value, label, translations,
+        color: (ci >= 0 ? cells[ci] : '')?.trim() || '',
+        sort_order: si >= 0 ? Number(cells[si]) || 0 : 0,
+        is_default: di >= 0 ? (cells[di]?.trim() === '1') : false,
+        is_active: ai >= 0 ? (cells[ai]?.trim() !== '0') : true,
+      })
+      ok++
+    } catch { skip++ }
+  }
+  ElMessage.success(`导入完成：成功 ${ok} 条，跳过 ${skip} 条`)
+  await loadItems(currentType.value.id)
+  await loadTypes()
+}
+
 onMounted(loadTypes)
 </script>
 
@@ -365,10 +477,14 @@ onMounted(loadTypes)
 .trans-cell { display: flex; flex-direction: column; gap: 2px; }
 .trans-item { font-size: 12px; color: #606266; }
 .trans-lang { display: inline-block; width: 24px; color: #909399; }
+.trans-missing { color: #f56c6c; font-size: 12px; }
+.filter-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.filter-count { font-size: 12px; color: #f56c6c; }
 .dim { color: #c0c4cc; }
 .tip { margin-top: 12px; font-size: 12px; color: #b3a06b; }
 .form-row { display: flex; gap: 24px; }
 .font-semibold { font-weight: 600; }
+.hidden-input { display: none; }
 </style>
 
 

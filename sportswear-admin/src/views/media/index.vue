@@ -2,12 +2,10 @@
   <el-card shadow="never">
     <div class="toolbar">
       <el-select v-model="mediaType" placeholder="类型" clearable style="width: 140px" @change="loadData">
-        <el-option label="图片" value="image" />
-        <el-option label="视频" value="video" />
-        <el-option label="文件" value="file" />
+        <el-option v-for="o in enumOptions('media.type')" :key="o.value" :label="o.label" :value="o.value" />
       </el-select>
       <el-select v-model="category" placeholder="分类" clearable style="width: 140px" @change="loadData">
-        <el-option v-for="c in CATEGORIES" :key="c.value" :label="c.label" :value="c.value" />
+        <el-option v-for="c in enumOptions('media.category')" :key="c.value" :label="c.label" :value="c.value" />
       </el-select>
       <el-input v-model="keyword" placeholder="搜索文件名/标题" clearable style="width: 220px" @keyup.enter="loadData" />
       <el-button type="primary" @click="loadData">查询</el-button>
@@ -52,7 +50,7 @@
         </template>
       </el-table-column>
       <el-table-column label="分类" width="90">
-        <template #default="{ row }"><el-tag size="small">{{ categoryLabel(row.category) }}</el-tag></template>
+        <template #default="{ row }"><el-tag size="small">{{ enumLabel('media.category', row.category) }}</el-tag></template>
       </el-table-column>
       <el-table-column label="公开" width="80" align="center">
         <template #default="{ row }">
@@ -103,7 +101,7 @@
         </el-form-item>
         <el-form-item label="分类">
           <el-select v-model="editForm.category" style="width: 100%">
-            <el-option v-for="c in CATEGORIES" :key="c.value" :label="c.label" :value="c.value" />
+            <el-option v-for="c in enumOptions('media.category')" :key="c.value" :label="c.label" :value="c.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="公开访问">
@@ -122,22 +120,12 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { mediaApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
+import { useEnumDict } from '@/composables/useEnumDict'
 import { formatDateTime } from '@/utils/format'
 import type { Media } from '@/types'
 
-const CATEGORIES = [
-  { label: '产品', value: 'product' },
-  { label: '首页', value: 'home' },
-  { label: 'OEM', value: 'oem' },
-  { label: 'ODM', value: 'odm' },
-  { label: '工厂', value: 'factory' },
-  { label: '生产流程', value: 'production' },
-  { label: '案例', value: 'case' },
-  { label: '博客', value: 'blog' },
-  { label: '认证', value: 'certification' },
-  { label: '公开', value: 'public' },
-]
-function categoryLabel(value: string) { return CATEGORIES.find((c) => c.value === value)?.label || value }
+// 媒体类型/分类由「字典管理」驱动（media.type / media.category）
+const { ensureLoaded: loadEnumDict, options: enumOptions, label: enumLabel } = useEnumDict()
 
 const media = ref<Media[]>([])
 const loading = ref(false)
@@ -218,7 +206,7 @@ async function handleSaveEdit() {
   finally { saving.value = false }
 }
 
-onMounted(loadData)
+onMounted(() => { loadEnumDict(); loadData() })
 </script>
 <style scoped>
 .toolbar { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; }

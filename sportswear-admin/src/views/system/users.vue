@@ -34,8 +34,8 @@
       </el-table-column>
       <el-table-column label="状态" width="90">
         <template #default="{ row }">
-          <el-tag :type="row.status === 'active' ? 'success' : 'danger'" size="small">
-            {{ row.status === 'active' ? '启用' : '禁用' }}
+          <el-tag :type="enumTag('user.status', row.status)" size="small">
+            {{ enumLabel('user.status', row.status) }}
           </el-tag>
         </template>
       </el-table-column>
@@ -129,8 +129,11 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { roleApi, userApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
+import { useEnumDict } from '@/composables/useEnumDict'
 import { formatDateTime } from '@/utils/format'
 import type { Role, User } from '@/types'
+
+const { ensureLoaded: loadEnumDict, label: enumLabel, tagType: enumTag } = useEnumDict()
 
 const authStore = useAuthStore()
 const currentUserId = computed(() => authStore.user?.id || '')
@@ -265,6 +268,7 @@ async function handleDelete(row: User) {
 }
 
 onMounted(() => {
+  loadEnumDict()
   loadData()
   loadRoles()
 })

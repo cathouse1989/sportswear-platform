@@ -2,8 +2,7 @@
   <el-card shadow="never">
     <div class="toolbar">
       <el-radio-group v-model="navType" @change="loadData">
-        <el-radio-button value="header">Header 导航</el-radio-button>
-        <el-radio-button value="footer">Footer 导航</el-radio-button>
+        <el-radio-button v-for="o in enumOptions('navigation.type')" :key="o.value" :value="o.value">{{ o.label }}</el-radio-button>
       </el-radio-group>
       <el-input v-model="searchKeyword" placeholder="搜索导航名称" clearable style="width:200px" />
       <el-select v-model="statusFilter" placeholder="页面状态" clearable style="width:120px" @change="loadData">
@@ -32,8 +31,8 @@
         <template #default="{ row }: any">
           <div v-if="row.page_id" class="page-info">
             <el-tag size="small" type="success">{{ row.page?.title || '已关联' }}</el-tag>
-            <el-tag v-if="row.page_status" size="small" :type="row.page_status === 'published' ? 'success' : 'danger'" class="page-status-tag">
-              {{ row.page_status === 'published' ? '已发布' : '未发布' }}
+            <el-tag v-if="row.page_status" size="small" :type="enumTag('content.status', row.page_status)" class="page-status-tag">
+              {{ enumLabel('content.status', row.page_status) }}
             </el-tag>
           </div>
           <span v-else class="muted">—</span>
@@ -78,8 +77,7 @@
         </el-form-item>
         <el-form-item label="类型">
           <el-select v-model="form.type">
-            <el-option label="Header" value="header" />
-            <el-option label="Footer" value="footer" />
+            <el-option v-for="o in enumOptions('navigation.type')" :key="o.value" :label="o.label" :value="o.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="打开方式">
@@ -111,6 +109,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { navigationApi, pageApi } from '@/api'
 import TransEditor from '@/components/cms/TransEditor.vue'
 import type { Navigation, Page } from '@/types'
+import { useEnumDict } from '@/composables/useEnumDict'
+
+// 页面状态标签由「字典管理」驱动（content.status）
+const { ensureLoaded: loadEnumDict, options: enumOptions, label: enumLabel, tagType: enumTag } = useEnumDict()
 
 const navigations = ref<Navigation[]>([])
 const loading = ref(false)
@@ -387,6 +389,7 @@ async function handleSyncStatus() {
 }
 
 onMounted(() => {
+  loadEnumDict()
   loadData()
   loadPublishedPages()
 })

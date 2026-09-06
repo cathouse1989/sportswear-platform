@@ -23,7 +23,7 @@
       <el-table-column prop="location" label="位置" min-width="160" />
       <el-table-column prop="employees" label="员工数" width="100" />
       <el-table-column prop="status" label="状态" width="100">
-        <template #default="{ row }"><el-tag :type="row.status === 'published' ? 'success' : 'info'" size="small">{{ row.status }}</el-tag></template>
+        <template #default="{ row }"><el-tag :type="enumTag('content.status', row.status)" size="small">{{ enumLabel('content.status', row.status) }}</el-tag></template>
       </el-table-column>
       <el-table-column label="操作" width="220">
         <template #default="{ row }">
@@ -55,6 +55,10 @@ import { factoryApi } from '@/api'
 import MediaPicker from '@/components/media/MediaPicker.vue'
 import TransEditor from '@/components/cms/TransEditor.vue'
 import { useCrud } from '@/composables/useCrud'
+import { useEnumDict } from '@/composables/useEnumDict'
+
+// 状态标签由「字典管理」驱动（content.status）
+const { ensureLoaded: loadEnumDict, label: enumLabel, tagType: enumTag } = useEnumDict()
 
 const TRANS_LANGS = [
   { value: 'zh', label: '中文' },
@@ -100,7 +104,7 @@ const {
 })
 function openCreateDialog() { crudCreate(); translations.value = emptyTranslations() }
 function openEditDialog(row: any) { crudEdit(row); translations.value = translationsToRecord(row.translations || []) }
-onMounted(loadData)
+onMounted(() => { loadEnumDict(); loadData() })
 </script>
 <style scoped>
 .toolbar { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; }

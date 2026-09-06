@@ -9,7 +9,7 @@
         @keyup.enter="handleSearch"
       />
       <el-select v-model="status" placeholder="状态" clearable style="width: 160px" @change="handleSearch">
-        <el-option v-for="(label, val) in statusMap" :key="val" :label="label" :value="val" />
+        <el-option v-for="o in enumOptions('lead.status')" :key="o.value" :label="o.label" :value="o.value" />
       </el-select>
       <el-button type="primary" @click="handleSearch">查询</el-button>
     </div>
@@ -21,7 +21,7 @@
       <el-table-column prop="country" label="国家" width="110" />
       <el-table-column prop="status" label="状态" width="110">
         <template #default="{ row }">
-          <el-tag size="small">{{ statusMap[row.status] || row.status }}</el-tag>
+          <el-tag size="small">{{ enumLabel('lead.status', row.status) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="score" label="评分" width="90">
@@ -104,6 +104,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { leadApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
+import { useEnumDict } from '@/composables/useEnumDict'
 import { formatDateTime } from '@/utils/format'
 import type { Lead } from '@/types'
 
@@ -153,17 +154,8 @@ function formatAttSize(bytes: number) {
   return bytes + 'B'
 }
 
-const statusMap: Record<string, string> = {
-  new: '新询盘',
-  contacted: '已联系',
-  confirmed: '已确认',
-  quoted: '已报价',
-  sampling: '打样中',
-  negotiating: '洽谈中',
-  won: '已成交',
-  lost: '已流失',
-  spam: '垃圾',
-}
+// 询盘状态由「字典管理」驱动（lead.status）
+const { ensureLoaded: loadEnumDict, options: enumOptions, label: enumLabel } = useEnumDict()
 
 async function loadData() {
   loading.value = true
@@ -202,7 +194,7 @@ function scoreType(score: number) {
   return score >= 80 ? 'danger' : score >= 50 ? 'warning' : 'info'
 }
 
-onMounted(loadData)
+onMounted(() => { loadEnumDict(); loadData() })
 </script>
 
 <style scoped>

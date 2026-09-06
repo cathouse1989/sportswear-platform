@@ -23,13 +23,13 @@
       </el-table-column>
       <el-table-column prop="name" label="名称" min-width="160" />
       <el-table-column label="平台" width="120">
-        <template #default="{ row }">{{ platformLabel(row.platform) }}</template>
+        <template #default="{ row }">{{ enumLabel('self_media.platform', row.platform) }}</template>
       </el-table-column>
       <el-table-column prop="account" label="账号" min-width="140" />
       <el-table-column prop="sort_order" label="排序" width="80" />
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
-          <el-tag :type="row.status === 'published' ? 'success' : 'info'" size="small">{{ row.status === 'published' ? '展示' : '不展示' }}</el-tag>
+          <el-tag :type="enumTag('content.status', row.status)" size="small">{{ enumLabel('content.status', row.status) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="操作" width="220">
@@ -47,7 +47,7 @@
       <el-form-item label="名称" prop="name"><el-input v-model="form.name" /></el-form-item>
       <el-form-item label="平台">
         <el-select v-model="form.platform" placeholder="选择平台" style="width: 100%">
-          <el-option v-for="p in PLATFORMS" :key="p.value" :label="p.label" :value="p.value" />
+          <el-option v-for="p in enumOptions('self_media.platform')" :key="p.value" :label="p.label" :value="p.value" />
         </el-select>
       </el-form-item>
       <el-form-item label="账号">
@@ -71,23 +71,10 @@ import { selfMediaApi } from '@/api'
 import MediaPicker from '@/components/media/MediaPicker.vue'
 import ProFormDialog from '@/components/pro/ProFormDialog.vue'
 import { useCrud } from '@/composables/useCrud'
+import { useEnumDict } from '@/composables/useEnumDict'
 
-const PLATFORMS = [
-  { value: 'wechat', label: '微信公众号' },
-  { value: 'weibo', label: '微博' },
-  { value: 'douyin', label: '抖音' },
-  { value: 'xiaohongshu', label: '小红书' },
-  { value: 'video', label: '视频号' },
-  { value: 'bilibili', label: 'B站' },
-  { value: 'youtube', label: 'YouTube' },
-  { value: 'instagram', label: 'Instagram' },
-  { value: 'facebook', label: 'Facebook' },
-  { value: 'twitter', label: 'Twitter/X' },
-  { value: 'linkedin', label: 'LinkedIn' },
-  { value: 'tiktok', label: 'TikTok' },
-  { value: 'other', label: '其他' },
-]
-const platformLabel = (v: string) => PLATFORMS.find((p) => p.value === v)?.label || v || '—'
+// 状态标签由「字典管理」驱动（content.status）
+const { ensureLoaded: loadEnumDict, options: enumOptions, label: enumLabel, tagType: enumTag } = useEnumDict()
 
 const emptyForm = () => ({ name: '', platform: '', account: '', url: '', image: '', description: '', sort_order: 0 })
 const {
@@ -121,7 +108,7 @@ async function saveMaxDisplay() {
   }
 }
 
-onMounted(() => { loadData(); loadMaxDisplay() })
+onMounted(() => { loadEnumDict(); loadData(); loadMaxDisplay() })
 </script>
 <style scoped>
 .toolbar { display: flex; gap: 12px; margin-bottom: 12px; align-items: center; }

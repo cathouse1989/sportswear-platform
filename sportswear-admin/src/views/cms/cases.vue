@@ -3,7 +3,7 @@
     <div class="toolbar">
       <el-input v-model="keyword" placeholder="搜索标题 / Slug" clearable style="width: 240px" @keyup.enter="handleSearch" />
       <el-select v-model="projectType" placeholder="项目类型" clearable style="width: 160px" @change="handleSearch">
-        <el-option v-for="p in PROJECT_TYPES" :key="p.value" :label="p.label" :value="p.value" />
+        <el-option v-for="p in enumOptions('case.project_type')" :key="p.value" :label="p.label" :value="p.value" />
       </el-select>
       <el-button type="primary" @click="handleSearch">查询</el-button>
       <div class="spacer" />
@@ -20,7 +20,7 @@
       <el-table-column prop="client_industry" label="客户行业" width="140" show-overflow-tooltip />
       <el-table-column label="类型" width="100" align="center">
         <template #default="{ row }">
-          <el-tag v-if="row.project_type" size="small" effect="plain" type="primary">{{ projectTypeLabel(row.project_type) }}</el-tag>
+          <el-tag v-if="row.project_type" size="small" effect="plain" type="primary">{{ enumLabel('case.project_type', row.project_type) }}</el-tag>
           <span v-else class="muted">—</span>
         </template>
       </el-table-column>
@@ -34,7 +34,7 @@
       </el-table-column>
       <el-table-column label="状态" width="100" align="center">
         <template #default="{ row }">
-          <el-tag :type="statusTag(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+          <el-tag :type="enumTag('content.status', row.status)" size="small">{{ enumLabel('content.status', row.status) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="操作" width="260">
@@ -72,7 +72,7 @@
               <el-col :span="12">
                 <el-form-item label="项目类型">
                   <el-select v-model="form.project_type" style="width: 100%" placeholder="请选择项目类型">
-                    <el-option v-for="p in PROJECT_TYPES" :key="p.value" :label="p.label" :value="p.value" />
+                    <el-option v-for="p in enumOptions('case.project_type')" :key="p.value" :label="p.label" :value="p.value" />
                   </el-select>
                 </el-form-item>
               </el-col>
@@ -162,6 +162,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { caseApi } from '@/api'
 import { useCrud } from '@/composables/useCrud'
+import { useEnumDict } from '@/composables/useEnumDict'
 import { usePortalPreview } from '@/composables/usePortalPreview'
 import MediaPicker from '@/components/media/MediaPicker.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
@@ -169,15 +170,8 @@ import TransEditor from '@/components/cms/TransEditor.vue'
 import type { Case } from '@/types'
 import { checkCaseGate, gateAlertMessage } from '@/utils/publish-gate'
 
-// 项目类型统一定义：列表展示与表单共用
-const PROJECT_TYPES = [
-  { label: 'OEM', value: 'oem' },
-  { label: 'ODM', value: 'odm' },
-  { label: '自有品牌', value: 'private_label' },
-]
-function projectTypeLabel(value?: string) {
-  return PROJECT_TYPES.find((p) => p.value === value)?.label || value || '—'
-}
+// 项目类型/状态标签由「字典管理」驱动（case.project_type / content.status）
+const { ensureLoaded: loadEnumDict, options: enumOptions, label: enumLabel, tagType: enumTag } = useEnumDict()
 
 // 主语言（源语言）= en：主表字段即英文，在「基础信息」编辑；
 // 翻译 Tab 仅配置其他语言，未配置时门户回退主语言内容（YouTube 式多语言）。
@@ -274,15 +268,6 @@ const {
   },
 })
 
-function statusTag(status: string) {
-  if (status === 'published') return 'success'
-  if (status === 'offline') return 'warning'
-  return 'info'
-}
-function statusLabel(status: string) {
-  const map: Record<string, string> = { draft: '草稿', review: '审核中', published: '已发布', offline: '已下线', archived: '已归档' }
-  return map[status] || status
-}
 function resetForm() {
   Object.assign(form, {
     title: '', slug: '', client_industry: '', project_type: '', products: '',
@@ -361,7 +346,7 @@ async function handleDelete(row: Case) {
 }
 const { previewWithSlug } = usePortalPreview()
 function previewItem() { previewWithSlug('case', form.slug) }
-onMounted(loadData)
+onMounted(() => { loadEnumDict(); loadData() })
 </script>
 <style scoped>
 .toolbar { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; }

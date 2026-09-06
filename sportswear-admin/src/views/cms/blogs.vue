@@ -3,7 +3,7 @@
     <div class="toolbar">
       <el-input v-model="keyword" placeholder="搜索标题" clearable style="width: 240px" @keyup.enter="handleSearch" />
       <el-select v-model="category" placeholder="分类" clearable style="width: 160px" @change="handleSearch">
-        <el-option v-for="c in CATEGORIES" :key="c.value" :label="c.label" :value="c.value" />
+        <el-option v-for="c in enumOptions('blog.category')" :key="c.value" :label="c.label" :value="c.value" />
       </el-select>
       <el-button type="primary" @click="handleSearch">查询</el-button>
       <div class="spacer" />
@@ -18,7 +18,7 @@
       </el-table-column>
       <el-table-column prop="title" label="标题" min-width="200" />
       <el-table-column label="分类" width="120">
-        <template #default="{ row }">{{ categoryLabel(row.category) }}</template>
+        <template #default="{ row }">{{ enumLabel('blog.category', row.category) }}</template>
       </el-table-column>
       <el-table-column label="翻译" min-width="130">
         <template #default="{ row }">
@@ -30,7 +30,7 @@
       </el-table-column>
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
-          <el-tag :type="statusTag(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+          <el-tag :type="enumTag('content.status', row.status)" size="small">{{ enumLabel('content.status', row.status) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="操作" width="260">
@@ -57,7 +57,7 @@
             </el-form-item>
             <el-form-item label="分类" prop="category">
               <el-select v-model="form.category" style="width: 100%">
-                <el-option v-for="c in CATEGORIES" :key="c.value" :label="c.label" :value="c.value" />
+                <el-option v-for="c in enumOptions('blog.category')" :key="c.value" :label="c.label" :value="c.value" />
               </el-select>
             </el-form-item>
             <el-form-item label="作者">
@@ -99,6 +99,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { blogApi } from '@/api'
 import { useCrud } from '@/composables/useCrud'
+import { useEnumDict } from '@/composables/useEnumDict'
 import { usePortalPreview } from '@/composables/usePortalPreview'
 import MediaPicker from '@/components/media/MediaPicker.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
@@ -106,15 +107,8 @@ import TransEditor from '@/components/cms/TransEditor.vue'
 import type { Blog } from '@/types'
 import { checkBlogGate, gateAlertMessage } from '@/utils/publish-gate'
 
-// 分类统一定义：列表筛选与表单共用，避免两处硬编码漂移
-const CATEGORIES = [
-  { label: 'OEM 指南', value: 'oem_guide' },
-  { label: 'ODM 指南', value: 'odm_guide' },
-  { label: '面料', value: 'fabric' },
-  { label: '趋势', value: 'trend' },
-  { label: '行业', value: 'industry' },
-]
-function categoryLabel(value: string) { return CATEGORIES.find((c) => c.value === value)?.label || value }
+// 分类/状态标签由「字典管理」驱动（blog.category / content.status）
+const { ensureLoaded: loadEnumDict, options: enumOptions, label: enumLabel, tagType: enumTag } = useEnumDict()
 
 // 与门户支持语言保持一致。
 // 主语言（源语言）= en：主表 title/content 即英文，在「基础信息」编辑；
@@ -190,15 +184,6 @@ const {
   }),
 })
 
-function statusTag(status: string) {
-  if (status === 'published') return 'success'
-  if (status === 'offline') return 'warning'
-  return 'info'
-}
-function statusLabel(status: string) {
-  const map: Record<string, string> = { draft: '草稿', review: '审核中', published: '已发布', offline: '已下线', archived: '已归档' }
-  return map[status] || status
-}
 function resetForm() { Object.assign(form, { title: '', slug: '', category: '', author: '', tags: '', cover_image: '', content: '' }) }
 function openCreateDialog() { editingId.value = ''; activeTab.value = 'basic'; resetForm(); translations.value = emptyTranslations(); dialogVisible.value = true }
 async function openEditDialog(row: Blog) {
@@ -236,7 +221,7 @@ async function handleUnpublish(row: Blog) {
 async function handleDelete(row: Blog) { await ElMessageBox.confirm(`确定删除博客 ${row.title} 吗？`, '警告', { type: 'warning' }); await blogApi.delete(row.id); ElMessage.success('已删除'); loadData() }
 const { previewWithSlug } = usePortalPreview()
 function previewItem() { previewWithSlug('blog', form.slug) }
-onMounted(loadData)
+onMounted(() => { loadEnumDict(); loadData() })
 </script>
 <style scoped>
 .toolbar { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; }
