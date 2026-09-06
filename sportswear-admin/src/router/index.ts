@@ -21,10 +21,11 @@ const routes: RouteRecordRaw[] = [
     redirect: '/dashboard',
     children: [
       { path: 'dashboard', name: 'Dashboard', component: () => import('@/views/dashboard/index.vue'), meta: { title: '仪表盘', permission: ['dashboard:view', 'lead:view'] } },
-      { path: 'products', name: 'Products', component: () => import('@/views/product/index.vue'), meta: { title: '产品管理', permission: 'product:view' } },
-      { path: 'product-categories', name: 'ProductCategories', component: () => import('@/views/product/categories.vue'), meta: { title: '分类管理', permission: 'category:manage' } },
-      { path: 'product-series', name: 'ProductSeries', component: () => import('@/views/product/series.vue'), meta: { title: '系列管理', permission: 'series:manage' } },
-      { path: 'product-fabrics', name: 'ProductFabrics', component: () => import('@/views/product/fabrics.vue'), meta: { title: '面料管理', permission: 'fabric:manage' } },
+      { path: 'products', name: 'Products', component: () => import('@/views/product/index.vue'), meta: { title: '产品管理', permission: ['product:view', 'category:manage', 'series:manage', 'fabric:manage'] } },
+      // 旧子页面链接重定向到统一入口对应标签页（兼容历史书签）
+      { path: 'product-categories', redirect: '/products?tab=categories' },
+      { path: 'product-series', redirect: '/products?tab=series' },
+      { path: 'product-fabrics', redirect: '/products?tab=fabrics' },
       { path: 'leads', name: 'Leads', component: () => import('@/views/lead/index.vue'), meta: { title: '询盘管理', permission: 'lead:view' } },
       { path: 'users', name: 'Users', component: () => import('@/views/system/users.vue'), meta: { title: '用户管理', permission: 'user:view' } },
       { path: 'hero', name: 'Hero', component: () => import('@/views/cms/hero.vue'), meta: { title: '轮播图管理', permission: 'page:view' } },
