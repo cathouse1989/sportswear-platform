@@ -18,7 +18,7 @@
           </div>
         </template>
         <div class="logo-text">
-                    <span class="logo-name">{{ adminSystemName || brandName || 'OEM/ODM' }}</span>
+                    <span class="logo-name">{{ adminSystemName || brandName || 'OEM/ODM 管理系统' }}</span>
           <span v-if="brandSubtitle" class="logo-sub">{{ brandSubtitle }}</span>
         </div>
       </div>

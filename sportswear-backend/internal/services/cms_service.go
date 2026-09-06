@@ -541,24 +541,6 @@ func (s *CMSService) ListNavigations(navType string) ([]models.Navigation, error
 	return navigations, err
 }
 
-// CreateNavigation 创建导航
-func (s *CMSService) CreateNavigation(req *NavigationRequest) (*models.Navigation, error) {
-	nav := models.Navigation{
-		Name:      req.Name,
-		Type:      req.Type,
-		URL:       req.URL,
-		Target:    req.Target,
-		SortOrder: req.SortOrder,
-		IsVisible: req.IsVisible,
-		ParentID:  utils.StringPtrToUUIDPtr(req.ParentID),
-		PageID:    utils.StringPtrToUUIDPtr(req.PageID),
-	}
-	if err := s.db.Create(&nav).Error; err != nil {
-		return nil, err
-	}
-	return &nav, nil
-}
-
 // NavigationRequest 导航请求
 type NavigationRequest struct {
 	Name         string             `json:"name" binding:"required"`
@@ -601,21 +583,6 @@ func (s *CMSService) UpdateNavigation(id string, req *NavigationRequest) (*model
 		return nil, err
 	}
 	return &nav, nil
-}
-
-// DeleteNavigation 删除导航（子级自动提升为顶级）
-func (s *CMSService) DeleteNavigation(id string) error {
-	pid, err := uuid.Parse(id)
-	if err != nil {
-		return err
-	}
-	return s.db.Transaction(func(tx *gorm.DB) error {
-		// 子级导航的 parent_id 置 NULL，提升为顶级
-		if err := tx.Model(&models.Navigation{}).Where("parent_id = ?", pid).Update("parent_id", nil).Error; err != nil {
-			return err
-		}
-		return tx.Delete(&models.Navigation{}, "id = ?", pid).Error
-	})
 }
 
 // ListNavigationsByPageIDs 批量查询指定页面的导航关联（用于列表页状态列）

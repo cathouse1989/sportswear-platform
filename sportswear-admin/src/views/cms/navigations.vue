@@ -62,7 +62,7 @@
       </el-table-column>
     </el-table>
 
-    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑导航' : '新建导航'" width="620px" :close-on-click-modal="false">
+    <el-dialog v-model="dialogVisible" title="编辑导航" width="620px" :close-on-click-modal="false">
       <el-form :model="form" label-width="100px">
         <el-form-item label="名称" required>
           <el-input v-model="form.name" placeholder="如: OEM 服务" />
@@ -251,13 +251,9 @@ async function handleSave() {
   }
   if (parentId.value) payload.parent_id = parentId.value
   try {
-    if (editingId.value) {
-      await navigationApi.update(editingId.value, payload)
-      ElMessage.success('更新成功')
-    } else {
-      await navigationApi.create(payload)
-      ElMessage.success('创建成功')
-    }
+    // 导航结构由 seed 维护，后端仅开放编辑/排序/显隐（不开放增删），故只走 update
+    await navigationApi.update(editingId.value, payload)
+    ElMessage.success('更新成功')
     dialogVisible.value = false
     loadData()
   } catch { /* handled */ }

@@ -86,7 +86,7 @@ async function main() {
   await request('PUT', '/admin/theme/logo_url', { value: '' }, token);
   await request('PUT', '/admin/theme/brand_name', { value: 'SPORTSWEAR' }, token);
   await request('PUT', '/admin/theme/brand_subtitle', { value: 'Premium Mfg.' }, token);
-  await request('PUT', '/admin/theme/logo_alt', { value: 'Sportswear Manufacturer' }, token);
+  await request('PUT', '/admin/theme/logo_alt', { value: 'Sportswear' }, token);
   console.log('Theme config saved');
 
   // Get categories

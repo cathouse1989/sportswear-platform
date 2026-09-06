@@ -282,7 +282,8 @@ const theme = ref<Record<string, any>>({})
 const contactEmailHref = computed(() => 'mailto:' + t('contact.email_value'))
 const contactPhoneHref = computed(() => 'tel:' + t('contact.phone_value').replace(/[^\d+]/g, ''))
 
-// 默认导航（API 失败时的回退值）
+// 默认导航（仅 API 失败即 data 为 null 时回退；后台「导航管理」全部隐藏会返回空数组 []，
+// 此时应尊重后台显示为空，而不是回退到这组硬编码默认值，否则会出现“后台隐藏不生效”）
 const DEFAULT_NAV = [
   { path: '/', label: 'nav.home', target: '_self', isExternal: false },
   { path: '/products', label: 'nav.products', target: '_self', isExternal: false },
@@ -386,7 +387,7 @@ function navHref(path: string, isExternal: boolean): string {
 
 // 桌面端：保留树结构以支持下拉菜单
 const navTree = computed(() => {
-  if (headerNavData.value?.length) return mapNavTree(headerNavData.value)
+  if (headerNavData.value) return mapNavTree(headerNavData.value)
   return DEFAULT_NAV.map(n => ({ id: n.path, label: navLabel(n.label, n.path), path: n.path, target: n.target, isExternal: n.isExternal, children: [] }))
 })
 
@@ -398,12 +399,12 @@ function toggleExpand(key: string) {
 
 // 移动端 / Footer：展平为列表
 const navItems = computed(() => {
-  if (headerNavData.value?.length) return flattenNav(headerNavData.value).map(navToItem)
+  if (headerNavData.value) return flattenNav(headerNavData.value).map(navToItem)
   return DEFAULT_NAV.map(n => ({ ...n, label: navLabel(n.label, n.path) }))
 })
 
 const footerLinks = computed(() => {
-  if (footerNavData.value?.length) return flattenNav(footerNavData.value).map(navToItem)
+  if (footerNavData.value) return flattenNav(footerNavData.value).map(navToItem)
   return DEFAULT_FOOTER.map(n => ({ ...n, label: navLabel(n.label, n.path) }))
 })
 

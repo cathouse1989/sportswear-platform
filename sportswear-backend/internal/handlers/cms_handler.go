@@ -171,23 +171,6 @@ func (h *CMSHandler) ListNavigations(c *gin.Context) {
 	utils.Success(c, navigations)
 }
 
-// CreateNavigation 创建导航
-func (h *CMSHandler) CreateNavigation(c *gin.Context) {
-	var req services.NavigationRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, "参数错误: "+err.Error())
-		return
-	}
-
-	nav, err := h.cmsService.CreateNavigation(&req)
-	if err != nil {
-		utils.BadRequest(c, err.Error())
-		return
-	}
-	h.invalidateCache("navigation", "")
-	utils.Created(c, nav)
-}
-
 // UpdateNavigation 更新导航
 func (h *CMSHandler) UpdateNavigation(c *gin.Context) {
 	var req services.NavigationRequest
@@ -203,16 +186,6 @@ func (h *CMSHandler) UpdateNavigation(c *gin.Context) {
 	}
 	h.invalidateCache("navigation", "")
 	utils.Success(c, nav)
-}
-
-// DeleteNavigation 删除导航
-func (h *CMSHandler) DeleteNavigation(c *gin.Context) {
-	if err := h.cmsService.DeleteNavigation(c.Param("id")); err != nil {
-		utils.BadRequest(c, "删除导航失败")
-		return
-	}
-	h.invalidateCache("navigation", "")
-	utils.Success(c, gin.H{"deleted": true})
 }
 
 // BatchSortNavigations 批量更新导航排序
