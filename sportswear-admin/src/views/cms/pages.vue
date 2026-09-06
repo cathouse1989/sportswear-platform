@@ -136,13 +136,7 @@
                 <el-button size="small" type="danger" @click="removeModule(i)">删除</el-button>
               </el-button-group>
             </div>
-            <el-input
-              v-model="m.config"
-              type="textarea"
-              :rows="3"
-              class="module-config"
-              placeholder='模块配置（JSON，可选），如 {"description": "..."}'
-            />
+            <ModuleConfigEditor v-model="m.config" :type="m.type" />
           </div>
           <el-empty v-if="!modules.length" description="暂无模块，点击「添加模块」开始搭建页面" :image-size="60" />
         </el-tab-pane>
@@ -206,6 +200,7 @@ import { useEnumDict } from '@/composables/useEnumDict'
 import { formatDateTime } from '@/utils/format'
 import type { Page, Navigation } from '@/types'
 import TransEditor from '@/components/cms/TransEditor.vue'
+import ModuleConfigEditor from '@/components/cms/ModuleConfigEditor.vue'
 import { DEFAULT_TRANS_LANGS, createEmptyTranslations, translationsToRecord, translationsToPayload } from '@/composables/useTransRecord'
 
 const router = useRouter()
@@ -301,12 +296,12 @@ async function openEditDialog(row: Page) {
   try {
     const detail: any = await pageApi.get(row.id)
     Object.assign(form, { title: detail.title, slug: detail.slug, type: detail.type, template: detail.template || '', sort_order: detail.sort_order ?? 0 })
-    modules.value = (detail.modules || []).map((m: any) => ({ type: m.type, title: m.title || '', sort_order: m.sort_order ?? 0, is_visible: m.is_visible !== false, config: m.config || '' }))
+    modules.value = (detail.modules || []).map((m: any) => ({ type: m.type, title: m.title || '', sort_order: m.sort_order ?? 0, is_visible: m.is_visible !== false, config: safeParseConfig(m.config) }))
     translations.value = translationsToRecord(detail.translations || [], PAGE_TRANS_FIELDS)
   } catch { /* error handled */ }
 }
 function addModule() {
-  modules.value.push({ type: 'text', title: '', sort_order: modules.value.length + 1, is_visible: true, config: '' })
+  modules.value.push({ type: 'text', title: '', sort_order: modules.value.length + 1, is_visible: true, config: {} })
 }
 function removeModule(i: number) { modules.value.splice(i, 1); reindexModules() }
 function moveModule(i: number, dir: number) {
@@ -317,17 +312,17 @@ function moveModule(i: number, dir: number) {
   reindexModules()
 }
 function reindexModules() { modules.value.forEach((m: any, idx: number) => { m.sort_order = idx + 1 }) }
+function safeParseConfig(raw: any): Record<string, any> {
+  if (!raw) return {}
+  if (typeof raw === 'object') return raw
+  try { return JSON.parse(raw) } catch { return {} }
+}
 
 function validate(): boolean {
   if (!form.title.trim()) { ElMessage.warning('请输入标题'); activeTab.value = 'basic'; return false }
   if (!form.slug.trim()) { ElMessage.warning('请输入 Slug'); activeTab.value = 'basic'; return false }
   for (const m of modules.value) {
     if (!m.type) { ElMessage.warning('模块类型不能为空'); activeTab.value = 'modules'; return false }
-    if (m.config && m.config.trim()) {
-      try { JSON.parse(m.config) } catch {
-        ElMessage.warning(`模块「${enumLabel('page.module.type', m.type)}」的 Config 不是合法 JSON`); activeTab.value = 'modules'; return false
-      }
-    }
   }
   return true
 }
@@ -337,7 +332,7 @@ function buildPayload() {
     ...form,
     modules: modules.value.map((m: any) => ({
       type: m.type, title: m.title || '', sort_order: m.sort_order ?? 0,
-      is_visible: m.is_visible !== false, config: (m.config || '').trim(),
+      is_visible: m.is_visible !== false, config: JSON.stringify(m.config || {}),
     })),
     translations: translationsToPayload(translations.value, PAGE_TRANS_FIELDS, TRANS_LANGS),
   }

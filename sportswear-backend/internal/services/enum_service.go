@@ -552,6 +552,12 @@ var defaultEnumSeeds = []enumTypeSeed{
 			{Value: "certification", Label: "Certification", Translations: map[string]string{"zh": "认证", "es": "Certificación", "fr": "Certification"}, SortOrder: 11},
 			{Value: "blog", Label: "Blog", Translations: map[string]string{"zh": "博客", "es": "Blog", "fr": "Blog"}, SortOrder: 12},
 			{Value: "contact", Label: "Contact Form", Translations: map[string]string{"zh": "联系表单", "es": "Formulario de contacto", "fr": "Formulaire de contact"}, SortOrder: 13},
+			{Value: "about_hero", Label: "About Hero", Translations: map[string]string{"zh": "关于我们横幅", "es": "Hero de nosotros", "fr": "Bannière à propos"}, SortOrder: 14},
+			{Value: "about_story", Label: "About Story", Translations: map[string]string{"zh": "公司故事（图文）", "es": "Nuestra historia", "fr": "Notre histoire"}, SortOrder: 15},
+			{Value: "about_stats", Label: "Stats", Translations: map[string]string{"zh": "数据统计", "es": "Estadísticas", "fr": "Statistiques"}, SortOrder: 16},
+			{Value: "about_certifications", Label: "Certifications", Translations: map[string]string{"zh": "认证墙", "es": "Certificaciones", "fr": "Certifications"}, SortOrder: 17},
+			{Value: "about_process", Label: "Process Steps", Translations: map[string]string{"zh": "生产流程步骤", "es": "Pasos del proceso", "fr": "Étapes de production"}, SortOrder: 18},
+			{Value: "about_cta", Label: "Call To Action", Translations: map[string]string{"zh": "行动号召", "es": "Llamada a la acción", "fr": "Appel à l'action"}, SortOrder: 19},
 		},
 	},
 	{
