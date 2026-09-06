@@ -96,3 +96,13 @@ func (h *LeadHandler) GetDashboardStats(c *gin.Context) {
 	}
 	utils.Success(c, stats)
 }
+
+// BackfillIPCountries 回填历史询盘的 IP 国家（补齐 ip_country 字段）
+func (h *LeadHandler) BackfillIPCountries(c *gin.Context) {
+	updated, err := h.leadService.BackfillIPCountries()
+	if err != nil {
+		utils.BadRequest(c, err.Error())
+		return
+	}
+	utils.Success(c, gin.H{"updated": updated})
+}

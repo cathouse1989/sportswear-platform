@@ -446,6 +446,14 @@ export interface Lead {
   message: string
   attachments?: string
   source: string
+  medium?: string
+  campaign?: string
+  keyword?: string
+  landing_page?: string
+  device?: string
+  language?: string
+  ip?: string
+  ip_country?: string
   status: string
   score: number
   score_level: string

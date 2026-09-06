@@ -1,6 +1,7 @@
 ﻿package services
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
 	"time"
@@ -451,6 +452,71 @@ func (s *AnalyticsService) GetIPLeads(ip string, days int) ([]map[string]interfa
 		Order("created_at DESC").
 		Scan(&rows).Error
 	return rows, err
+}
+
+// GetIPVisitSummary 获取某个 IP 的访问概览（首次/末次访问、访问次数、独立访客、国家、关联询盘数）
+// 用于询盘管理页「IP 访问记录」：呈现该 IP 现在/过去/历史的访问轨迹。
+func (s *AnalyticsService) GetIPVisitSummary(ip string, days int) (map[string]interface{}, error) {
+	if days <= 0 || days > 90 {
+		days = 30
+	}
+	since := time.Now().AddDate(0, 0, -days)
+	end := time.Now()
+
+	tables, err := s.visitTables(since, end)
+	if err != nil {
+		return nil, err
+	}
+
+	result := map[string]interface{}{
+		"ip":              ip,
+		"country":         "",
+		"first_visit_at":  nil,
+		"last_visit_at":   nil,
+		"page_views":      int64(0),
+		"unique_visitors": int64(0),
+		"lead_count":      int64(0),
+	}
+
+	// 聚合：访问次数、独立访客、首次/末次访问（仅统计 page_view）
+	type aggRow struct {
+		PageViews      int64        `gorm:"column:page_views"`
+		UniqueVisitors int64        `gorm:"column:unique_visitors"`
+		FirstVisitAt   sql.NullTime `gorm:"column:first_visit_at"`
+		LastVisitAt    sql.NullTime `gorm:"column:last_visit_at"`
+	}
+	selectFmt := `SELECT created_at, visitor_id FROM __T__ WHERE ip = ? AND created_at >= ? AND visit_type = 'page_view'`
+	unionSQL, unionArgs := database.UnionAll(tables, selectFmt, []interface{}{ip, since})
+
+	var agg aggRow
+	aggSQL := fmt.Sprintf(`SELECT COUNT(*) AS page_views, COUNT(DISTINCT visitor_id) AS unique_visitors, MIN(created_at) AS first_visit_at, MAX(created_at) AS last_visit_at FROM (%s) t`, unionSQL)
+	if err := s.db.Raw(aggSQL, unionArgs...).Scan(&agg).Error; err != nil {
+		return nil, err
+	}
+	result["page_views"] = agg.PageViews
+	result["unique_visitors"] = agg.UniqueVisitors
+	if agg.FirstVisitAt.Valid {
+		result["first_visit_at"] = agg.FirstVisitAt.Time
+	}
+	if agg.LastVisitAt.Valid {
+		result["last_visit_at"] = agg.LastVisitAt.Time
+	}
+
+	// 最新一条非空国家
+	var country string
+	countrySelect := `SELECT country FROM __T__ WHERE ip = ? AND created_at >= ? AND country IS NOT NULL AND country <> '' ORDER BY created_at DESC LIMIT 1`
+	countrySQL, countryArgs := database.UnionAll(tables, countrySelect, []interface{}{ip, since})
+	if err := s.db.Raw(fmt.Sprintf(`SELECT country FROM (%s) t LIMIT 1`, countrySQL), countryArgs...).Scan(&country).Error; err == nil && country != "" {
+		result["country"] = country
+	}
+
+	// 关联询盘数
+	var leadCount int64
+	if err := s.db.Model(&models.Lead{}).Where("ip = ?", ip).Count(&leadCount).Error; err == nil {
+		result["lead_count"] = leadCount
+	}
+
+	return result, nil
 }
 
 // ConversionFunnel 转化漏斗数据

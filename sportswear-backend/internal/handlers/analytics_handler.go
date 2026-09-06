@@ -2,6 +2,7 @@
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -178,6 +179,44 @@ func (h *AnalyticsHandler) GetIPLeads(c *gin.Context) {
 		return
 	}
 	utils.Success(c, data)
+}
+
+// GetIPVisits 获取某个 IP 的访问概览 + 访问记录明细（询盘管理页「IP 访问记录」）
+func (h *AnalyticsHandler) GetIPVisits(c *gin.Context) {
+	ip := c.Query("ip")
+	if ip == "" {
+		utils.BadRequest(c, "缺少 ip 参数")
+		return
+	}
+	days, _ := strconv.Atoi(c.DefaultQuery("days", "30"))
+	if days <= 0 {
+		days = 30
+	}
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+
+	summary, err := h.analyticsService.GetIPVisitSummary(ip, days)
+	if err != nil {
+		utils.InternalError(c, "获取 IP 访问概览失败")
+		return
+	}
+
+	start := time.Now().AddDate(0, 0, -days)
+	end := time.Now()
+	f := services.VisitLogFilter{IP: ip, Start: start, End: end}
+	rows, total, err := h.analyticsService.ListVisitLogs(page, pageSize, f)
+	if err != nil {
+		utils.InternalError(c, "获取 IP 访问记录失败")
+		return
+	}
+
+	utils.Success(c, gin.H{
+		"summary":   summary,
+		"items":     rows,
+		"total":     total,
+		"page":      page,
+		"page_size": pageSize,
+	})
 }
 
 // GetConversionFunnel 获取转化漏斗（访问 → 产品浏览 → 询盘）

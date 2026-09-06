@@ -7,7 +7,8 @@ logs/
 *.dll
 *.so
 *.dylib
-server
+# 仅忽略根目录下的 server 二进制（go build -o server），不要误伤 cmd/server/ 目录
+/server
 
 # 环境变量（含敏感信息）
 .env

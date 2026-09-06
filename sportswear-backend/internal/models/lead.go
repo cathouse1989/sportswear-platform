@@ -38,6 +38,7 @@ type Lead struct {
 	Device      string `gorm:"type:varchar(50)" json:"device"`
 	Language    string `gorm:"type:varchar(10)" json:"language"`
 	IP          string `gorm:"type:varchar(50);index" json:"ip"`
+	IPCountry   string `gorm:"type:varchar(10)" json:"ip_country"` // 根据 IP 离线库解析出的国家 ISO2 代码（与用户自填 country 区分）
 	// 状态
 	Status         LeadStatus `gorm:"type:varchar(20);default:new" json:"status"`
 	Score          int        `gorm:"default:0" json:"score"`

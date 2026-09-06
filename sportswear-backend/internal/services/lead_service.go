@@ -17,6 +17,7 @@ import (
 type LeadService struct {
 	db          *gorm.DB
 	mailService *MailService
+	geoIP       *GeoIPService
 }
 
 // NewLeadService 创建询盘服务
@@ -25,6 +26,20 @@ func NewLeadService(db *gorm.DB) *LeadService {
 		db:          db,
 		mailService: NewMailService(),
 	}
+}
+
+// SetGeoIP 注入 IP 地理定位服务（用于解析询盘 IP 的国家）
+func (s *LeadService) SetGeoIP(geoIP *GeoIPService) {
+	s.geoIP = geoIP
+}
+
+// resolveIPCountry 根据 IP 解析国家 ISO2 代码（未命中返回空串）
+func (s *LeadService) resolveIPCountry(ip string) string {
+	if s.geoIP == nil {
+		return ""
+	}
+	iso2, _ := s.geoIP.LookupCountry(ip)
+	return iso2
 }
 
 // CreateLead 创建询盘
@@ -55,6 +70,7 @@ func (s *LeadService) CreateLead(req *LeadRequest, ip, visitorID string) (*model
 		Language:        req.Language,
 		VisitorID:       visitorID,
 		IP:              ip,
+		IPCountry:       s.resolveIPCountry(ip),
 		Status:          models.LeadStatusNew,
 	}
 
@@ -296,6 +312,35 @@ func (s *LeadService) GetLead(id string) (*models.Lead, error) {
 		return nil, errors.New("询盘不存在")
 	}
 	return &lead, nil
+}
+
+// BackfillIPCountries 回填历史询盘的 IP 国家（补齐 ip_country 字段）
+// 仅处理 ip 有效且 ip_country 为空的记录，返回成功回填的条数。
+func (s *LeadService) BackfillIPCountries() (int, error) {
+	if s.geoIP == nil {
+		return 0, errors.New("IP 地理定位服务未初始化")
+	}
+	if !s.geoIP.Enabled() {
+		return 0, errors.New("IP 地理库为空，请先通过后台「IP 地理库」导入 IP 段数据")
+	}
+
+	var leads []models.Lead
+	if err := s.db.Where("ip <> '' AND (ip_country = '' OR ip_country IS NULL)").Find(&leads).Error; err != nil {
+		return 0, err
+	}
+
+	updated := 0
+	for _, lead := range leads {
+		iso2 := s.resolveIPCountry(lead.IP)
+		if iso2 == "" {
+			continue
+		}
+		if err := s.db.Model(&models.Lead{}).Where("id = ?", lead.ID).Update("ip_country", iso2).Error; err != nil {
+			return updated, err
+		}
+		updated++
+	}
+	return updated, nil
 }
 
 // UpdateLead 更新询盘

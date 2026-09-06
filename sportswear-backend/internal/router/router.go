@@ -51,6 +51,9 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 	productService := services.NewProductService(db)
 	cmsService := services.NewCMSService(db)
 	leadService := services.NewLeadService(db)
+	// IP 地理定位（基于数据库表 ip_geo_ranges，数据由后台「IP 地理库」接口导入维护）
+	geoIPService := services.NewGeoIPService(db)
+	leadService.SetGeoIP(geoIPService)
 	subscriptionService := services.NewSubscriptionService(db)
 	mediaService := services.NewMediaService(db)
 	trashService := services.NewTrashService(db)
@@ -82,6 +85,7 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 	i18nHandler := handlers.NewI18nHandler(i18nService)
 	enumHandler := handlers.NewEnumHandler(enumService)
 	localizationHandler := handlers.NewLocalizationHandler(seoService, currencyService, geoService, unitService)
+	ipGeoHandler := handlers.NewIPGeoHandler(geoIPService)
 	storageSourceHandler := handlers.NewStorageSourceHandler(storageSourceService)
 	systemHandler := handlers.NewSystemHandler(notificationService, operationLogService, quoteService, cmsService, productService)
 
@@ -397,6 +401,9 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 				middleware.RequirePermission("lead:update"), leadHandler.DeleteLead)
 			auth.POST("/leads/:id/followups",
 				middleware.RequirePermission("lead:followup"), leadHandler.AddFollowUp)
+			// 回填历史询盘的 IP 国家（补齐 ip_country，依赖 GEOIP_DB_PATH 离线库）
+			auth.POST("/leads/backfill-ip-country",
+				middleware.RequirePermission("lead:update"), leadHandler.BackfillIPCountries)
 
 			// ---------- 订阅管理（门户"订阅更新"） ----------
 			auth.GET("/subscribers/stats",
@@ -449,6 +456,9 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 			// IP-询盘关联（某个 IP 提交的询盘列表）
 			auth.GET("/analytics/ip-leads",
 				middleware.RequireAnyPermission("dashboard:view", "lead:view"), analyticsHandler.GetIPLeads)
+			// IP 访问记录（某个 IP 的访问概览 + 访问明细：现在/过去/历史）
+			auth.GET("/analytics/ip-visits",
+				middleware.RequireAnyPermission("dashboard:view", "lead:view"), analyticsHandler.GetIPVisits)
 			// 转化漏斗（访问 → 产品浏览 → 询盘）
 			auth.GET("/analytics/conversion-funnel",
 				middleware.RequireAnyPermission("dashboard:view", "lead:view"), analyticsHandler.GetConversionFunnel)
@@ -514,6 +524,12 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 			auth.GET("/geo-locales", middleware.RequirePermission("setting:manage"), localizationHandler.ListGeoLocales)
 			auth.POST("/geo-locales", middleware.RequirePermission("setting:manage"), localizationHandler.UpsertGeoLocale)
 			auth.DELETE("/geo-locales/:id", middleware.RequirePermission("setting:manage"), localizationHandler.DeleteGeoLocale)
+
+			// ---------- IP 地理库（IP 段 → 国家映射，供询盘 IP 国家解析） ----------
+			auth.GET("/ip-geo-ranges", middleware.RequirePermission("setting:manage"), ipGeoHandler.ListIPGeoRanges)
+			auth.POST("/ip-geo-ranges/import", middleware.RequirePermission("setting:manage"), ipGeoHandler.ImportIPGeoRanges)
+			auth.DELETE("/ip-geo-ranges/:id", middleware.RequirePermission("setting:manage"), ipGeoHandler.DeleteIPGeoRange)
+
 			auth.POST("/ai/translate", middleware.RequirePermission("language:manage"), handlers.AITranslate)
 
 			// ---------- 存储源管理 ----------

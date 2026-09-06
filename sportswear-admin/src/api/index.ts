@@ -227,6 +227,8 @@ export const leadApi = {
   delete: (id: string) => http.delete(`/admin/leads/${id}`),
   addFollowUp: (id: string, data: any) =>
     http.post<LeadFollowUp>(`/admin/leads/${id}/followups`, data),
+  // 回填历史询盘的 IP 国家（补齐 ip_country，依赖 GEOIP_DB_PATH 离线库）
+  backfillIPCountry: () => http.post<{ updated: number }>('/admin/leads/backfill-ip-country'),
 }
 
 // ============ 订阅 ============
@@ -279,6 +281,9 @@ export const analyticsApi = {
   // IP-询盘关联（某个 IP 提交的询盘列表）
   ipLeads: (params: { ip: string; days?: number }) =>
     http.get<any[]>('/admin/analytics/ip-leads', params),
+  // IP 访问记录（某个 IP 的访问概览 + 访问明细：现在/过去/历史）
+  ipVisits: (params: { ip: string; days?: number; page?: number; pageSize?: number }) =>
+    http.get<{ summary: any; items: any[]; total: number }>('/admin/analytics/ip-visits', params),
   // 转化漏斗（访问 → 产品浏览 → 询盘）
   conversionFunnel: (params?: { days?: number }) =>
     http.get<any>('/admin/analytics/conversion-funnel', params),
