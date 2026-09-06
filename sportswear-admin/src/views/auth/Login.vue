@@ -38,7 +38,7 @@ const formRef = ref<FormInstance>()
 const loading = ref(false)
 
 const form = reactive({
-  email: 'admin@sportswear.com',
+  email: '',
   password: '',
 })
 
