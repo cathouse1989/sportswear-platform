@@ -23,8 +23,8 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 	r.Use(middleware.Logger())
 	r.Use(middleware.Recovery())
 
-	// 静态文件服务（上传的文件）
-	r.Static("/uploads", "./uploads")
+	// 上传文件读取路由（/uploads/**）在下方 mediaHandler 初始化后注册，
+	// 由 ServeUpload 按存储驱动（本地磁盘 / MinIO）流式读取。
 
 	// 健康检查
 	r.GET("/health", func(c *gin.Context) {
@@ -66,6 +66,12 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 	geoService := services.NewGeoService(db)
 	storageSourceService := services.NewStorageSourceService(db)
 	uploadService := services.NewUploadService(cfg)
+
+	// 确保对象存储桶存在（minio 驱动下，幂等）；失败仅告警，上传时再暴露错误
+	if err := uploadService.EnsureBucket(); err != nil {
+		utils.Logger.Warnw("初始化对象存储桶失败", "driver", uploadService.Driver(), "error", err.Error())
+	}
+
 	unitService := services.NewUnitService()
 	notificationService := services.NewNotificationService(db)
 	operationLogService := services.NewOperationLogService(db)
@@ -78,6 +84,11 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 	leadHandler := handlers.NewLeadHandler(leadService)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService)
 	mediaHandler := handlers.NewMediaHandler(mediaService, uploadService)
+
+	// 上传文件读取路由（/uploads/**）：local 读本地磁盘，minio 读对象存储，
+	// 与上传时落库的 url（/uploads/<path>）一致，形成展示闭环。
+	r.GET("/uploads/*filepath", mediaHandler.ServeUpload)
+
 	publicHandler := handlers.NewPublicHandler(productService, cmsService, leadService, cacheService, uploadService)
 	trashHandler := handlers.NewTrashHandler(trashService)
 	analyticsHandler := handlers.NewAnalyticsHandler(analyticsService)

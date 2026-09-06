@@ -174,6 +174,7 @@ export const useApi = () => {
     getI18n: () => unwrap<any>('/public/i18n', { params: withPreview({ lang: getLang() }) }),
     getRouteSeo: (route: string) => unwrap<any>('/public/seo', { params: withPreview({ route, lang: getLang() }) }),
     getCurrencies: () => unwrap<any>('/public/currencies', { params: withPreview() }),
+    getEnumGroups: () => unwrap<any>('/public/enums', { params: withPreview() }),
     getLanguages: () => unwrap<any>('/public/languages', { params: withPreview() }),
     getGeo: (country?: string) => unwrap<any>('/public/geo', { params: withPreview({ country }) }),
     submitLead: (data: any) => unwrap<any>('/public/leads', { method: 'POST', body: data }),

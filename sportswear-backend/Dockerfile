@@ -7,18 +7,12 @@ FROM ${BASE_REGISTRY}golang:1.25-alpine AS builder
 
 WORKDIR /app
 
-# 先复制依赖清单，利用 Docker 层缓存
+# 先复制依赖清单与 vendor 目录，使用 vendor 构建（避免容器内下载依赖受网络波动影响）
 COPY go.mod go.sum ./
-
-# 设置 Go 模块代理（国内镜像），确保 `go mod download` 能正常获取依赖
-ENV GOPROXY=https://goproxy.cn,direct \
-    GOSUMDB=sum.golang.org \
-    GONOSUMCHECK=1
-
-RUN go mod download
+COPY vendor ./vendor
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /server ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor -ldflags="-s -w" -o /server ./cmd/server
 
 # ============ 运行阶段 ============
 FROM ${BASE_REGISTRY}alpine:3.20

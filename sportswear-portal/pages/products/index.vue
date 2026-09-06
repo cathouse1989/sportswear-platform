@@ -54,17 +54,12 @@
 
         <select v-model="selectedGender" @change="fetchProducts" class="px-4 py-2.5 rounded-full text-sm font-medium border border-gray-200 bg-white text-gray-600 focus:outline-none focus:border-black transition min-h-[40px]">
           <option value="">{{ $t('product.detail.gender') }}: {{ $t('product.all_categories') }}</option>
-          <option value="unisex">{{ localizedEnum('product.gender_options', 'unisex') }}</option>
-          <option value="male">{{ localizedEnum('product.gender_options', 'male') }}</option>
-          <option value="female">{{ localizedEnum('product.gender_options', 'female') }}</option>
-          <option value="kids">{{ localizedEnum('product.gender_options', 'kids') }}</option>
+          <option v-for="g in genderOptions" :key="g" :value="g">{{ localizedEnum('product.gender_options', g) }}</option>
         </select>
 
         <select v-model="selectedType" @change="fetchProducts" class="px-4 py-2.5 rounded-full text-sm font-medium border border-gray-200 bg-white text-gray-600 focus:outline-none focus:border-black transition min-h-[40px]">
           <option value="">{{ $t('product.detail.type') }}: {{ $t('product.all_categories') }}</option>
-          <option value="oem">{{ localizedEnum('product.type_options', 'oem') }}</option>
-          <option value="odm">{{ localizedEnum('product.type_options', 'odm') }}</option>
-          <option value="both">{{ localizedEnum('product.type_options', 'both') }}</option>
+          <option v-for="t in typeOptions" :key="t" :value="t">{{ localizedEnum('product.type_options', t) }}</option>
         </select>
       </div>
 
@@ -135,6 +130,9 @@ const api = useApi()
 const route = useRoute()
 const { locale } = useI18n()
 const { localizedCategory, localizedEnum } = useLocalized()
+// 产品性别/类型筛选值域：动态读取枚举字典（后台「字典管理」product.gender / product.type 为唯一配置入口）
+const genderOptions = useEnumGroupValues('product.gender_options')
+const typeOptions = useEnumGroupValues('product.type_options')
 const products = ref<any[]>([])
 const categories = ref<any[]>([])
 const selectedCategory = ref('')

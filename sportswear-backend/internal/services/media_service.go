@@ -156,6 +156,32 @@ func (s *MediaService) DeleteMedia(id string) error {
 	return s.db.Delete(&models.Media{}, "id = ?", id).Error
 }
 
+// CountProductReferences 统计媒体被产品封面/图集引用的数量。
+// path 为对象相对路径（如 products/2026-08/uuid.jpg，含唯一 uuid），
+// 产品侧存的是 url 字符串（相对 /uploads/<path> 或历史绝对地址），故按 path 模糊匹配。
+func (s *MediaService) CountProductReferences(path string) (int64, error) {
+	if path == "" {
+		return 0, nil
+	}
+	pattern := "%" + path + "%"
+
+	var coverCount int64
+	if err := s.db.Model(&models.Product{}).
+		Where("cover_image LIKE ? AND deleted_at IS NULL", pattern).
+		Count(&coverCount).Error; err != nil {
+		return 0, err
+	}
+
+	var imgCount int64
+	if err := s.db.Model(&models.ProductImage{}).
+		Where("url LIKE ? AND deleted_at IS NULL", pattern).
+		Count(&imgCount).Error; err != nil {
+		return 0, err
+	}
+
+	return coverCount + imgCount, nil
+}
+
 // CreateMediaDirect 直接创建媒体记录（用于文件上传后）
 func (s *MediaService) CreateMediaDirect(media *models.Media) error {
 	return s.db.Create(media).Error

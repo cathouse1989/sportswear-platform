@@ -77,6 +77,8 @@ services:
       MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET: sportswear
       MINIO_USE_SSL: "false"
+      # 存储驱动：minio（对象存储，默认，图片完全从 MinIO 读取）/ local（本地磁盘）
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-minio}
       JWT_SECRET: docker-dev-secret-change-in-production
       JWT_EXPIRE_HOURS: "24"
       JWT_IDLE_TIMEOUT: "8"

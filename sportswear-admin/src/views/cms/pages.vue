@@ -80,20 +80,7 @@
         </el-form-item>
         <el-form-item label="类型">
           <el-select v-model="form.type">
-            <el-option label="普通" value="normal" />
-            <el-option label="首页" value="home" />
-            <el-option label="产品" value="product" />
-            <el-option label="产品分类" value="product_category" />
-            <el-option label="OEM" value="oem" />
-            <el-option label="ODM" value="odm" />
-            <el-option label="贴牌" value="private_label" />
-            <el-option label="工厂" value="factory" />
-            <el-option label="生产流程" value="production" />
-            <el-option label="博客" value="blog" />
-            <el-option label="案例" value="case" />
-            <el-option label="FAQ" value="faq" />
-            <el-option label="联系我们" value="contact" />
-            <el-option label="SEO 落地页" value="seo_landing" />
+            <el-option v-for="t in enumOptions('page.type')" :key="t.value" :label="t.label" :value="t.value" />
           </el-select>
         </el-form-item>
             <el-form-item label="模板">

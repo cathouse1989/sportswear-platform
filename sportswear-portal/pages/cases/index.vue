@@ -106,11 +106,11 @@ const hasMore = ref(true)
 const total = ref(0)
 const activeType = ref('')
 
+// 项目类型：动态读取枚举字典值域（后台「字典管理」case.project_type 为唯一配置入口）
+const caseTypes = useEnumGroupValues('case.project_type_options')
 const typeChips = computed(() => [
   { label: t('case.all'), value: '' },
-  { label: t('case.project_type_options.oem'), value: 'oem' },
-  { label: t('case.project_type_options.odm'), value: 'odm' },
-  { label: t('case.project_type_options.private_label'), value: 'private_label' },
+  ...caseTypes.value.map((c) => ({ label: t(`case.project_type_options.${c}`), value: c })),
 ])
 
 // 本地化项目类型标签

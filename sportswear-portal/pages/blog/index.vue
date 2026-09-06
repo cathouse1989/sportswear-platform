@@ -108,11 +108,12 @@ const hasMore = ref(true)
 const total = ref(0)
 const activeCategory = ref('')
 
-// 博客分类（与后台/词条一致）
-const BLOG_CATEGORIES = ['oem_guide', 'odm_guide', 'fabric', 'trend', 'industry', 'sourcing', 'brand', 'production']
+// 博客分类：动态读取枚举字典值域（后台「字典管理」blog.category 为唯一配置入口），
+// 标签走 blog.category_options.<value> 词条（枚举字典翻译，后台可覆盖）。
+const blogCategories = useEnumGroupValues('blog.category_options')
 const categoryChips = computed(() => [
   { label: t('blog.all'), value: '' },
-  ...BLOG_CATEGORIES.map((c) => ({ label: t(`blog.categories.${c}`), value: c })),
+  ...blogCategories.value.map((c) => ({ label: t(`blog.category_options.${c}`), value: c })),
 ])
 
 async function fetchBlogs() {
@@ -126,7 +127,7 @@ async function fetchBlogs() {
 // 本地化分类标签：优先词条，回退原始 code
 function categoryLabel(value?: string) {
   if (!value) return ''
-  const key = `blog.categories.${value}`
+  const key = `blog.category_options.${value}`
   return te(key) ? t(key) : value
 }
 

@@ -62,8 +62,8 @@ const route = useRoute()
 const openId = ref<string | null>(null)
 function toggle(id: string) { openId.value = openId.value === id ? null : id }
 
-// FAQ 分类（与后台一致）
-const FAQ_CATEGORIES = ['moq', 'oem', 'odm', 'sample', 'payment', 'production', 'logistics', 'fabric', 'quality', 'certification']
+// FAQ 分类：动态读取枚举字典值域（后台「字典管理」faq.category 为唯一配置入口）
+const faqCategories = useEnumGroupValues('faq.category_options')
 // SEO - FAQ
 const faqSeo = await useRouteSeo('faq')
 useSeoHead({
@@ -87,7 +87,7 @@ const activeCategory = ref('')
 
 const categoryChips = computed(() => [
   { label: t('faq.all'), value: '' },
-  ...FAQ_CATEGORIES.map((c) => ({ label: t(`faq.categories.${c}`), value: c })),
+  ...faqCategories.value.map((c) => ({ label: t(`faq.category_options.${c}`), value: c })),
 ])
 
 async function fetchFaqs() {

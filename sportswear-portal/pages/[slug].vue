@@ -3,7 +3,7 @@
     <section class="bg-gradient-to-br from-gray-900 to-gray-800 text-white py-16 md:py-20">
       <div class="max-w-7xl mx-auto px-4 lg:px-8">
         <h1 class="text-3xl md:text-4xl font-bold mb-3">{{ page?.title || 'Page' }}</h1>
-        <p v-if="page?.type" class="text-white/60 text-sm uppercase tracking-wider">{{ page.type }}</p>
+        <p v-if="page?.type" class="text-white/60 text-sm uppercase tracking-wider">{{ localizedEnum('page.type_options', page.type) }}</p>
       </div>
     </section>
 
@@ -30,6 +30,7 @@
 <script setup lang="ts">
 const route = useRoute()
 const { locale } = useI18n()
+const { localizedEnum } = useLocalized()
 const localePath = useLocalePath()
 const slug = computed(() => (route.params.slug as string) || '')
 

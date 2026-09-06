@@ -9,13 +9,14 @@ import (
 
 // Config 应用配置
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	Redis    RedisConfig
-	JWT      JWTConfig
-	MinIO    MinIOConfig
-	Upload   UploadConfig
-	Admin    AdminConfig
+	Server        ServerConfig
+	Database      DatabaseConfig
+	Redis         RedisConfig
+	JWT           JWTConfig
+	MinIO         MinIOConfig
+	Upload        UploadConfig
+	StorageDriver string // 存储驱动：local（本地磁盘，默认）/ minio（MinIO/S3）
+	Admin         AdminConfig
 }
 
 // ServerConfig 服务器配置
@@ -51,11 +52,12 @@ type JWTConfig struct {
 
 // MinIOConfig MinIO 配置
 type MinIOConfig struct {
-	Endpoint  string
-	AccessKey string
-	SecretKey string
-	Bucket    string
-	UseSSL    bool
+	Endpoint       string // 服务端可达地址（容器内可用 minio:9000）
+	PublicEndpoint string // 浏览器/对外可达地址（可选，默认与 Endpoint 相同；展示统一走 /uploads 反代时可不配）
+	AccessKey      string
+	SecretKey      string
+	Bucket         string
+	UseSSL         bool
 }
 
 // UploadConfig 上传配置
@@ -96,15 +98,17 @@ func Load() *Config {
 			IdleTimeout: getEnvInt("JWT_IDLE_TIMEOUT", 8),
 		},
 		MinIO: MinIOConfig{
-			Endpoint:  getEnv("MINIO_ENDPOINT", "localhost:9000"),
-			AccessKey: getEnv("MINIO_ACCESS_KEY", "minioadmin"),
-			SecretKey: getEnv("MINIO_SECRET_KEY", "minioadmin"),
-			Bucket:    getEnv("MINIO_BUCKET", "sportswear"),
-			UseSSL:    getEnvBool("MINIO_USE_SSL", false),
+			Endpoint:       getEnv("MINIO_ENDPOINT", "localhost:9000"),
+			PublicEndpoint: getEnv("MINIO_PUBLIC_ENDPOINT", ""),
+			AccessKey:      getEnv("MINIO_ACCESS_KEY", "minioadmin"),
+			SecretKey:      getEnv("MINIO_SECRET_KEY", "minioadmin"),
+			Bucket:         getEnv("MINIO_BUCKET", "sportswear"),
+			UseSSL:         getEnvBool("MINIO_USE_SSL", false),
 		},
 		Upload: UploadConfig{
 			MaxSize: int64(getEnvInt("MAX_UPLOAD_SIZE", 20)),
 		},
+		StorageDriver: getEnv("STORAGE_DRIVER", "local"),
 		Admin: AdminConfig{
 			Email:    getEnv("ADMIN_EMAIL", "admin@sportswear.com"),
 			Password: getEnv("ADMIN_PASSWORD", "Admin@123456"),

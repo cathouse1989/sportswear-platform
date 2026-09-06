@@ -90,13 +90,19 @@ func EnsureTable(db *gorm.DB, tableName string, model interface{}) error {
 			return
 		}
 		// 显式创建复合索引（流量分析高频查询路径）
-		// 注意：索引名包含表名，不同表独立，避免冲突
+		// 注意：索引名包含表名，不同表独立，避免冲突；按表类型创建对应字段索引
 		safeName := strings.ReplaceAll(tableName, ".", "_")
-		db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_created_type ON %s (created_at, visit_type)`, safeName, tableName))
-		db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_visitor ON %s (visitor_id, created_at)`, safeName, tableName))
-		db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_entity ON %s (entity_type, entity_slug, created_at)`, safeName, tableName))
-		db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_ip ON %s (ip, created_at)`, safeName, tableName))
-		db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_source ON %s (source, created_at)`, safeName, tableName))
+		if strings.HasPrefix(tableName, "operation_logs") {
+			db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_created_entity ON %s (created_at, entity_type)`, safeName, tableName))
+			db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_user ON %s (user_id, created_at)`, safeName, tableName))
+			db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_module ON %s (module, created_at)`, safeName, tableName))
+		} else {
+			db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_created_type ON %s (created_at, visit_type)`, safeName, tableName))
+			db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_visitor ON %s (visitor_id, created_at)`, safeName, tableName))
+			db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_entity ON %s (entity_type, entity_slug, created_at)`, safeName, tableName))
+			db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_ip ON %s (ip, created_at)`, safeName, tableName))
+			db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_source ON %s (source, created_at)`, safeName, tableName))
+		}
 	})
 	return err
 }

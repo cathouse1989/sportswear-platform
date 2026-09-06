@@ -102,7 +102,7 @@ onMounted(loadRelated)
 // 本地化分类标签
 function categoryLabel(value?: string) {
   if (!value) return ''
-  const key = `blog.categories.${value}`
+  const key = `blog.category_options.${value}`
   return te(key) ? t(key) : value
 }
 

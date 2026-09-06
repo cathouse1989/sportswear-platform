@@ -147,7 +147,7 @@ function hoverImg(p: any): string {
 // 本地化博客分类标签：优先词条，回退原始值
 function categoryLabel(value?: string) {
   if (!value) return ''
-  const key = `blog.categories.${value}`
+  const key = `blog.category_options.${value}`
   return te(key) ? t(key) : value
 }
 

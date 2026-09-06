@@ -692,8 +692,9 @@ func (h *PublicHandler) UploadLeadAttachment(c *gin.Context) {
 
 	// 生成存储路径（leads/2026-01/uuid.ext）
 	storagePath, _ := h.uploadService.GenerateStoragePath(fileHeader.Filename, "leads")
+	fileType := services.DetectFileType(fileHeader.Filename)
 
-	// 打开文件流并保存到本地
+	// 打开文件流并按存储驱动保存（local 磁盘 / minio 对象）
 	src, err := fileHeader.Open()
 	if err != nil {
 		utils.InternalError(c, "读取文件失败")
@@ -701,16 +702,16 @@ func (h *PublicHandler) UploadLeadAttachment(c *gin.Context) {
 	}
 	defer src.Close()
 
-	if err := h.uploadService.SaveToLocal(src, storagePath); err != nil {
+	if err := h.uploadService.Save(src, storagePath, fileType, fileHeader.Size); err != nil {
 		utils.InternalError(c, "保存文件失败")
 		return
 	}
 
 	utils.Created(c, gin.H{
-		"url":       h.uploadService.LocalURL(storagePath),
+		"url":       h.uploadService.URL(storagePath),
 		"file_name": fileHeader.Filename,
 		"file_size": fileHeader.Size,
-		"file_type": services.DetectFileType(fileHeader.Filename),
+		"file_type": fileType,
 	})
 }
 

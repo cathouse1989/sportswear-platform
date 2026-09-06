@@ -269,6 +269,39 @@ func (s *EnumService) GetPublicEnums(lang string) (map[string]string, error) {
 	return result, nil
 }
 
+// GetPublicEnumGroups 获取启用的枚举类型及其值域列表（i18n_prefix → 排序后的 value 列表），
+// 供门户前端动态渲染筛选值域（如博客分类/案例类型/FAQ 分类），避免前端硬编码值域与字典脱节。
+func (s *EnumService) GetPublicEnumGroups() (map[string][]string, error) {
+	var types []models.SysEnumType
+	if err := s.db.Where("is_active = ?", true).Order("sort_order ASC").Find(&types).Error; err != nil {
+		return nil, err
+	}
+
+	typeIDs := make([]uuid.UUID, 0, len(types))
+	prefixByType := make(map[uuid.UUID]string, len(types))
+	for _, t := range types {
+		typeIDs = append(typeIDs, t.ID)
+		p := t.I18nPrefix
+		if p == "" {
+			p = t.Code
+		}
+		prefixByType[t.ID] = p
+	}
+
+	var items []models.SysEnumItem
+	if len(typeIDs) > 0 {
+		if err := s.db.Where("type_id IN ? AND is_active = ?", typeIDs, true).Order("sort_order ASC").Find(&items).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	groups := make(map[string][]string)
+	for _, it := range items {
+		groups[prefixByType[it.TypeID]] = append(groups[prefixByType[it.TypeID]], it.Value)
+	}
+	return groups, nil
+}
+
 // ==================== 初始化默认数据 ====================
 
 // InitDefaults 初始化内置枚举字典（幂等：类型/条目不存在时才创建，不覆盖运营已改配置）
@@ -616,6 +649,26 @@ var defaultEnumSeeds = []enumTypeSeed{
 		Items: []enumItemSeed{
 			{Value: "header", Label: "Header", Translations: map[string]string{"zh": "Header 导航", "es": "Header", "fr": "Header"}, SortOrder: 1},
 			{Value: "footer", Label: "Footer", Translations: map[string]string{"zh": "Footer 导航", "es": "Footer", "fr": "Footer"}, SortOrder: 2},
+		},
+	},
+	{
+		Code: "page.type", Name: "页面类型", Module: "content", I18nPrefix: "page.type_options",
+		Description: "门户页面类型（决定访问路径派生）", SortOrder: 190,
+		Items: []enumItemSeed{
+			{Value: "normal", Label: "Normal", Translations: map[string]string{"zh": "普通", "es": "Normal", "fr": "Normal"}, SortOrder: 1},
+			{Value: "home", Label: "Home", Translations: map[string]string{"zh": "首页", "es": "Inicio", "fr": "Accueil"}, SortOrder: 2},
+			{Value: "product", Label: "Product", Translations: map[string]string{"zh": "产品", "es": "Producto", "fr": "Produit"}, SortOrder: 3},
+			{Value: "product_category", Label: "Product Category", Translations: map[string]string{"zh": "产品分类", "es": "Categoría de producto", "fr": "Catégorie de produit"}, SortOrder: 4},
+			{Value: "oem", Label: "OEM", Translations: map[string]string{"zh": "OEM", "es": "OEM", "fr": "OEM"}, SortOrder: 5},
+			{Value: "odm", Label: "ODM", Translations: map[string]string{"zh": "ODM", "es": "ODM", "fr": "ODM"}, SortOrder: 6},
+			{Value: "private_label", Label: "Private Label", Translations: map[string]string{"zh": "贴牌", "es": "Marca propia", "fr": "Marque privée"}, SortOrder: 7},
+			{Value: "factory", Label: "Factory", Translations: map[string]string{"zh": "工厂", "es": "Fábrica", "fr": "Usine"}, SortOrder: 8},
+			{Value: "production", Label: "Production", Translations: map[string]string{"zh": "生产流程", "es": "Producción", "fr": "Production"}, SortOrder: 9},
+			{Value: "blog", Label: "Blog", Translations: map[string]string{"zh": "博客", "es": "Blog", "fr": "Blog"}, SortOrder: 10},
+			{Value: "case", Label: "Case", Translations: map[string]string{"zh": "案例", "es": "Caso", "fr": "Étude de cas"}, SortOrder: 11},
+			{Value: "faq", Label: "FAQ", Translations: map[string]string{"zh": "FAQ", "es": "FAQ", "fr": "FAQ"}, SortOrder: 12},
+			{Value: "contact", Label: "Contact", Translations: map[string]string{"zh": "联系我们", "es": "Contacto", "fr": "Contact"}, SortOrder: 13},
+			{Value: "seo_landing", Label: "SEO Landing", Translations: map[string]string{"zh": "SEO 落地页", "es": "Página de destino SEO", "fr": "Page de destination SEO"}, SortOrder: 14},
 		},
 	},
 }

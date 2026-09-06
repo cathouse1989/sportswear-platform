@@ -26,7 +26,11 @@ func (h *EnumHandler) GetPublicEnums(c *gin.Context) {
 		utils.InternalError(c, "获取枚举字典失败")
 		return
 	}
-	utils.Success(c, gin.H{"language": lang, "enums": enums})
+	groups, err := h.enumService.GetPublicEnumGroups()
+	if err != nil {
+		groups = map[string][]string{}
+	}
+	utils.Success(c, gin.H{"language": lang, "enums": enums, "groups": groups})
 }
 
 // ListTypes 枚举类型列表（后台管理）
