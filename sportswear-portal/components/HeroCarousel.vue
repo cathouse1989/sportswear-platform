@@ -6,29 +6,22 @@
     @mouseenter="onMouseEnter"
     @mouseleave="onMouseLeave"
   >
-    <!-- 背景：z-0，当前 slide 的大图可点击跳转到 button_url（闭环：图片→详情/询盘） -->
+    <!-- 背景：z-0，不参与点击（点击跳转统一由文案区的 CTA「获取报价」按钮承担，避免全屏可点击背景抢占按钮点击区域） -->
     <div
       v-for="(s, i) in slides"
       :key="'bg-' + i"
       class="absolute inset-0 z-0 pointer-events-none"
       :class="slideClass(i)"
     >
-      <NuxtLink
-        :to="localePath(s.button_url || '/contact')"
-        class="block h-full w-full"
-        :class="current === i ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'"
-        :aria-label="s.button_text || defaultButtonText || s.title || ''"
-      >
-        <img
-          v-if="s.image && !imgFailed[i]"
-          :src="s.image"
-          :alt="s.title || ''"
-          class="h-full w-full object-cover"
-          :fetchpriority="i === 0 ? 'high' : 'auto'"
-          :loading="i === 0 ? 'eager' : 'lazy'"
-          @error="onImgError(i)"
-        />
-      </NuxtLink>
+      <img
+        v-if="s.image && !imgFailed[i]"
+        :src="s.image"
+        :alt="s.title || ''"
+        class="h-full w-full object-cover"
+        :fetchpriority="i === 0 ? 'high' : 'auto'"
+        :loading="i === 0 ? 'eager' : 'lazy'"
+        @error="onImgError(i)"
+      />
       <div class="absolute inset-0 bg-gradient-to-r from-[#0D1B2A]/95 via-[#0D1B2A]/70 to-transparent pointer-events-none" />
     </div>
 
