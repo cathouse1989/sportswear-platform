@@ -187,3 +187,65 @@ func (s *SEOService) ListRouteSEO(route string) ([]models.SEO, error) {
 	err := s.db.Where("entity_type = ? AND entity_id = ?", "route", RouteSEOID(route)).Find(&seos).Error
 	return seos, err
 }
+
+// ListEntitySEO 获取指定实体的全部语言 SEO 配置（后台管理）。
+// entityType ∈ { product, blog, case, category, page }，entityID 为对应实体主键。
+func (s *SEOService) ListEntitySEO(entityType string, entityID uuid.UUID) ([]models.SEO, error) {
+	var seos []models.SEO
+	err := s.db.Where("entity_type = ? AND entity_id = ?", entityType, entityID).Find(&seos).Error
+	return seos, err
+}
+
+// ==================== 实体 SEO 自动派生 ====================
+
+// EnsureEntitySEO 为实体幂等创建「英文源语言」SEO 占位记录（title/description 由实体默认值派生）。
+// 规则（幂等，可重复调用）：
+//   - 已存在非空 title 的记录时不覆盖，避免冲掉运营在「SEO 管理」里手写的配置；
+//   - 仅在 title 为空时补齐默认 title，description 为空时补齐默认 description；
+//   - 无可用默认文案（title 与 description 均空）时不产生空记录。
+func EnsureEntitySEO(db *gorm.DB, entityType string, entityID uuid.UUID, title, description string) error {
+	title = strings.TrimSpace(title)
+	description = strings.TrimSpace(description)
+	if title == "" && description == "" {
+		return nil
+	}
+
+	var seo models.SEO
+	err := db.Where("entity_type = ? AND entity_id = ? AND language = ?", entityType, entityID, "en").First(&seo).Error
+	if err == nil {
+		changed := false
+		if strings.TrimSpace(seo.Title) == "" && title != "" {
+			seo.Title = title
+			changed = true
+		}
+		if strings.TrimSpace(seo.Description) == "" && description != "" {
+			seo.Description = description
+			changed = true
+		}
+		if !changed {
+			return nil
+		}
+		return db.Save(&seo).Error
+	}
+	if err != gorm.ErrRecordNotFound {
+		return err
+	}
+
+	seo = models.SEO{
+		EntityType:  entityType,
+		EntityID:    entityID,
+		Language:    "en",
+		Title:       title,
+		Description: description,
+	}
+	return db.Create(&seo).Error
+}
+
+// truncateText 按 rune 截断文本到指定长度（用于生成 SEO 默认 description）。
+func truncateText(s string, max int) string {
+	r := []rune(strings.TrimSpace(s))
+	if len(r) <= max {
+		return string(r)
+	}
+	return string(r[:max]) + "…"
+}

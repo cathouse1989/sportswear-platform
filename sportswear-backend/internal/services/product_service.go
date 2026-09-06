@@ -275,7 +275,7 @@ func (s *ProductService) CreateProduct(req *ProductRequest) (*models.Product, er
 		}
 	}
 
-	// 创建 SEO
+	// 创建 SEO（未显式提供时，自动用英文翻译名 + 简介生成默认值，幂等不覆盖）
 	if req.SEO != nil {
 		seo := models.SEO{
 			EntityType:    "product",
@@ -292,6 +292,20 @@ func (s *ProductService) CreateProduct(req *ProductRequest) (*models.Product, er
 			SchemaData:    req.SEO.SchemaData,
 		}
 		s.db.Create(&seo)
+	} else {
+		enName := ""
+		for _, t := range req.Translations {
+			if t.Language == "en" && t.Name != "" {
+				enName = t.Name
+				break
+			}
+		}
+		if enName == "" {
+			enName = req.Slug
+		}
+		if err := EnsureEntitySEO(s.db, "product", product.ID, enName, req.Brief); err != nil {
+			return nil, err
+		}
 	}
 
 	// 关联系列

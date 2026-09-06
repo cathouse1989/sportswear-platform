@@ -69,6 +69,24 @@ func (s *CMSService) GetPageBySlug(slug string) (*models.Page, error) {
 	return &page, nil
 }
 
+// ListPublishedLandingPages 列出所有已发布的「落地页」（走 /{slug} 兜底页的页面类型）。
+// 固定列表页（home/product/blog/case/faq/contact 等）已由门户静态 sitemap 覆盖，此处排除。
+func (s *CMSService) ListPublishedLandingPages() ([]models.Page, error) {
+	fixedTypes := []models.PageType{
+		models.PageTypeHome,
+		models.PageTypeProduct,
+		models.PageTypeProductCategory,
+		models.PageTypeBlog,
+		models.PageTypeCase,
+		models.PageTypeFAQ,
+		models.PageTypeContact,
+	}
+	var pages []models.Page
+	err := s.db.Where("status = ? AND type NOT IN ?", models.ContentStatusPublished, fixedTypes).
+		Order("sort_order ASC").Find(&pages).Error
+	return pages, err
+}
+
 // CreatePage 创建页面
 func (s *CMSService) CreatePage(req *PageRequest) (*models.Page, error) {
 	page := models.Page{
@@ -112,7 +130,7 @@ func (s *CMSService) CreatePage(req *PageRequest) (*models.Page, error) {
 		}
 	}
 
-	// 创建 SEO
+	// 创建 SEO（未显式提供时，自动用页面标题生成默认值，幂等不覆盖）
 	if req.SEO != nil {
 		s.db.Create(&models.SEO{
 			EntityType:    "page",
@@ -128,6 +146,10 @@ func (s *CMSService) CreatePage(req *PageRequest) (*models.Page, error) {
 			OGImage:       req.SEO.OGImage,
 			SchemaData:    req.SEO.SchemaData,
 		})
+	} else {
+		if err := EnsureEntitySEO(s.db, "page", page.ID, req.Title, ""); err != nil {
+			return nil, err
+		}
 	}
 
 	return s.GetPage(page.ID.String())
@@ -777,7 +799,7 @@ func (s *CMSService) CreateBlog(req *BlogRequest) (*models.Blog, error) {
 		})
 	}
 
-	// 创建 SEO
+	// 创建 SEO（未显式提供时，自动用标题 + 正文摘要生成默认值，幂等不覆盖）
 	if req.SEO != nil {
 		s.db.Create(&models.SEO{
 			EntityType:    "blog",
@@ -793,6 +815,10 @@ func (s *CMSService) CreateBlog(req *BlogRequest) (*models.Blog, error) {
 			OGImage:       req.SEO.OGImage,
 			SchemaData:    req.SEO.SchemaData,
 		})
+	} else {
+		if err := EnsureEntitySEO(s.db, "blog", blog.ID, req.Title, truncateText(req.Content, 200)); err != nil {
+			return nil, err
+		}
 	}
 
 	return s.GetBlog(blog.ID.String())
@@ -1041,7 +1067,7 @@ func (s *CMSService) CreateCase(req *CaseRequest) (*models.Case, error) {
 		}
 	}
 
-	// 创建 SEO
+	// 创建 SEO（未显式提供时，自动用标题 + 摘要生成默认值，幂等不覆盖）
 	if req.SEO != nil {
 		s.db.Create(&models.SEO{
 			EntityType:    "case",
@@ -1057,6 +1083,14 @@ func (s *CMSService) CreateCase(req *CaseRequest) (*models.Case, error) {
 			OGImage:       req.SEO.OGImage,
 			SchemaData:    req.SEO.SchemaData,
 		})
+	} else {
+		summary := req.Solution
+		if strings.TrimSpace(summary) == "" {
+			summary = req.Problem
+		}
+		if err := EnsureEntitySEO(s.db, "case", caseItem.ID, req.Title, truncateText(summary, 200)); err != nil {
+			return nil, err
+		}
 	}
 
 	return s.GetCase(caseItem.ID.String())

@@ -189,12 +189,29 @@ export default defineEventHandler(async (event) => {
     console.error('Sitemap: failed to fetch cases', e)
   }
 
-  // 5. 动态自定义页面
+  // 5. 动态自定义落地页（CMS 页面，走 /:slug 兜底路由）
   try {
-    // 获取所有公开自定义页面（type=custom）
-    // 假设后端有 /public/pages 列表接口，如果没有则不做
+    const pagesRes = await $fetch<{ success: boolean; data: any[] }>(
+      `${apiBase}/public/pages`
+    )
+    const pages = pagesRes?.data || []
+    for (const locale of LOCALES) {
+      for (const pg of pages) {
+        if (!pg.slug) continue
+        urls.push({
+          loc: `${SITE_URL}/${locale.code}/${pg.slug}`,
+          lastmod: pg.updated_at || pg.published_at || undefined,
+          changefreq: 'monthly',
+          priority: '0.6' as any,
+          alternates: LOCALES.map((l) => ({
+            href: `${SITE_URL}/${l.code}/${pg.slug}`,
+            hreflang: l.iso,
+          })),
+        })
+      }
+    }
   } catch (e) {
-    // skip
+    console.error('Sitemap: failed to fetch landing pages', e)
   }
 
   // 生成 XML

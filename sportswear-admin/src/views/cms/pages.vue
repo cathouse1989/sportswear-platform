@@ -17,7 +17,6 @@
       </el-select>
       <el-button type="primary" @click="handleSearch">查询</el-button>
       <div class="spacer" />
-      <el-button type="primary" @click="openCreateDialog">新建页面</el-button>
     </div>
 
     <el-table :data="pages" v-loading="loading" stripe>
@@ -44,10 +43,7 @@
           <template v-if="navStatusMap[row.id]?.length">
             <el-tag size="small" type="success">{{ navStatusLabel(row) }}</el-tag>
           </template>
-          <template v-else>
-            <el-button v-if="row.status === 'published'" size="small" link type="primary" @click="handleAddToNav(row)">加入导航</el-button>
-            <span v-else class="muted">—</span>
-          </template>
+          <span v-else class="muted">—</span>
         </template>
       </el-table-column>
       <el-table-column label="操作" width="430">
@@ -57,7 +53,6 @@
           <el-button size="small" type="warning" @click="$router.push('/hero')" v-if="isHome(row)">轮播图</el-button>
           <el-button v-permission="'page:publish'" size="small" type="success" @click="handlePublish(row)" v-if="row.status !== 'published'">发布</el-button>
           <el-button v-permission="'page:publish'" size="small" type="warning" @click="handleUnpublish(row)" v-else>下线</el-button>
-          <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -202,7 +197,6 @@ import type { Page, Navigation } from '@/types'
 import TransEditor from '@/components/cms/TransEditor.vue'
 import ModuleConfigEditor from '@/components/cms/ModuleConfigEditor.vue'
 import { DEFAULT_TRANS_LANGS, createEmptyTranslations, translationsToRecord, translationsToPayload } from '@/composables/useTransRecord'
-import { pagePath } from '@/constants/routes'
 
 const router = useRouter()
 const navStatusMap = ref<Record<string, Navigation[]>>({})   // page_id → nav items
@@ -283,7 +277,6 @@ function resetEditor() {
   versions.value = []
   draftNote.value = ''
 }
-function openCreateDialog() { resetEditor(); dialogVisible.value = true }
 async function openEditDialog(row: Page) {
   resetEditor()
   editingId.value = row.id
@@ -351,11 +344,6 @@ async function handleUnpublish(row: Page) {
   await checkNavBeforeStatusChange(row, '下线')
   await pageApi.unpublish(row.id); ElMessage.success('已下线'); loadData() 
 }
-async function handleDelete(row: Page) { 
-  await checkNavBeforeStatusChange(row, '删除')
-  await ElMessageBox.confirm(`确定删除页面 ${row.title} 吗？`, '警告', { type: 'warning' }); await pageApi.delete(row.id); ElMessage.success('已删除'); loadData() 
-}
-
 async function checkNavBeforeStatusChange(row: Page, action: string) {
   const navs = navStatusMap.value[row.id]
   if (!navs || navs.length === 0) return
@@ -364,22 +352,6 @@ async function checkNavBeforeStatusChange(row: Page, action: string) {
     `该页面关联了 ${navs.length} 个导航项：${navNames}。\n${action}后，这些导航项将自动隐藏（可在「导航管理」中重新控制显隐）。\n\n确定继续${action}？`,
     `${action}已关联导航的页面`, { type: 'warning', confirmButtonText: `确认${action}`, cancelButtonText: '取消' }
   )
-}
-
-async function handleAddToNav(row: Page) {
-  if (row.status !== 'published') {
-    ElMessage.warning('请先发布页面再加入导航')
-    return
-  }
-  try {
-    const url = pagePath(row.type, row.slug)
-    await navigationApi.create({
-      name: row.title, type: 'header', url,
-      target: '_self', sort_order: 99, is_visible: true, page_id: row.id,
-    })
-    ElMessage.success(`已将「${row.title}」加入 Header 导航`)
-    loadNavStatus()
-  } catch { }
 }
 
 // ---------- 版本历史 ----------

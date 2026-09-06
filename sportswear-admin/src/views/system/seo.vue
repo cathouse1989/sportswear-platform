@@ -1,23 +1,39 @@
 <template>
   <el-card shadow="never">
     <div class="toolbar">
-      <el-select v-model="route" placeholder="选择路由" style="width: 240px" @change="loadData">
-        <el-option v-for="r in ROUTES" :key="r.value" :label="r.label" :value="r.value" />
-      </el-select>
+      <el-radio-group v-model="mode" @change="onModeChange">
+        <el-radio-button value="route">路由</el-radio-button>
+        <el-radio-button value="entity">实体详情</el-radio-button>
+      </el-radio-group>
+      <template v-if="mode === 'route'">
+        <el-select v-model="route" placeholder="选择路由" style="width: 240px" @change="loadData">
+          <el-option v-for="r in ROUTES" :key="r.value" :label="r.label" :value="r.value" />
+        </el-select>
+      </template>
+      <template v-else>
+        <el-select v-model="entityType" placeholder="实体类型" style="width: 140px" @change="onEntityTypeChange">
+          <el-option v-for="t in ENTITY_TYPES" :key="t.value" :label="t.label" :value="t.value" />
+        </el-select>
+        <el-select v-model="entityId" placeholder="选择实体" style="width: 260px" filterable @change="loadData">
+          <el-option v-for="e in entities" :key="e.id" :label="e.label" :value="e.id" />
+        </el-select>
+      </template>
       <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
     </div>
 
     <el-alert
-      v-if="!route"
+      v-if="(mode === 'route' && !route) || (mode === 'entity' && !entityId)"
       type="info"
       :closable="false"
       show-icon
-      title="请选择要配置 SEO 的路由（列表页/落地页）。英文为源语言，其他语言未填写时门户回退英文，再由页面默认值兜底。"
+      :title="mode === 'route'
+        ? '请选择要配置 SEO 的路由（列表页/落地页）。英文为源语言，其他语言未填写时门户回退英文，再由页面默认值兜底。'
+        : '请选择要配置 SEO 的实体（产品/博客/案例/分类详情）。英文为源语言，其他语言未填写时门户回退英文。'"
       class="mb"
     />
 
     <div v-loading="loading">
-      <template v-if="route">
+      <template v-if="(mode === 'route' && route) || (mode === 'entity' && entityId)">
         <el-divider content-position="left">源语言（English）</el-divider>
         <el-form label-width="110px">
           <el-form-item label="SEO 标题"><el-input v-model="form.en.title" maxlength="200" placeholder="如 Custom Sportswear Products" /></el-form-item>
@@ -47,7 +63,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { seoApi, portalHealthApi } from '@/api'
+import { seoApi, portalHealthApi, productApi, blogApi, caseApi, categoryApi } from '@/api'
 import { useRoute } from 'vue-router'
 import TransEditor from '@/components/cms/TransEditor.vue'
 import SerpPreview from '@/components/cms/SerpPreview.vue'
@@ -80,6 +96,53 @@ async function loadRoutes() {
   } catch { /* 保留兜底 */ }
 }
 
+// 实体详情维度：类型 + 实体下拉
+const ENTITY_TYPES = [
+  { label: '产品', value: 'product' },
+  { label: '博客', value: 'blog' },
+  { label: '案例', value: 'case' },
+  { label: '分类', value: 'category' },
+]
+
+const mode = ref<'route' | 'entity'>('route')
+const entityType = ref('product')
+const entityId = ref('')
+const entities = ref<{ id: string; label: string }[]>([])
+
+async function loadEntities() {
+  entities.value = []
+  entityId.value = ''
+  if (mode.value !== 'entity') return
+  try {
+    if (entityType.value === 'product') {
+      const res: any = await productApi.list({ page: 1, pageSize: 500 })
+      entities.value = (res?.items || res || []).map((p: any) => ({ id: p.id, label: p.name || p.slug || p.id }))
+    } else if (entityType.value === 'blog') {
+      const res: any = await blogApi.list({ page: 1, pageSize: 500 })
+      entities.value = (res?.items || res || []).map((b: any) => ({ id: b.id, label: b.title || b.slug || b.id }))
+    } else if (entityType.value === 'case') {
+      const res: any = await caseApi.list({ page: 1, pageSize: 500 })
+      entities.value = (res?.items || res || []).map((c: any) => ({ id: c.id, label: c.title || c.slug || c.id }))
+    } else if (entityType.value === 'category') {
+      const res: any = await categoryApi.list()
+      entities.value = (res || []).map((c: any) => ({ id: c.id, label: c.name || c.slug || c.id }))
+    }
+  } catch { entities.value = [] }
+}
+
+function onModeChange() {
+  route.value = ''
+  entityId.value = ''
+  reset()
+  if (mode.value === 'entity') loadEntities()
+}
+
+function onEntityTypeChange() {
+  entityId.value = ''
+  reset()
+  loadEntities()
+}
+
 const TRANS_LANGS = [
   { value: 'zh', label: '中文' },
   { value: 'es', label: 'Español' },
@@ -99,7 +162,10 @@ const blank = () => ({ title: '', description: '', keywords: '', og_title: '', o
 
 const route = ref('')
 const currentRoute = useRoute()
-const serpUrl = computed(() => 'https://sportswear-platform.com/' + (route.value || ''))
+const serpUrl = computed(() => {
+  if (mode.value === 'entity') return 'https://sportswear-platform.com/' + entityType.value + '/' + entityId.value
+  return 'https://sportswear-platform.com/' + (route.value || '')
+})
 const loading = ref(false)
 const saving = ref(false)
 const form = reactive<Record<string, Record<string, string>>>({ en: blank(), zh: blank(), es: blank(), fr: blank() })
@@ -114,11 +180,14 @@ function reset() {
 }
 
 async function loadData() {
-  if (!route.value) { reset(); return }
-  loading.value = true
   reset()
+  if (mode.value === 'route' && !route.value) return
+  if (mode.value === 'entity' && (!entityType.value || !entityId.value)) return
+  loading.value = true
   try {
-    const res = await seoApi.listRoutes(route.value)
+    const res = mode.value === 'route'
+      ? await seoApi.listRoutes(route.value)
+      : await seoApi.listEntities(entityType.value, entityId.value)
     for (const it of (res as any).items || []) {
       if (form[it.language]) form[it.language] = applyItem(it)
     }
@@ -127,12 +196,17 @@ async function loadData() {
 }
 
 async function handleSave() {
-  if (!route.value) { ElMessage.warning('请先选择路由'); return }
+  if (mode.value === 'route' && !route.value) { ElMessage.warning('请先选择路由'); return }
+  if (mode.value === 'entity' && (!entityType.value || !entityId.value)) { ElMessage.warning('请先选择实体'); return }
   for (const l of ['zh', 'es', 'fr']) form[l] = { ...(transForm.value[l] || blank()) }
   const entries = ['en', 'zh', 'es', 'fr'].map((l) => ({ language: l, ...form[l] }))
   saving.value = true
   try {
-    await seoApi.saveRoutes(route.value, entries)
+    if (mode.value === 'route') {
+      await seoApi.saveRoutes(route.value, entries)
+    } else {
+      await seoApi.saveEntities(entityType.value, entityId.value, entries)
+    }
     ElMessage.success('已保存')
     loadData()
   } catch { /* handled */ } finally { saving.value = false }

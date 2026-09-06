@@ -143,6 +143,54 @@ func (s *CMSService) routeSEOConfigured(route string) bool {
 	return strings.TrimSpace(seo.Title) != "" || strings.TrimSpace(seo.Description) != ""
 }
 
+// entitySEOConfiguredSet 批量判断实体是否已配置英文 SEO（title/description 任一非空）。
+// 返回已配置的实体 ID 集合，供 missing_entity_seo 健康检查使用。
+func (s *CMSService) entitySEOConfiguredSet(entityType string, ids []uuid.UUID) map[uuid.UUID]bool {
+	result := make(map[uuid.UUID]bool, len(ids))
+	if len(ids) == 0 {
+		return result
+	}
+	var seos []models.SEO
+	if err := s.db.Select("entity_id, title, description").
+		Where("entity_type = ? AND entity_id IN ? AND language = ?", entityType, ids, "en").
+		Find(&seos).Error; err != nil {
+		return result
+	}
+	for _, seo := range seos {
+		if strings.TrimSpace(seo.Title) != "" || strings.TrimSpace(seo.Description) != "" {
+			result[seo.EntityID] = true
+		}
+	}
+	return result
+}
+
+// entitySEOItem 详情实体 SEO 健康检查的引用项（ID + Slug）。
+type entitySEOItem struct {
+	ID   uuid.UUID
+	Slug string
+}
+
+// appendMissingEntitySEO 将「已发布但缺英文源语言 SEO」的详情实体追加到健康报告。
+func (s *CMSService) appendMissingEntitySEO(report *PortalHealthReport, entityType, pathPrefix, issueTitle string, rows []entitySEOItem) {
+	ids := make([]uuid.UUID, 0, len(rows))
+	for _, r := range rows {
+		ids = append(ids, r.ID)
+	}
+	set := s.entitySEOConfiguredSet(entityType, ids)
+	for _, r := range rows {
+		if set[r.ID] {
+			continue
+		}
+		report.Issues = append(report.Issues, HealthIssue{
+			Type:   "missing_entity_seo",
+			Title:  issueTitle,
+			Detail: "「" + r.Slug + "」已发布但未配置 SEO 标题/描述，门户将回退到默认标题。",
+			Route:  entityType,
+			Path:   pathPrefix + r.Slug,
+		})
+	}
+}
+
 // navCountForRoute 统计指向某路由对应路径 / 关联页面的导航条数
 func (s *CMSService) navCountForRoute(e PortalRouteEntry) int {
 	q := s.db.Model(&models.Navigation{}).Where("url = ?", e.Path)
@@ -160,7 +208,7 @@ func (s *CMSService) navCountForRoute(e PortalRouteEntry) int {
 
 // HealthIssue 单个闭环断点
 type HealthIssue struct {
-	Type   string `json:"type"`             // dead_link / missing_nav / missing_seo / nav_drift
+	Type   string `json:"type"`             // dead_link / missing_nav / missing_seo / missing_entity_seo / nav_drift
 	Title  string `json:"title"`            // 简短描述
 	Detail string `json:"detail,omitempty"` // 补充说明
 	Route  string `json:"route,omitempty"`
@@ -275,6 +323,25 @@ func (s *CMSService) PortalHealthCheck() (*PortalHealthReport, error) {
 			PageID: r.PageID,
 		})
 	}
+
+	// 5. missing_entity_seo：详情实体（产品/博客/案例）缺英文源语言 SEO
+	var productRefs []entitySEOItem
+	if err := s.db.Model(&models.Product{}).Select("id, slug").Where("status = ?", models.ProductStatusPublished).Scan(&productRefs).Error; err != nil {
+		return nil, err
+	}
+	s.appendMissingEntitySEO(report, "product", "/products/", "产品详情未配置 SEO", productRefs)
+
+	var blogRefs []entitySEOItem
+	if err := s.db.Model(&models.Blog{}).Select("id, slug").Where("status = ?", models.ContentStatusPublished).Scan(&blogRefs).Error; err != nil {
+		return nil, err
+	}
+	s.appendMissingEntitySEO(report, "blog", "/blog/", "博客详情未配置 SEO", blogRefs)
+
+	var caseRefs []entitySEOItem
+	if err := s.db.Model(&models.Case{}).Select("id, slug").Where("status = ?", models.ContentStatusPublished).Scan(&caseRefs).Error; err != nil {
+		return nil, err
+	}
+	s.appendMissingEntitySEO(report, "case", "/cases/", "案例详情未配置 SEO", caseRefs)
 
 	report.TotalIssues = len(report.Issues)
 	return report, nil

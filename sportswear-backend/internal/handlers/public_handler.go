@@ -260,6 +260,19 @@ func (h *PublicHandler) GetPage(c *gin.Context) {
 	utils.Success(c, page)
 }
 
+// ListLandingPages 列出所有已发布落地页（供 sitemap 生成使用，Redis 缓存）。
+// 固定列表页（home/products/blog/cases/faq/contact）由门户静态 sitemap 覆盖。
+func (h *PublicHandler) ListLandingPages(c *gin.Context) {
+	pages, err := cached[[]models.Page](h, "cache:landing-pages", services.CacheTTLMedium, !h.previewMode(c), func() ([]models.Page, error) {
+		return h.cmsService.ListPublishedLandingPages()
+	})
+	if err != nil {
+		utils.InternalError(c, "获取页面列表失败")
+		return
+	}
+	utils.Success(c, pages)
+}
+
 // ListProducts 产品列表（增强版：支持多维度筛选 + Redis 缓存）
 func (h *PublicHandler) ListProducts(c *gin.Context) {
 	lang := middleware.GetLang(c)

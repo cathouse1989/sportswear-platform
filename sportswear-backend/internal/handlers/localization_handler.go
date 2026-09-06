@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"sportswear-backend/internal/middleware"
 	"sportswear-backend/internal/services"
@@ -237,6 +238,54 @@ func (h *LocalizationHandler) ListRouteSEO(c *gin.Context) {
 		return
 	}
 	utils.Success(c, gin.H{"route": route, "items": seos})
+}
+
+// ListEntitySEO 获取指定实体的全部语言 SEO（后台 SEO 管理页，实体详情维度）
+func (h *LocalizationHandler) ListEntitySEO(c *gin.Context) {
+	entityType := c.Query("entity_type")
+	entityID := c.Query("entity_id")
+	if entityType == "" || entityID == "" {
+		utils.BadRequest(c, "缺少 entity_type 或 entity_id 参数")
+		return
+	}
+	id, err := uuid.Parse(entityID)
+	if err != nil {
+		utils.BadRequest(c, "entity_id 无效")
+		return
+	}
+	seos, err := h.seoService.ListEntitySEO(entityType, id)
+	if err != nil {
+		utils.InternalError(c, "获取实体 SEO 失败")
+		return
+	}
+	utils.Success(c, gin.H{"entity_type": entityType, "entity_id": entityID, "items": seos})
+}
+
+// UpsertEntitySEO 批量保存实体 SEO（后台 SEO 管理页，按实体 × 语言矩阵）
+func (h *LocalizationHandler) UpsertEntitySEO(c *gin.Context) {
+	var req struct {
+		EntityType string                         `json:"entity_type" binding:"required"`
+		EntityID   string                         `json:"entity_id" binding:"required"`
+		Entries    []services.SEOMultiLangRequest `json:"entries" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, "参数错误: "+err.Error())
+		return
+	}
+	id, err := uuid.Parse(req.EntityID)
+	if err != nil {
+		utils.BadRequest(c, "entity_id 无效")
+		return
+	}
+	for i := range req.Entries {
+		req.Entries[i].EntityType = req.EntityType
+		req.Entries[i].EntityID = id.String()
+		if _, err := h.seoService.UpsertSEO(&req.Entries[i]); err != nil {
+			utils.BadRequest(c, err.Error())
+			return
+		}
+	}
+	utils.Success(c, gin.H{"entity_type": req.EntityType, "entity_id": req.EntityID, "saved": len(req.Entries)})
 }
 
 // ==================== 国家本地化映射（区域设置） ====================

@@ -12,9 +12,6 @@
         <el-option label="无关联页面" value="no_page" />
       </el-select>
       <div class="spacer" />
-      <el-button type="warning" plain @click="handleSyncStatus">同步页面状态</el-button>
-      <el-button type="success" plain @click="handleSync">一键同步已发布页面</el-button>
-      <el-button type="primary" @click="openCreateDialog(null)">新建导航</el-button>
     </div>
 
     <el-table
@@ -56,13 +53,11 @@
         </template>
       </el-table-column>
       <el-table-column prop="sort_order" label="排序" width="80" />
-      <el-table-column label="操作" width="310">
+      <el-table-column label="操作" width="220">
         <template #default="{ row }: any">
-          <el-button size="small" @click="openCreateDialog(row.id)">添加子级</el-button>
           <el-button size="small" @click="openEditDialog(row)">编辑</el-button>
           <el-button size="small" @click="handleMoveUp(row)" :disabled="isFirstSibling(row)">↑</el-button>
           <el-button size="small" @click="handleMoveDown(row)" :disabled="isLastSibling(row)">↓</el-button>
-          <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -112,7 +107,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { navigationApi, pageApi, portalHealthApi } from '@/api'
 import TransEditor from '@/components/cms/TransEditor.vue'
 import { DEFAULT_TRANS_LANGS, createEmptyTranslations, translationsToRecord, translationsToPayload } from '@/composables/useTransRecord'
@@ -233,21 +228,6 @@ function resetForm() {
   translations.value = createEmptyTranslations(TRANS_KEYS)
 }
 
-function openCreateDialog(pid: string | null) {
-  resetForm()
-  parentId.value = pid
-  if (pid) {
-    for (const n of navigations.value) {
-      if (n.id === pid) { form.type = n.type; break }
-      if (n.children?.length) {
-        const child = n.children.find(c => c.id === pid)
-        if (child) { form.type = child.type; break }
-      }
-    }
-  }
-  dialogVisible.value = true
-}
-
 async function openEditDialog(row: Navigation) {
   resetForm()
   editingId.value = row.id
@@ -338,57 +318,6 @@ async function toggleVisible(row: Navigation, val: boolean) {
   try {
     await navigationApi.update(row.id, { name: row.name, url: row.url, type: row.type, target: row.target || '_self', sort_order: row.sort_order, is_visible: val, page_id: row.page_id || null })
   } catch { row.is_visible = !val }
-}
-
-async function handleDelete(row: Navigation) {
-  const hasChildren = row.children?.length
-  const msg = hasChildren
-    ? `确定删除导航「${row.name}」吗？其子级导航不会被删除，但会成为顶级导航。`
-    : `确定删除导航「${row.name}」吗？`
-  await ElMessageBox.confirm(msg, '警告', { type: 'warning' })
-  await navigationApi.delete(row.id)
-  ElMessage.success('已删除')
-  loadData()
-}
-
-async function handleSync() {
-  await ElMessageBox.confirm(
-    '将扫描所有「已发布」页面，为尚未关联导航的页面自动创建导航条目。已有关联不会被覆盖。',
-    '一键同步', { type: 'info' }
-  )
-  try {
-    const allPages: any = await pageApi.list({ pageSize: 500, status: 'published' })
-    const pages: Page[] = (allPages?.items || allPages || []) as Page[]
-    const allNavs = await navigationApi.listAll()
-    const usedIds = new Set((allNavs || []).filter((n: Navigation) => n.page_id).map((n: Navigation) => n.page_id))
-    let created = 0
-    for (const p of pages) {
-      if (usedIds.has(p.id)) continue
-      const url = pagePath(p.type as string, p.slug)
-      if (!url || url === '/') continue  // skip home page (already in nav)
-      await navigationApi.create({
-        name: p.title, type: navType.value, url,
-        target: '_self', sort_order: 99, is_visible: true, page_id: p.id,
-      })
-      created++
-    }
-    ElMessage.success(`已同步创建 ${created} 条导航`)
-    loadData()
-  } catch { }
-}
-
-// 同步导航可见性与页面状态
-async function handleSyncStatus() {
-  await ElMessageBox.confirm(
-    '将根据关联页面的发布状态自动更新导航可见性：\n• 已发布页面的导航 → 显示\n• 未发布/已下线页面的导航 → 隐藏',
-    '同步页面状态', { type: 'warning' }
-  )
-  try {
-    const result = await navigationApi.syncWithPages()
-    const updated = result?.updated || 0
-    ElMessage.success(`已同步更新 ${updated} 条导航的可见性`)
-    loadData()
-  } catch { }
 }
 
 onMounted(() => {

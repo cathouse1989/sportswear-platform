@@ -376,6 +376,8 @@ export const seoApi = {
   upsert: (data: any) => http.post<any>('/admin/seo', data),
   listRoutes: (route: string) => http.get<any>('/admin/seo/routes', { route }),
   saveRoutes: (route: string, entries: any[]) => http.post<any>('/admin/seo/routes', { route, entries }),
+  listEntities: (entityType: string, entityId: string) => http.get<any>('/admin/seo/entity', { entity_type: entityType, entity_id: entityId }),
+  saveEntities: (entityType: string, entityId: string, entries: any[]) => http.post<any>('/admin/seo/entity', { entity_type: entityType, entity_id: entityId, entries }),
 }
 
 // ============ 门户路由注册表 & 健康检查 ============

@@ -99,6 +99,7 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 	public.Use(middleware.Analytics()) // 访问监测：仅统计门户（门户）流量，后台流量无商业价值
 	{
 		public.GET("/home", publicHandler.GetHome)
+		public.GET("/pages", publicHandler.ListLandingPages)
 		public.GET("/pages/:slug", publicHandler.GetPage)
 		public.GET("/products", publicHandler.ListProducts)
 		public.GET("/products/:slug", publicHandler.GetProduct)
@@ -247,12 +248,8 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 				middleware.RequirePermission("page:view"), cmsHandler.ListPages)
 			auth.GET("/pages/:id",
 				middleware.RequirePermission("page:view"), cmsHandler.GetPage)
-			auth.POST("/pages",
-				middleware.RequirePermission("page:update"), cmsHandler.CreatePage)
 			auth.PUT("/pages/:id",
 				middleware.RequirePermission("page:update"), cmsHandler.UpdatePage)
-			auth.DELETE("/pages/:id",
-				middleware.RequirePermission("page:update"), cmsHandler.DeletePage)
 			auth.PUT("/pages/:id/hero",
 				middleware.RequirePermission("page:update"), cmsHandler.UpdateHeroSlides)
 			auth.POST("/pages/:id/publish",
@@ -260,20 +257,14 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 			auth.POST("/pages/:id/unpublish",
 				middleware.RequirePermission("page:publish"), cmsHandler.UnpublishPage)
 
-			// 导航管理
+			// 导航管理（结构由代码/seed 维护，仅开放编辑/排序/显隐，不开放增删）
 			auth.GET("/navigations",
 				middleware.RequireAnyPermission("navigation:manage", "page:view"), cmsHandler.ListNavigations)
-			auth.POST("/navigations",
-				middleware.RequirePermission("navigation:manage"), cmsHandler.CreateNavigation)
 			auth.PUT("/navigations/:id",
 				middleware.RequirePermission("navigation:manage"), cmsHandler.UpdateNavigation)
-			auth.DELETE("/navigations/:id",
-				middleware.RequirePermission("navigation:manage"), cmsHandler.DeleteNavigation)
 
 			auth.PUT("/navigations/sort",
 				middleware.RequirePermission("navigation:manage"), cmsHandler.BatchSortNavigations)
-			auth.POST("/navigations/sync-with-pages",
-				middleware.RequirePermission("navigation:manage"), cmsHandler.SyncNavVisibilityWithPages)
 
 		// 门户路由注册表 & 健康检查（供 SEO 管理、导航管理、健康检查页共用）
 		auth.GET("/portal/routes",
@@ -526,6 +517,8 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 				middleware.RequirePermission("seo:manage"), localizationHandler.UpsertSEO)
 			auth.POST("/seo/routes", middleware.RequirePermission("seo:manage"), localizationHandler.UpsertRoutesSEO)
 			auth.GET("/seo/routes", middleware.RequirePermission("seo:manage"), localizationHandler.ListRouteSEO)
+			auth.POST("/seo/entity", middleware.RequirePermission("seo:manage"), localizationHandler.UpsertEntitySEO)
+			auth.GET("/seo/entity", middleware.RequirePermission("seo:manage"), localizationHandler.ListEntitySEO)
 
 			// ---------- 国家本地化映射（区域设置） ----------
 			auth.GET("/geo-locales", middleware.RequirePermission("setting:manage"), localizationHandler.ListGeoLocales)
