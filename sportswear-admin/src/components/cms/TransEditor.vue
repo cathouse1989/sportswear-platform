@@ -19,6 +19,9 @@
       <el-button size="small" plain type="primary" @click="copyFromSource(false)">
         从 {{ sourceLabel }} 复制（仅填空缺）
       </el-button>
+      <el-button size="small" plain type="success" :loading="aiTranslating" @click="aiTranslate">
+        AI 翻译
+      </el-button>
     </div>
 
     <el-alert
@@ -65,6 +68,7 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import RichTextEditor from '@/components/RichTextEditor.vue'
+import { aiTranslateApi } from '@/api'
 
 interface TransField {
   key: string
@@ -143,6 +147,23 @@ function copyFromSource(overwriteAll: boolean) {
   }
   emit('update:modelValue', next)
   ElMessage.success(overwriteAll ? '已覆盖全部语言字段' : `已填充 ${copied} 个空缺字段`)
+}
+
+const aiTranslating = ref(false)
+async function aiTranslate() {
+  const srcFields = props.fields.filter((f) => isFilled(props.source[f.key]))
+  const texts = srcFields.map((f) => props.source[f.key])
+  if (!texts.length) { ElMessage.warning('源语言无内容可翻译'); return }
+  aiTranslating.value = true
+  try {
+    const res = await aiTranslateApi.translate(texts, activeLang.value)
+    const trans = (res as any).translations || []
+    const next = clone()
+    if (!next[activeLang.value]) next[activeLang.value] = {}
+    srcFields.forEach((f, i) => { if (trans[i]) next[activeLang.value][f.key] = trans[i] })
+    emit('update:modelValue', next)
+    ElMessage.success('AI 翻译完成')
+  } catch { ElMessage.warning('AI 翻译失败，可改用「从 English 复制」') } finally { aiTranslating.value = false }
 }
 </script>
 

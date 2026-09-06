@@ -238,3 +238,39 @@ func (h *LocalizationHandler) ListRouteSEO(c *gin.Context) {
 	}
 	utils.Success(c, gin.H{"route": route, "items": seos})
 }
+
+// ==================== 国家本地化映射（区域设置） ====================
+
+// ListGeoLocales 国家映射列表
+func (h *LocalizationHandler) ListGeoLocales(c *gin.Context) {
+	items, err := h.geoService.ListGeoLocales()
+	if err != nil {
+		utils.InternalError(c, "获取国家映射失败")
+		return
+	}
+	utils.Success(c, items)
+}
+
+// UpsertGeoLocale 创建或更新国家映射
+func (h *LocalizationHandler) UpsertGeoLocale(c *gin.Context) {
+	var req services.GeoLocaleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, "参数错误: "+err.Error())
+		return
+	}
+	gl, err := h.geoService.UpsertGeoLocale(&req)
+	if err != nil {
+		utils.BadRequest(c, err.Error())
+		return
+	}
+	utils.Success(c, gl)
+}
+
+// DeleteGeoLocale 删除国家映射
+func (h *LocalizationHandler) DeleteGeoLocale(c *gin.Context) {
+	if err := h.geoService.DeleteGeoLocale(c.Param("id")); err != nil {
+		utils.BadRequest(c, "删除失败")
+		return
+	}
+	utils.Success(c, gin.H{"deleted": true})
+}

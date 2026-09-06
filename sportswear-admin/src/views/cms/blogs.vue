@@ -85,6 +85,7 @@
         </el-tab-pane>
       </el-tabs>
       <template #footer>
+        <el-button @click="previewItem">预览</el-button>
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
       </template>
@@ -98,6 +99,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { blogApi } from '@/api'
 import { useCrud } from '@/composables/useCrud'
+import { usePortalPreview } from '@/composables/usePortalPreview'
 import MediaPicker from '@/components/media/MediaPicker.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
 import TransEditor from '@/components/cms/TransEditor.vue'
@@ -232,6 +234,8 @@ async function handleUnpublish(row: Blog) {
   loadData()
 }
 async function handleDelete(row: Blog) { await ElMessageBox.confirm(`确定删除博客 ${row.title} 吗？`, '警告', { type: 'warning' }); await blogApi.delete(row.id); ElMessage.success('已删除'); loadData() }
+const { previewWithSlug } = usePortalPreview()
+function previewItem() { previewWithSlug('blog', form.slug) }
 onMounted(loadData)
 </script>
 <style scoped>

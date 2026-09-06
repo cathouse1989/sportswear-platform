@@ -96,6 +96,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.RolePermission{},
 		// 多语言
 		&models.Language{},
+		&models.GeoLocale{},
 		// 系统配置
 		&models.Setting{},
 		// CMS

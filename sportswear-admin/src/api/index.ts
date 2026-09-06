@@ -363,3 +363,14 @@ export const currencyApi = {
   list: () => http.get<Currency[]>('/public/currencies'),
   convert: (params: any) => http.get<any>('/public/currencies/convert', params),
 }
+
+// ============ 国家本地化映射 ============
+export const geoLocaleApi = {
+  list: () => http.get<any[]>('/admin/geo-locales'),
+  upsert: (data: any) => http.post<any>('/admin/geo-locales', data),
+  delete: (id: string) => http.delete(`/admin/geo-locales/${id}`),
+}
+// ============ AI 翻译 ============
+export const aiTranslateApi = {
+  translate: (texts: string[], targetLang: string) => http.post<any>('/admin/ai/translate', { texts, target_lang: targetLang }),
+}

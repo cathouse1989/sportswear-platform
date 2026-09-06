@@ -494,6 +494,12 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 			auth.POST("/seo/routes", middleware.RequirePermission("seo:manage"), localizationHandler.UpsertRoutesSEO)
 			auth.GET("/seo/routes", middleware.RequirePermission("seo:manage"), localizationHandler.ListRouteSEO)
 
+			// ---------- 国家本地化映射（区域设置） ----------
+			auth.GET("/geo-locales", middleware.RequirePermission("setting:manage"), localizationHandler.ListGeoLocales)
+			auth.POST("/geo-locales", middleware.RequirePermission("setting:manage"), localizationHandler.UpsertGeoLocale)
+			auth.DELETE("/geo-locales/:id", middleware.RequirePermission("setting:manage"), localizationHandler.DeleteGeoLocale)
+			auth.POST("/ai/translate", middleware.RequirePermission("language:manage"), handlers.AITranslate)
+
 			// ---------- 存储源管理 ----------
 			auth.GET("/storage-sources",
 				middleware.RequirePermission("setting:manage"), storageSourceHandler.List)

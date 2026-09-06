@@ -1,4 +1,4 @@
-﻿package services
+package services
 
 import (
 	"gorm.io/gorm"
@@ -68,6 +68,12 @@ var countryLocaleMap = map[string]CountryLocale{
 
 // DetectLocale 根据国家 ISO2 代码推荐本地化信息
 func (s *GeoService) DetectLocale(countryISO2 string) CountryLocale {
+	if countryISO2 != "" {
+		var gl models.GeoLocale
+		if err := s.db.Where("country_iso2 = ? AND is_active = ?", countryISO2, true).First(&gl).Error; err == nil {
+			return CountryLocale{Country: gl.Country, CountryISO2: gl.CountryISO2, Language: gl.Language, Currency: gl.Currency, Timezone: gl.Timezone}
+		}
+	}
 	if locale, ok := countryLocaleMap[countryISO2]; ok {
 		return locale
 	}
@@ -116,4 +122,68 @@ func (s *GeoService) GetActiveLanguages() ([]models.Language, error) {
 	var languages []models.Language
 	err := s.db.Where("is_active = ?", true).Order("sort_order ASC").Find(&languages).Error
 	return languages, err
+}
+
+// ListGeoLocales 国家本地化映射列表（后台「区域设置」）
+func (s *GeoService) ListGeoLocales() ([]models.GeoLocale, error) {
+	var items []models.GeoLocale
+	err := s.db.Order("country_iso2 ASC").Find(&items).Error
+	return items, err
+}
+
+// UpsertGeoLocale 创建或更新国家映射
+func (s *GeoService) UpsertGeoLocale(req *GeoLocaleRequest) (*models.GeoLocale, error) {
+	var gl models.GeoLocale
+	err := s.db.Where("country_iso2 = ?", req.CountryISO2).First(&gl).Error
+	if err == nil {
+		gl.Country = req.Country
+		gl.Language = req.Language
+		gl.Currency = req.Currency
+		gl.Timezone = req.Timezone
+		gl.IsActive = req.IsActive
+		if err := s.db.Save(&gl).Error; err != nil {
+			return nil, err
+		}
+		return &gl, nil
+	}
+	gl = models.GeoLocale{
+		Country: req.Country, CountryISO2: req.CountryISO2,
+		Language: req.Language, Currency: req.Currency, Timezone: req.Timezone, IsActive: req.IsActive,
+	}
+	if err := s.db.Create(&gl).Error; err != nil {
+		return nil, err
+	}
+	return &gl, nil
+}
+
+// DeleteGeoLocale 删除国家映射
+func (s *GeoService) DeleteGeoLocale(id string) error {
+	return s.db.Delete(&models.GeoLocale{}, "id = ?", id).Error
+}
+
+// GeoLocaleRequest 国家映射请求
+type GeoLocaleRequest struct {
+	Country     string `json:"country" binding:"required"`
+	CountryISO2 string `json:"country_iso2" binding:"required"`
+	Language    string `json:"language"`
+	Currency    string `json:"currency"`
+	Timezone    string `json:"timezone"`
+	IsActive    bool   `json:"is_active"`
+}
+
+// InitGeoLocales 初始化内置国家映射（表为空时种子）
+func (s *GeoService) InitGeoLocales() error {
+	var count int64
+	s.db.Model(&models.GeoLocale{}).Count(&count)
+	if count > 0 {
+		return nil
+	}
+	var items []models.GeoLocale
+	for _, l := range countryLocaleMap {
+		items = append(items, models.GeoLocale{
+			Country: l.Country, CountryISO2: l.CountryISO2,
+			Language: l.Language, Currency: l.Currency, Timezone: l.Timezone, IsActive: true,
+		})
+	}
+	return s.db.Create(&items).Error
 }

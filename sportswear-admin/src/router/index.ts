@@ -43,6 +43,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'i18n', name: 'I18n', component: () => import('@/views/system/i18n.vue'), meta: { title: '词条管理', permission: 'language:manage' } },
       { path: 'seo', name: 'Seo', component: () => import('@/views/system/seo.vue'), meta: { title: 'SEO 管理', permission: 'seo:manage' } },
       { path: 'translation-coverage', name: 'TranslationCoverage', component: () => import('@/views/system/translation-coverage.vue'), meta: { title: '翻译完成度', permission: ['language:manage', 'page:view'] } },
+      { path: 'geo-locales', name: 'GeoLocales', component: () => import('@/views/system/geo-locales.vue'), meta: { title: '区域设置', permission: 'setting:manage' } },
       { path: 'portal-cache', name: 'PortalCache', component: () => import('@/views/system/portal-cache.vue'), meta: { title: '门户缓存', permission: 'setting:manage' } },
       { path: 'trash', name: 'Trash', component: () => import('@/views/system/trash.vue'), meta: { title: '回收站', permission: 'setting:manage' } },
       { path: 'storage-sources', name: 'StorageSources', component: () => import('@/views/system/storage-sources.vue'), meta: { title: '存储源配置', permission: 'setting:manage' } },
