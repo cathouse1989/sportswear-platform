@@ -283,15 +283,21 @@ func (s *CMSService) PortalHealthCheck() (*PortalHealthReport, error) {
 		}
 	}
 
-	// 2. missing_nav
+	// 2. missing_nav：已发布页面未出现在导航中。
+	// 判据：① 有 page_id 关联导航；② 或存在导航 URL 等于该页面的派生路径（固定页面通过骨架导航 URL 匹配）。
 	navPageIDs := make(map[string]bool, len(navs))
+	navPaths := make(map[string]bool, len(navs))
 	for _, n := range navs {
 		if n.PageID != nil {
 			navPageIDs[n.PageID.String()] = true
 		}
+		navPaths[strings.TrimRight(n.URL, "/")] = true
 	}
 	for _, pg := range publishedPages {
 		if pg.Type == models.PageTypeHome || pg.Slug == "home" || navPageIDs[pg.ID.String()] {
+			continue
+		}
+		if navPaths[strings.TrimRight(PagePath(string(pg.Type), pg.Slug), "/")] {
 			continue
 		}
 		report.Issues = append(report.Issues, HealthIssue{
