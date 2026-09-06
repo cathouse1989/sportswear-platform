@@ -35,6 +35,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'blogs', name: 'Blogs', component: () => import('@/views/cms/blogs.vue'), meta: { title: '博客管理', permission: ['blog:manage', 'page:view'] } },
       { path: 'cases', name: 'Cases', component: () => import('@/views/cms/cases.vue'), meta: { title: '案例管理', permission: ['case:manage', 'page:view'] } },
       { path: 'faqs', name: 'FAQs', component: () => import('@/views/cms/faqs.vue'), meta: { title: 'FAQ 管理', permission: ['faq:manage', 'page:view'] } },
+      { path: 'inquiry-templates', name: 'InquiryTemplates', component: () => import('@/views/cms/inquiry-templates.vue'), meta: { title: '询盘模板', permission: ['faq:manage', 'page:view'] } },
       { path: 'certifications', name: 'Certifications', component: () => import('@/views/cms/certifications.vue'), meta: { title: '认证管理', permission: ['certification:manage', 'page:view'] } },
       { path: 'self-medias', name: 'SelfMedias', component: () => import('@/views/cms/self-medias.vue'), meta: { title: '自媒体管理', permission: ['selfmedia:manage', 'page:view'] } },
       { path: 'media', name: 'Media', component: () => import('@/views/media/index.vue'), meta: { title: '媒体管理', permission: ['media:manage', 'media:upload'] } },

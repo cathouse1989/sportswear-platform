@@ -495,6 +495,26 @@ func (h *PublicHandler) ListFAQs(c *gin.Context) {
 	utils.SuccessPage(c, result.Items, page, pageSize, result.Total)
 }
 
+// ListInquiryTemplates 询盘问题模板（仅启用 + Redis 缓存 + 按语言本地化）
+func (h *PublicHandler) ListInquiryTemplates(c *gin.Context) {
+	lang := middleware.GetLang(c)
+	key := "cache:inquiry-templates:" + lang
+
+	items, err := cached[[]models.InquiryTemplate](h, key, services.CacheTTLMedium, !h.previewMode(c), func() ([]models.InquiryTemplate, error) {
+		tpls, err := h.cmsService.ListPublishedInquiryTemplates()
+		if err != nil {
+			return nil, err
+		}
+		services.LocalizeInquiryTemplates(tpls, lang)
+		return tpls, nil
+	})
+	if err != nil {
+		utils.InternalError(c, "获取询盘模板失败")
+		return
+	}
+	utils.Success(c, items)
+}
+
 // ListFabrics 面料列表（仅已发布 + Redis 缓存）
 func (h *PublicHandler) ListFabrics(c *gin.Context) {
 	lang := middleware.GetLang(c)

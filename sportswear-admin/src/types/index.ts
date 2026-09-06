@@ -322,6 +322,15 @@ export interface FAQ {
   is_active: boolean
 }
 
+export interface InquiryTemplate {
+  id: string
+  question: string
+  category: string
+  project_type: string
+  sort_order: number
+  is_active: boolean
+}
+
 export interface Factory {
   id: string
   name: string

@@ -484,6 +484,67 @@ func (h *CMSHandler) DeleteFAQ(c *gin.Context) {
 	utils.Success(c, gin.H{"deleted": true})
 }
 
+// ==================== 询盘问题模板 ====================
+
+// ListInquiryTemplates 询盘问题模板列表
+func (h *CMSHandler) ListInquiryTemplates(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	category := c.Query("category")
+	keyword := c.Query("keyword")
+
+	items, total, err := h.cmsService.ListInquiryTemplates(page, pageSize, category, keyword)
+	if err != nil {
+		utils.InternalError(c, "获取询盘模板列表失败")
+		return
+	}
+	utils.SuccessPage(c, items, page, pageSize, total)
+}
+
+// CreateInquiryTemplate 创建询盘问题模板
+func (h *CMSHandler) CreateInquiryTemplate(c *gin.Context) {
+	var req services.InquiryTemplateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, "参数错误: "+err.Error())
+		return
+	}
+
+	item, err := h.cmsService.CreateInquiryTemplate(&req)
+	if err != nil {
+		utils.BadRequest(c, err.Error())
+		return
+	}
+	h.invalidateCache("inquiry-template", "")
+	utils.Created(c, item)
+}
+
+// UpdateInquiryTemplate 更新询盘问题模板
+func (h *CMSHandler) UpdateInquiryTemplate(c *gin.Context) {
+	var req services.InquiryTemplateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, "参数错误: "+err.Error())
+		return
+	}
+
+	item, err := h.cmsService.UpdateInquiryTemplate(c.Param("id"), &req)
+	if err != nil {
+		utils.BadRequest(c, err.Error())
+		return
+	}
+	h.invalidateCache("inquiry-template", "")
+	utils.Success(c, item)
+}
+
+// DeleteInquiryTemplate 删除询盘问题模板
+func (h *CMSHandler) DeleteInquiryTemplate(c *gin.Context) {
+	if err := h.cmsService.DeleteInquiryTemplate(c.Param("id")); err != nil {
+		utils.BadRequest(c, "删除询盘模板失败")
+		return
+	}
+	h.invalidateCache("inquiry-template", "")
+	utils.Success(c, gin.H{"deleted": true})
+}
+
 // ==================== 工厂 ====================
 
 // ListFactories 工厂列表

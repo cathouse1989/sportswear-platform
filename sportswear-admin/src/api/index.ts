@@ -18,6 +18,7 @@ import type {
   Blog,
   Case,
   FAQ,
+  InquiryTemplate,
   Factory,
   Certification,
   ProductionProcess,
@@ -163,6 +164,14 @@ export const faqApi = {
   create: (data: any) => http.post<FAQ>('/admin/faqs', data),
   update: (id: string, data: any) => http.put<FAQ>(`/admin/faqs/${id}`, data),
   delete: (id: string) => http.delete(`/admin/faqs/${id}`),
+}
+
+// ============ 询盘问题模板 ============
+export const inquiryTemplateApi = {
+  list: (params?: any) => http.get<PageResult<InquiryTemplate>>('/admin/inquiry-templates', params),
+  create: (data: any) => http.post<InquiryTemplate>('/admin/inquiry-templates', data),
+  update: (id: string, data: any) => http.put<InquiryTemplate>(`/admin/inquiry-templates/${id}`, data),
+  delete: (id: string) => http.delete(`/admin/inquiry-templates/${id}`),
 }
 
 // ============ 宸ュ巶 ============

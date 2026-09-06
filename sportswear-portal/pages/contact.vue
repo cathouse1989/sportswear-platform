@@ -29,10 +29,33 @@
         </div>
       </div>
 
+      <!-- 询盘问题模板：按分类分组，点击即填入下方留言框，帮助访客组织想咨询的问题 -->
+      <div class="mb-12">
+        <h3 class="text-xl md:text-2xl font-bold text-[#0D1B2A] mb-2">{{ $t('contact.templates.title') }}</h3>
+        <p class="text-gray-500 text-sm mb-6">{{ $t('contact.templates.hint') }}</p>
+        <div v-for="group in templateGroups" :key="group.category" class="mb-5 last:mb-0">
+          <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">{{ $t('faq.categories.' + group.category) }}</p>
+          <div class="flex flex-wrap gap-2.5">
+            <button
+              v-for="tpl in group.templates"
+              :key="tpl.key"
+              type="button"
+              @click="applyTemplate(tpl)"
+              class="px-4 py-2.5 rounded-full border text-sm text-left transition min-h-[44px]"
+              :class="selectedTemplate === tpl.key
+                ? 'bg-[#D4A853] text-white border-[#D4A853]'
+                : 'bg-white text-gray-700 border-gray-200 hover:border-[#D4A853] hover:text-[#D4A853]'"
+            >
+              {{ tpl.text }}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- 表单 + 联系信息 -->
       <div class="grid md:grid-cols-2 gap-8 md:gap-12">
         <div>
-          <form @submit.prevent="handleSubmit" class="space-y-4">
+          <form ref="formRef" @submit.prevent="handleSubmit" class="space-y-4">
             <input v-model="form.name" :placeholder="$t('contact.name')" required class="w-full border border-gray-200 rounded-lg px-4 py-3.5 text-sm focus:ring-2 focus:ring-[#D4A853]/30 focus:border-[#D4A853] focus:outline-none min-h-[48px]" />
             <input v-model="form.email" type="email" :placeholder="$t('contact.email')" required class="w-full border border-gray-200 rounded-lg px-4 py-3.5 text-sm focus:ring-2 focus:ring-[#D4A853]/30 focus:border-[#D4A853] focus:outline-none min-h-[48px]" />
             <input v-model="form.phone" :placeholder="$t('contact.phone')" class="w-full border border-gray-200 rounded-lg px-4 py-3.5 text-sm focus:ring-2 focus:ring-[#D4A853]/30 focus:border-[#D4A853] focus:outline-none min-h-[48px]" />
@@ -75,7 +98,7 @@
 </template>
 <script setup lang="ts">
 const api = useApi()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const submitting = ref(false)
 const successMsg = ref('')
@@ -98,6 +121,66 @@ const services = [
   { key: 'service_factory', icon: '🏗️' },
   { key: 'service_cert', icon: '✅' },
 ]
+
+// 询盘问题模板：优先后台「询盘模板」模型（/public/inquiry-templates，可运营增删/排序/上下架），
+// 接口失败或未配置时降级到静态词条分组（contact.templates.*，方案 B 兜底）。
+const { data: templateData } = await useAsyncData<any>(
+  'inquiry-templates-' + (locale.value || 'en'),
+  () => api.getInquiryTemplates().catch(() => null),
+)
+
+const templateGroups = computed(() => {
+  const items = templateData.value
+  if (Array.isArray(items) && items.length) {
+    const grouped: Record<string, Array<{ key: string; text: string; projectType: string }>> = {}
+    for (const it of items) {
+      const cat = it.category || 'other'
+      if (!grouped[cat]) grouped[cat] = []
+      grouped[cat].push({ key: it.id, text: it.question, projectType: it.project_type || '' })
+    }
+    return Object.keys(grouped).map((category) => ({ category, templates: grouped[category] }))
+  }
+  // 静态降级（按 FAQ 分类分组，project_type 走本地映射）
+  return inquiryTemplateGroups.map((g) => ({
+    category: g.category,
+    templates: g.items.map((key) => ({
+      key,
+      text: t(`contact.templates.${key}`),
+      projectType: PROJECT_TYPE_BY_CATEGORY[g.category] || '',
+    })),
+  }))
+})
+
+const selectedTemplate = ref('')
+const templateProjectType = ref('')
+const formRef = ref<HTMLFormElement | null>(null)
+
+function applyTemplate(tpl: { key: string; text: string; projectType: string }) {
+  selectedTemplate.value = tpl.key
+  form.message = tpl.text
+  templateProjectType.value = tpl.projectType || ''
+  nextTick(() => {
+    formRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  })
+}
+
+// 静态兜底分组（接口失败时使用）
+const inquiryTemplateGroups = [
+  { category: 'moq', items: ['q_moq'] },
+  { category: 'oem', items: ['q_oem'] },
+  { category: 'odm', items: ['q_odm'] },
+  { category: 'sample', items: ['q_sample'] },
+  { category: 'payment', items: ['q_price', 'q_payment'] },
+  { category: 'fabric', items: ['q_fabric'] },
+  { category: 'logistics', items: ['q_shipping'] },
+  { category: 'production', items: ['q_leadtime'] },
+  { category: 'quality', items: ['q_quality'] },
+]
+const PROJECT_TYPE_BY_CATEGORY: Record<string, string> = {
+  oem: 'oem',
+  odm: 'odm',
+  private_label: 'private_label',
+}
 
 // ==================== 附件上传（询盘闭环：附件随询盘提交，后台详情可查看） ====================
 const ACCEPT_TYPES = '.jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.zip,.rar'
@@ -196,7 +279,7 @@ async function handleSubmit() {
     }
     await api.submitLead({
       ...form,
-      project_type: (route.query.project_type as string) || 'contact',
+      project_type: templateProjectType.value || (route.query.project_type as string) || 'contact',
       product_id: productId.value || undefined,
       product_category: productCategory.value || undefined,
       attachments: attachments.length ? JSON.stringify(attachments) : '',

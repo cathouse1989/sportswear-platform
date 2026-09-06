@@ -123,6 +123,8 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.CaseTranslation{},
 		&models.FAQ{},
 		&models.FAQTranslation{},
+		&models.InquiryTemplate{},
+		&models.InquiryTemplateTranslation{},
 		&models.Factory{},
 		&models.FactoryTranslation{},
 		&models.Certification{},

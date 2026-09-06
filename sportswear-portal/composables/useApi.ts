@@ -162,6 +162,7 @@ export const useApi = () => {
     getCases: (params?: any) => unwrap<any>('/public/cases', { params: withPreview({ lang: getLang(), ...params }) }),
     getCase: (slug: string) => unwrap<any>(`/public/cases/${slug}`, { params: withPreview({ lang: getLang() }) }),
     getFaqs: (params?: any) => unwrap<any>('/public/faqs', { params: withPreview({ lang: getLang(), ...params }) }),
+    getInquiryTemplates: () => unwrap<any>('/public/inquiry-templates', { params: withPreview({ lang: getLang() }) }),
     getCategories: () => unwrap<any>('/public/categories', { params: withPreview() }),
     getSeries: () => unwrap<any>('/public/series', { params: withPreview() }),
     getFabrics: () => unwrap<any>('/public/fabrics', { params: withPreview() }),

@@ -276,6 +276,28 @@ func LocalizeFAQs(faqs []models.FAQ, lang string) {
 	}
 }
 
+// LocalizeInquiryTemplate 按语言解析询盘问题模板翻译（目标语言翻译 → 回退英文主表）
+func LocalizeInquiryTemplate(t *models.InquiryTemplate, lang string) {
+	if t == nil || lang == "" || lang == "en" {
+		return
+	}
+	for _, tr := range t.Translations {
+		if tr.Language == lang && tr.Status == models.TranslationStatusPublished {
+			if tr.Question != "" {
+				t.Question = tr.Question
+			}
+			break
+		}
+	}
+}
+
+// LocalizeInquiryTemplates 批量本地化询盘问题模板
+func LocalizeInquiryTemplates(items []models.InquiryTemplate, lang string) {
+	for i := range items {
+		LocalizeInquiryTemplate(&items[i], lang)
+	}
+}
+
 // 摘要提取用正则（编译一次，供列表接口复用，避免逐条重复编译）。
 // 注意：Go regexp 基于 RE2，不支持反向引用（\1），故 script/style 分别匹配。
 var (

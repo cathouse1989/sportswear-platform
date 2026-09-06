@@ -121,6 +121,7 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 		public.GET("/cases", publicHandler.ListCases)
 		public.GET("/cases/:slug", publicHandler.GetCase)
 		public.GET("/faqs", publicHandler.ListFAQs)
+		public.GET("/inquiry-templates", publicHandler.ListInquiryTemplates)
 		public.GET("/fabrics", publicHandler.ListFabrics)
 		public.GET("/factories", publicHandler.ListFactories)
 		public.GET("/certifications", publicHandler.ListCertifications)
@@ -324,6 +325,16 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 				middleware.RequirePermission("faq:manage"), cmsHandler.UpdateFAQ)
 			auth.DELETE("/faqs/:id",
 				middleware.RequirePermission("faq:manage"), cmsHandler.DeleteFAQ)
+
+			// 询盘问题模板管理（复用 faq:manage 权限，与 FAQ 同属内容运营）
+			auth.GET("/inquiry-templates",
+				middleware.RequireAnyPermission("faq:manage", "page:view"), cmsHandler.ListInquiryTemplates)
+			auth.POST("/inquiry-templates",
+				middleware.RequirePermission("faq:manage"), cmsHandler.CreateInquiryTemplate)
+			auth.PUT("/inquiry-templates/:id",
+				middleware.RequirePermission("faq:manage"), cmsHandler.UpdateInquiryTemplate)
+			auth.DELETE("/inquiry-templates/:id",
+				middleware.RequirePermission("faq:manage"), cmsHandler.DeleteInquiryTemplate)
 
 			// 工厂管理
 			auth.GET("/factories",

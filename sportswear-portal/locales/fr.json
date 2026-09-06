@@ -240,7 +240,21 @@
     "uploading": "Téléchargement...",
     "file_max": "Jusqu'à 5 pièces jointes autorisées.",
     "file_type": "Type de fichier non pris en charge",
-    "file_size": "dépasse la limite de 20 Mo."
+    "file_size": "dépasse la limite de 20 Mo.",
+    "templates": {
+      "title": "Que souhaitez-vous demander ?",
+      "hint": "Touchez une question pour préremplir le formulaire de demande.",
+      "q_moq": "Quelle est votre quantité minimum de commande (MOQ) ? Puis-je commencer par une petite commande ?",
+      "q_oem": "Pouvez-vous fabriquer des designs personnalisés avec notre logo, couleurs et étiquettes (OEM) ?",
+      "q_odm": "Pouvez-vous nous aider à développer de nouveaux designs et styles (ODM) ?",
+      "q_sample": "Puis-je commander des échantillons d'abord ? Quel est le coût et le délai de l'échantillon ?",
+      "q_price": "Pouvez-vous m'envoyer un devis avec prix unitaire, MOQ et délai de livraison ?",
+      "q_fabric": "Puis-je choisir des tissus spécifiques ou demander des options de tissu personnalisées ?",
+      "q_payment": "Quelles sont vos conditions de paiement et quelles devises acceptez-vous ?",
+      "q_shipping": "Livrez-vous dans mon pays ? Quelles options d'expédition sont disponibles ?",
+      "q_leadtime": "Quel est le délai de production pour une commande en gros ?",
+      "q_quality": "Quelles normes de qualité et certifications avez-vous ?"
+    }
   },
   "blog": {
     "title": "Blog",

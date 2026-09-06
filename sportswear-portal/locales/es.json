@@ -240,7 +240,21 @@
     "uploading": "Subiendo...",
     "file_max": "Hasta 5 adjuntos permitidos.",
     "file_type": "Tipo de archivo no compatible",
-    "file_size": "supera el límite de 20MB."
+    "file_size": "supera el límite de 20MB.",
+    "templates": {
+      "title": "¿Qué le gustaría preguntar?",
+      "hint": "Toque una pregunta para completar el formulario de consulta.",
+      "q_moq": "¿Cuál es su cantidad mínima de pedido (MOQ)? ¿Puedo empezar con un pedido pequeño?",
+      "q_oem": "¿Pueden fabricar diseños personalizados con nuestro logo, colores y etiquetas (OEM)?",
+      "q_odm": "¿Pueden ayudarnos a desarrollar nuevos diseños y estilos (ODM)?",
+      "q_sample": "¿Puedo pedir muestras primero? ¿Cuál es el costo y plazo de la muestra?",
+      "q_price": "¿Pueden enviarme una cotización con precio unitario, MOQ y plazo de entrega?",
+      "q_fabric": "¿Puedo elegir telas específicas o solicitar opciones de tela personalizadas?",
+      "q_payment": "¿Cuáles son sus condiciones de pago y qué monedas aceptan?",
+      "q_shipping": "¿Envían a mi país? ¿Qué opciones de envío hay disponibles?",
+      "q_leadtime": "¿Cuál es el plazo de producción para un pedido al por mayor?",
+      "q_quality": "¿Qué estándares de calidad y certificaciones tienen?"
+    }
   },
   "blog": {
     "title": "Blog",

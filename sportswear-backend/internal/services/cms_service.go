@@ -1350,6 +1350,127 @@ func (s *CMSService) DeleteFAQ(id string) error {
 	})
 }
 
+// ==================== 询盘问题模板管理 ====================
+
+// ListInquiryTemplates 询盘问题模板列表（后台管理）
+func (s *CMSService) ListInquiryTemplates(page, pageSize int, category, keyword string) ([]models.InquiryTemplate, int64, error) {
+	var items []models.InquiryTemplate
+	var total int64
+
+	query := s.db.Model(&models.InquiryTemplate{})
+	if category != "" {
+		query = query.Where("category = ?", category)
+	}
+	if keyword != "" {
+		query = query.Where("question LIKE ?", "%"+keyword+"%")
+	}
+	query.Count(&total)
+	err := query.Preload("Translations").
+		Offset((page - 1) * pageSize).Limit(pageSize).Order("sort_order ASC").Find(&items).Error
+	return items, total, err
+}
+
+// ListPublishedInquiryTemplates 已启用模板（前台公开接口，按排序返回全部）
+func (s *CMSService) ListPublishedInquiryTemplates() ([]models.InquiryTemplate, error) {
+	var items []models.InquiryTemplate
+	err := s.db.Model(&models.InquiryTemplate{}).Where("is_active = ?", true).
+		Preload("Translations").Order("sort_order ASC").Find(&items).Error
+	return items, err
+}
+
+// CreateInquiryTemplate 创建询盘问题模板（主表英文源，其他语言写翻译表）
+func (s *CMSService) CreateInquiryTemplate(req *InquiryTemplateRequest) (*models.InquiryTemplate, error) {
+	isActive := true
+	if req.IsActive != nil {
+		isActive = *req.IsActive
+	}
+	item := models.InquiryTemplate{
+		Question:    req.Question,
+		Category:    req.Category,
+		ProjectType: req.ProjectType,
+		SortOrder:   req.SortOrder,
+		IsActive:    isActive,
+	}
+	if err := s.db.Create(&item).Error; err != nil {
+		return nil, err
+	}
+	for _, t := range req.Translations {
+		if t.Language == "" || t.Language == "en" || t.Question == "" {
+			continue
+		}
+		s.db.Create(&models.InquiryTemplateTranslation{
+			TemplateID: item.ID,
+			Language:   t.Language,
+			Question:   t.Question,
+			Status:     models.TranslationStatusPublished,
+		})
+	}
+	return &item, nil
+}
+
+// InquiryTemplateRequest 询盘问题模板请求
+type InquiryTemplateRequest struct {
+	Question     string                              `json:"question" binding:"required"`
+	Category     string                              `json:"category"`
+	ProjectType  string                              `json:"project_type"`
+	SortOrder    int                                 `json:"sort_order"`
+	IsActive     *bool                               `json:"is_active"`
+	Translations []InquiryTemplateTranslationRequest `json:"translations"`
+}
+
+// InquiryTemplateTranslationRequest 询盘问题模板翻译请求
+type InquiryTemplateTranslationRequest struct {
+	Language string `json:"language" binding:"required"`
+	Question string `json:"question"`
+}
+
+// UpdateInquiryTemplate 更新询盘问题模板（主表英文源 + 重建翻译表）
+func (s *CMSService) UpdateInquiryTemplate(id string, req *InquiryTemplateRequest) (*models.InquiryTemplate, error) {
+	var item models.InquiryTemplate
+	if err := s.db.First(&item, "id = ?", id).Error; err != nil {
+		return nil, errors.New("询盘模板不存在")
+	}
+	updates := map[string]interface{}{
+		"question":     req.Question,
+		"category":     req.Category,
+		"project_type": req.ProjectType,
+		"sort_order":   req.SortOrder,
+	}
+	if req.IsActive != nil {
+		updates["is_active"] = *req.IsActive
+	}
+	if err := s.db.Model(&item).Updates(updates).Error; err != nil {
+		return nil, err
+	}
+	if req.Translations != nil {
+		if err := s.db.Where("template_id = ?", item.ID).Delete(&models.InquiryTemplateTranslation{}).Error; err != nil {
+			return nil, err
+		}
+		for _, t := range req.Translations {
+			if t.Language == "" || t.Language == "en" || t.Question == "" {
+				continue
+			}
+			s.db.Create(&models.InquiryTemplateTranslation{
+				TemplateID: item.ID,
+				Language:   t.Language,
+				Question:   t.Question,
+				Status:     models.TranslationStatusPublished,
+			})
+		}
+	}
+	return &item, nil
+}
+
+// DeleteInquiryTemplate 删除询盘问题模板（级联软删除翻译）
+func (s *CMSService) DeleteInquiryTemplate(id string) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("template_id = ?", id).Delete(&models.InquiryTemplateTranslation{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&models.InquiryTemplate{}, "id = ?", id).Error
+	})
+}
+
 // ==================== 工厂管理 ====================
 
 // ListFactories 工厂列表（后台：全部状态，服务端分页 + 名称搜索）

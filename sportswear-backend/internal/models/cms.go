@@ -142,6 +142,26 @@ type FAQTranslation struct {
 	Status   TranslationStatus `gorm:"type:varchar(20);default:untranslated" json:"status"`
 }
 
+// InquiryTemplate 询盘问题模板（门户「联系我们」询盘引导，按分类分组展示）
+type InquiryTemplate struct {
+	BaseModel
+	Question     string                       `gorm:"type:text;not null" json:"question"`   // 英文源问题
+	Category     string                       `gorm:"type:varchar(50)" json:"category"`     // 复用 FAQ 分类值域：moq/oem/odm/sample/payment/fabric/logistics/production/quality 等
+	ProjectType  string                       `gorm:"type:varchar(50)" json:"project_type"` // 询盘 project_type 映射：oem/odm/private_label，空则 contact
+	SortOrder    int                          `gorm:"default:0" json:"sort_order"`
+	IsActive     bool                         `gorm:"default:true" json:"is_active"`
+	Translations []InquiryTemplateTranslation `json:"translations,omitempty"`
+}
+
+// InquiryTemplateTranslation 询盘问题模板翻译
+type InquiryTemplateTranslation struct {
+	BaseModel
+	TemplateID uuid.UUID         `gorm:"type:uuid;index;not null" json:"template_id"`
+	Language   string            `gorm:"type:varchar(10);index;not null" json:"language"`
+	Question   string            `gorm:"type:text" json:"question"`
+	Status     TranslationStatus `gorm:"type:varchar(20);default:untranslated" json:"status"`
+}
+
 // Factory 工厂
 type Factory struct {
 	BaseModel

@@ -115,6 +115,7 @@ export const MENU_CONFIG: MenuItem[] = [
       { key: 'blogs', label: '博客管理', index: '/blogs', sort_order: 30, permission: ['blog:manage', 'page:view'] },
       { key: 'cases', label: '案例管理', index: '/cases', sort_order: 40, permission: ['case:manage', 'page:view'] },
       { key: 'faqs', label: 'FAQ 管理', index: '/faqs', sort_order: 50, permission: ['faq:manage', 'page:view'] },
+      { key: 'inquiry-templates', label: '询盘模板', index: '/inquiry-templates', sort_order: 55, permission: ['faq:manage', 'page:view'] },
       { key: 'certifications', label: '认证管理', index: '/certifications', sort_order: 70, permission: ['certification:manage', 'page:view'] },
       { key: 'self-medias', label: '自媒体管理', index: '/self-medias', sort_order: 90, permission: ['selfmedia:manage', 'page:view'] },
     ],

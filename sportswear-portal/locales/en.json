@@ -240,7 +240,21 @@
     "uploading": "Uploading...",
     "file_max": "Up to 5 attachments allowed.",
     "file_type": "Unsupported file type",
-    "file_size": "exceeds the 20MB limit."
+    "file_size": "exceeds the 20MB limit.",
+    "templates": {
+      "title": "What would you like to ask?",
+      "hint": "Tap a question to pre-fill the inquiry form below.",
+      "q_moq": "What is your minimum order quantity (MOQ)? Can I start with a small order?",
+      "q_oem": "Can you produce custom designs with our logo, colors and labels (OEM)?",
+      "q_odm": "Can you help us develop new designs and styles (ODM)?",
+      "q_sample": "Can I order samples first? What is the sample cost and lead time?",
+      "q_price": "Can you send me a quotation with unit price, MOQ and lead time?",
+      "q_fabric": "Can I choose specific fabrics or request custom fabric options?",
+      "q_payment": "What are your payment terms and which currencies do you accept?",
+      "q_shipping": "Do you ship to my country? What shipping options are available?",
+      "q_leadtime": "What is the production lead time for a bulk order?",
+      "q_quality": "What quality standards and certifications do you have?"
+    }
   },
   "blog": {
     "title": "Blog",
