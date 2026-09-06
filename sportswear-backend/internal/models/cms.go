@@ -56,7 +56,7 @@ type Navigation struct {
 	PageID       *uuid.UUID              `gorm:"type:uuid;index" json:"page_id,omitempty"` // 关联页面（可空外键，实现 Page↔Nav 关联）
 	Page         *Page                   `gorm:"foreignKey:PageID" json:"page,omitempty"`  // 预加载关联页面信息
 	Children     []Navigation            `gorm:"foreignKey:ParentID" json:"children,omitempty"`
-	Translations []NavigationTranslation `json:"translations,omitempty"`
+	Translations []NavigationTranslation `gorm:"foreignKey:NavigationID" json:"translations,omitempty"`
 }
 
 // Blog 博客
@@ -160,7 +160,7 @@ type Factory struct {
 	Description          string               `gorm:"type:text" json:"description"`
 	Image                string               `gorm:"type:varchar(500)" json:"image"`
 	IsActive             bool                 `gorm:"default:true" json:"is_active"`
-	Translations         []FactoryTranslation `json:"translations,omitempty"`
+	Translations         []FactoryTranslation `gorm:"foreignKey:FactoryID" json:"translations,omitempty"`
 }
 
 // Certification 认证
@@ -175,7 +175,7 @@ type Certification struct {
 	PDF          string                     `gorm:"type:varchar(500)" json:"pdf"`
 	Description  string                     `gorm:"type:text" json:"description"`
 	IsActive     bool                       `gorm:"default:true" json:"is_active"`
-	Translations []CertificationTranslation `json:"translations,omitempty"`
+	Translations []CertificationTranslation `gorm:"foreignKey:CertificationID" json:"translations,omitempty"`
 }
 
 // ProductionProcess 生产流程
@@ -188,7 +188,7 @@ type ProductionProcess struct {
 	Video        string                         `gorm:"type:varchar(500)" json:"video"`
 	SortOrder    int                            `gorm:"default:0" json:"sort_order"`
 	IsActive     bool                           `gorm:"default:true" json:"is_active"`
-	Translations []ProductionProcessTranslation `json:"translations,omitempty"`
+	Translations []ProductionProcessTranslation `gorm:"foreignKey:ProcessID" json:"translations,omitempty"`
 }
 
 // SelfMedia 自媒体账号（门户「自媒体」区块展示）
