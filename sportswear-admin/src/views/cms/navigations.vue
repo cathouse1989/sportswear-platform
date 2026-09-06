@@ -38,6 +38,13 @@
           <span v-else class="muted">—</span>
         </template>
       </el-table-column>
+      <el-table-column label="SEO" width="80">
+        <template #default="{ row }: any">
+          <span v-if="isExternalUrl(row.url)" class="muted">—</span>
+          <el-tag v-else-if="seoStatusMap[row.url]" size="small" type="success">已配置</el-tag>
+          <el-tag v-else size="small" type="warning">未配置</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="target" label="打开方式" width="100">
         <template #default="{ row }: any">
           <el-tag size="small" :type="row.target === '_blank' ? 'warning' : 'info'">{{ row.target === '_blank' ? '新窗口' : '当前页' }}</el-tag>
@@ -106,11 +113,12 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { navigationApi, pageApi } from '@/api'
+import { navigationApi, pageApi, portalHealthApi } from '@/api'
 import TransEditor from '@/components/cms/TransEditor.vue'
 import { DEFAULT_TRANS_LANGS, createEmptyTranslations, translationsToRecord, translationsToPayload } from '@/composables/useTransRecord'
 import type { Navigation, Page } from '@/types'
 import { useEnumDict } from '@/composables/useEnumDict'
+import { pagePath } from '@/constants/routes'
 
 // 页面状态标签由「字典管理」驱动（content.status）
 const { ensureLoaded: loadEnumDict, options: enumOptions, label: enumLabel, tagType: enumTag } = useEnumDict()
@@ -179,12 +187,22 @@ async function loadPublishedPages() {
   } catch { publishedPages.value = [] }
 }
 
-const PAGE_TYPE_URL_MAP: Record<string, string> = {
-  home: '/', product: '/products', product_category: '/products',
-  oem: '/oem', odm: '/odm', private_label: '/private-label',
-  factory: '/factory', production: '/production',
-  blog: '/blog', case: '/cases', faq: '/faq',
-  contact: '/contact', seo_landing: '/landing',
+// 路由 path → 是否已配置 SEO（用于导航列表 SEO 状态列）
+const seoStatusMap = ref<Record<string, boolean>>({})
+async function loadRouteSeoStatus() {
+  try {
+    const list: any[] = await portalHealthApi.listRoutes()
+    const map: Record<string, boolean> = {}
+    for (const r of list || []) {
+      if (r.path) map[r.path] = !!r.seo_configured
+    }
+    seoStatusMap.value = map
+  } catch { seoStatusMap.value = {} }
+}
+
+function isExternalUrl(url: string): boolean {
+  if (!url) return true
+  return /^(https?:|mailto:|tel:|#)/i.test(url)
 }
 
 function onPageSelect(pageId: string) {
@@ -192,7 +210,7 @@ function onPageSelect(pageId: string) {
   const p = publishedPages.value.find(p => p.id === pageId)
   if (!p) return
   if (!form.name) form.name = p.title
-  if (!form.url) form.url = PAGE_TYPE_URL_MAP[p.type as string] || '/' + p.slug
+  if (!form.url) form.url = pagePath(p.type, p.slug)
 }
 
 const dialogVisible = ref(false)
@@ -346,7 +364,7 @@ async function handleSync() {
     let created = 0
     for (const p of pages) {
       if (usedIds.has(p.id)) continue
-      const url = PAGE_TYPE_URL_MAP[p.type as string] || '/' + p.slug
+      const url = pagePath(p.type as string, p.slug)
       if (!url || url === '/') continue  // skip home page (already in nav)
       await navigationApi.create({
         name: p.title, type: navType.value, url,
@@ -377,6 +395,7 @@ onMounted(() => {
   loadEnumDict()
   loadData()
   loadPublishedPages()
+  loadRouteSeoStatus()
 })
 </script>
 

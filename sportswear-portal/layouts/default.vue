@@ -344,9 +344,6 @@ const NAV_KEY_BY_PATH: Record<string, string> = {
   '/blog': 'nav.blog',
   '/faq': 'nav.faq',
   '/contact': 'nav.contact',
-  '/oem': 'nav.oem',
-  '/odm': 'nav.odm',
-  '/factory': 'nav.factory',
 }
 
 function navLabel(name: string, url?: string): string {

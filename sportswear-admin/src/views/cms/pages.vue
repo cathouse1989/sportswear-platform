@@ -202,6 +202,7 @@ import type { Page, Navigation } from '@/types'
 import TransEditor from '@/components/cms/TransEditor.vue'
 import ModuleConfigEditor from '@/components/cms/ModuleConfigEditor.vue'
 import { DEFAULT_TRANS_LANGS, createEmptyTranslations, translationsToRecord, translationsToPayload } from '@/composables/useTransRecord'
+import { pagePath } from '@/constants/routes'
 
 const router = useRouter()
 const navStatusMap = ref<Record<string, Navigation[]>>({})   // page_id → nav items
@@ -227,6 +228,7 @@ const editingId = ref('')
 const activeTab = ref('basic')
 const saving = ref(false)
 const form = reactive({ title: '', slug: '', type: 'normal', template: '', sort_order: 0 })
+const originalSlug = ref('')
 const modules = ref<any[]>([])
 // 多语言翻译统一走 TransEditor（source = 英文标题 form.title）
 const PAGE_TRANS_FIELDS = ['title', 'content']
@@ -264,14 +266,6 @@ const navStatusLabel = (row: Page) => {
   return types.join(' / ')
 }
 
-const PAGE_TYPE_URL_MAP: Record<string, string> = {
-  home: '/', product: '/products', product_category: '/products',
-  oem: '/oem', odm: '/odm', private_label: '/private-label',
-  factory: '/factory', production: '/production',
-  blog: '/blog', case: '/cases', faq: '/faq',
-  contact: '/contact', seo_landing: '/landing',
-}
-
 // 页面类型 → 门户预览页映射（portal 无通用 CMS 页面路由，仅映射有对应路由的类型）
 const PREVIEW_PAGE_MAP: Record<string, string> = { home: 'home', product: 'products', blog: 'blogs', case: 'cases', faq: 'faqs', contact: 'contact' }
 const canPreview = (row: Page) => !!PREVIEW_PAGE_MAP[row.type]
@@ -283,6 +277,7 @@ function resetEditor() {
   editingId.value = ''
   activeTab.value = 'basic'
   Object.assign(form, { title: '', slug: '', type: 'normal', template: '', sort_order: 0 })
+  originalSlug.value = ''
   modules.value = []
   translations.value = createEmptyTranslations(PAGE_TRANS_FIELDS)
   versions.value = []
@@ -296,6 +291,7 @@ async function openEditDialog(row: Page) {
   try {
     const detail: any = await pageApi.get(row.id)
     Object.assign(form, { title: detail.title, slug: detail.slug, type: detail.type, template: detail.template || '', sort_order: detail.sort_order ?? 0 })
+    originalSlug.value = detail.slug || ''
     modules.value = (detail.modules || []).map((m: any) => ({ type: m.type, title: m.title || '', sort_order: m.sort_order ?? 0, is_visible: m.is_visible !== false, config: safeParseConfig(m.config) }))
     translations.value = translationsToRecord(detail.translations || [], PAGE_TRANS_FIELDS)
   } catch { /* error handled */ }
@@ -342,8 +338,10 @@ async function handleSave() {
   saving.value = true
   try {
     const payload = buildPayload()
+    const slugChanged = !!editingId.value && originalSlug.value !== form.slug
     if (editingId.value) { await pageApi.update(editingId.value, payload) } else { await pageApi.create(payload) }
-    ElMessage.success('保存成功'); dialogVisible.value = false; loadData()
+    ElMessage.success(slugChanged ? '保存成功，已联动更新关联导航与 SEO 路由' : '保存成功')
+    dialogVisible.value = false; loadData()
   } catch { /* error handled */ } finally { saving.value = false }
 }
 
@@ -374,7 +372,7 @@ async function handleAddToNav(row: Page) {
     return
   }
   try {
-    const url = PAGE_TYPE_URL_MAP[row.type as string] || '/' + row.slug
+    const url = pagePath(row.type, row.slug)
     await navigationApi.create({
       name: row.title, type: 'header', url,
       target: '_self', sort_order: 99, is_visible: true, page_id: row.id,

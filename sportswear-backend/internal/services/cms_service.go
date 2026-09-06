@@ -168,6 +168,8 @@ func (s *CMSService) UpdatePage(id string, req *PageRequest) (*models.Page, erro
 	if err := s.db.First(&page, "id = ?", id).Error; err != nil {
 		return nil, errors.New("页面不存在")
 	}
+	oldSlug := page.Slug
+	oldType := page.Type
 
 	// status/template 为空时不覆盖（编辑保存只传基础字段，避免清空发布状态）
 	updates := map[string]interface{}{
@@ -257,6 +259,11 @@ func (s *CMSService) UpdatePage(id string, req *PageRequest) (*models.Page, erro
 				"schema_data":    req.SEO.SchemaData,
 			})
 		}
+	}
+
+	// slug/type 变更联动：级联更新关联导航 url 与 route SEO，避免死链与 SEO 失效
+	if oldSlug != req.Slug || oldType != req.Type {
+		s.SyncPagePathEffects(page.ID, oldSlug, req.Slug, oldType, req.Type)
 	}
 
 	return s.GetPage(id)

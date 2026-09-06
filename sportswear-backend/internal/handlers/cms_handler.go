@@ -245,6 +245,28 @@ func (h *CMSHandler) SyncNavVisibilityWithPages(c *gin.Context) {
 	utils.Success(c, gin.H{"updated": updated})
 }
 
+// ==================== 门户路由注册表 & 健康检查 ====================
+
+// ListPortalRoutes 返回路由注册表（系统预置 + 已发布页面派生），供 SEO 管理下拉、导航派生与健康检查使用
+func (h *CMSHandler) ListPortalRoutes(c *gin.Context) {
+	routes, err := h.cmsService.ListPortalRoutes()
+	if err != nil {
+		utils.InternalError(c, "获取路由注册表失败")
+		return
+	}
+	utils.Success(c, routes)
+}
+
+// PortalHealthCheck 门户闭环健康检查（死链 / 缺导航 / 缺 SEO / 路径漂移）
+func (h *CMSHandler) PortalHealthCheck(c *gin.Context) {
+	report, err := h.cmsService.PortalHealthCheck()
+	if err != nil {
+		utils.InternalError(c, "健康检查失败")
+		return
+	}
+	utils.Success(c, report)
+}
+
 // ==================== 博客 ====================
 
 // ListBlogs 博客列表

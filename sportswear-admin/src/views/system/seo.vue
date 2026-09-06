@@ -45,13 +45,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { seoApi } from '@/api'
+import { seoApi, portalHealthApi } from '@/api'
+import { useRoute } from 'vue-router'
 import TransEditor from '@/components/cms/TransEditor.vue'
 import SerpPreview from '@/components/cms/SerpPreview.vue'
 
-const ROUTES = [
+// 静态兜底路由（含历史 categories/series，保证后端不可用时下拉仍可用）
+const FALLBACK_ROUTES = [
   { label: '首页', value: 'home' },
   { label: '产品列表', value: 'products' },
   { label: '博客列表', value: 'blog' },
@@ -63,6 +65,20 @@ const ROUTES = [
   { label: '系列列表', value: 'series' },
   { label: '隐私政策', value: 'privacy' },
 ]
+
+// 动态路由下拉：后端路由注册表（预置 + 已发布页面派生），新建页面后自动出现
+const ROUTES = ref<{ label: string; value: string }[]>(FALLBACK_ROUTES)
+
+async function loadRoutes() {
+  try {
+    const list: any[] = await portalHealthApi.listRoutes()
+    if (!list || !list.length) return
+    const dynamic = list.filter((r) => r.route).map((r) => ({ value: r.route, label: r.label || r.route }))
+    const dynamicValues = new Set(dynamic.map((d) => d.value))
+    const legacy = FALLBACK_ROUTES.filter((f) => !dynamicValues.has(f.value))
+    ROUTES.value = [...legacy, ...dynamic]
+  } catch { /* 保留兜底 */ }
+}
 
 const TRANS_LANGS = [
   { value: 'zh', label: '中文' },
@@ -82,6 +98,7 @@ const FIELDS = [
 const blank = () => ({ title: '', description: '', keywords: '', og_title: '', og_description: '', og_image: '' })
 
 const route = ref('')
+const currentRoute = useRoute()
 const serpUrl = computed(() => 'https://sportswear-platform.com/' + (route.value || ''))
 const loading = ref(false)
 const saving = ref(false)
@@ -120,6 +137,12 @@ async function handleSave() {
     loadData()
   } catch { /* handled */ } finally { saving.value = false }
 }
+
+onMounted(() => {
+  loadRoutes()
+  const q = currentRoute.query.route
+  if (typeof q === 'string' && q) { route.value = q; loadData() }
+})
 </script>
 
 <style scoped>

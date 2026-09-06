@@ -274,6 +274,13 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 				middleware.RequirePermission("navigation:manage"), cmsHandler.BatchSortNavigations)
 			auth.POST("/navigations/sync-with-pages",
 				middleware.RequirePermission("navigation:manage"), cmsHandler.SyncNavVisibilityWithPages)
+
+		// 门户路由注册表 & 健康检查（供 SEO 管理、导航管理、健康检查页共用）
+		auth.GET("/portal/routes",
+			middleware.RequireAnyPermission("navigation:manage", "seo:manage", "page:view"), cmsHandler.ListPortalRoutes)
+		auth.GET("/portal/health",
+			middleware.RequireAnyPermission("navigation:manage", "seo:manage", "page:view"), cmsHandler.PortalHealthCheck)
+
 			// 博客管理
 			auth.GET("/blogs",
 				middleware.RequireAnyPermission("blog:manage", "page:view"), cmsHandler.ListBlogs)

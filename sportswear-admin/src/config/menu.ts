@@ -109,6 +109,7 @@ export const MENU_CONFIG: MenuItem[] = [
     sort_order: 60,
     icon: Document,
     children: [
+      { key: 'pages', label: '页面管理', index: '/pages', sort_order: 5, permission: 'page:view' },
       { key: 'hero', label: '轮播图管理', index: '/hero', sort_order: 10, permission: 'page:view' },
       { key: 'navigations', label: '导航管理', index: '/navigations', sort_order: 20, permission: ['navigation:manage', 'page:view'] },
       { key: 'blogs', label: '博客管理', index: '/blogs', sort_order: 30, permission: ['blog:manage', 'page:view'] },
@@ -155,6 +156,7 @@ export const MENU_CONFIG: MenuItem[] = [
       { key: 'theme', label: '主题配置', index: '/theme', sort_order: 10, permission: 'setting:manage' },
       { key: 'i18n', label: '词条管理', index: '/i18n', sort_order: 20, permission: 'language:manage' },
       { key: 'enums', label: '字典管理', index: '/enums', sort_order: 21, permission: 'setting:manage' },
+      { key: 'portal-health', label: '门户健康检查', index: '/portal-health', sort_order: 24, permission: ['navigation:manage', 'seo:manage', 'page:view'] },
       { key: 'seo', label: 'SEO 管理', index: '/seo', sort_order: 25, permission: 'seo:manage' },
       { key: 'translation-coverage', label: '翻译完成度', index: '/translation-coverage', sort_order: 26, permission: ['language:manage', 'page:view'] },
       { key: 'geo-locales', label: '区域设置', index: '/geo-locales', sort_order: 27, permission: 'setting:manage' },

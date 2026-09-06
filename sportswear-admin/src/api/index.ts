@@ -378,6 +378,12 @@ export const seoApi = {
   saveRoutes: (route: string, entries: any[]) => http.post<any>('/admin/seo/routes', { route, entries }),
 }
 
+// ============ 门户路由注册表 & 健康检查 ============
+export const portalHealthApi = {
+  listRoutes: () => http.get<any[]>('/admin/portal/routes'),
+  healthCheck: () => http.get<any>('/admin/portal/health'),
+}
+
 // ============ 璐у竵 ============
 export const currencyApi = {
   list: () => http.get<Currency[]>('/public/currencies'),

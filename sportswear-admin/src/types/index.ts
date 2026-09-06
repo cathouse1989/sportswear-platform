@@ -526,6 +526,38 @@ export interface OperationLog {
   created_at: string
 }
 
+// 门户路由条目（后端 /admin/portal/routes）
+export interface PortalRouteEntry {
+  route: string
+  path: string
+  label: string
+  source: string
+  page_id?: string
+  page_status?: string
+  seo_configured: boolean
+  nav_count: number
+}
+
+// 门户闭环健康检查单条问题
+export interface HealthIssue {
+  type: string // dead_link / missing_nav / missing_seo / nav_drift
+  title: string
+  detail?: string
+  route?: string
+  path?: string
+  page_id?: string
+  nav_id?: string
+}
+
+// 门户闭环健康检查报告
+export interface PortalHealthReport {
+  total_issues: number
+  routes: number
+  nav_count: number
+  page_count: number
+  issues: HealthIssue[]
+}
+
 export interface DashboardStats {
   today_leads: number
   week_leads: number
