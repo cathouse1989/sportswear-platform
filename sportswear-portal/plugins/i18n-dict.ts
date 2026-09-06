@@ -45,7 +45,21 @@ export default defineNuxtPlugin((nuxtApp) => {
         `${base}/public/i18n`,
         { params: { lang } },
       )
-      const messages = nestDict(res?.data?.dictionary || {})
+      const dict: Record<string, string> = { ...(res?.data?.dictionary || {}) }
+
+      // 枚举字典（数据字典，GET /public/enums）为枚举字段翻译的唯一事实源，优先覆盖同名词条；
+      // 后台「字典管理」维护的值域/翻译在此生效，未配置的 Key 继续走 i18n 词条 + 静态语言包兜底。
+      try {
+        const enumRes = await $fetch<{ success: boolean; data: { enums?: Record<string, string> } }>(
+          `${base}/public/enums`,
+          { params: { lang } },
+        )
+        Object.assign(dict, enumRes?.data?.enums || {})
+      } catch {
+        // 枚举字典接口不可用时忽略，i18n 词条 + 静态语言包兜底
+      }
+
+      const messages = nestDict(dict)
       if (Object.keys(messages).length) i18n.mergeLocaleMessage(lang, messages)
     } catch {
       // 后端不可用时忽略，静态语言包兜底

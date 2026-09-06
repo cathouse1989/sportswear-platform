@@ -41,6 +41,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'roles', name: 'Roles', component: () => import('@/views/system/roles.vue'), meta: { title: '角色权限', permission: 'role:manage' } },
       { path: 'theme', name: 'Theme', component: () => import('@/views/system/theme.vue'), meta: { title: '主题配置', permission: 'setting:manage' } },
       { path: 'i18n', name: 'I18n', component: () => import('@/views/system/i18n.vue'), meta: { title: '词条管理', permission: 'language:manage' } },
+      { path: 'enums', name: 'Enums', component: () => import('@/views/system/enums.vue'), meta: { title: '字典管理', permission: 'setting:manage' } },
       { path: 'seo', name: 'Seo', component: () => import('@/views/system/seo.vue'), meta: { title: 'SEO 管理', permission: 'seo:manage' } },
       { path: 'translation-coverage', name: 'TranslationCoverage', component: () => import('@/views/system/translation-coverage.vue'), meta: { title: '翻译完成度', permission: ['language:manage', 'page:view'] } },
       { path: 'geo-locales', name: 'GeoLocales', component: () => import('@/views/system/geo-locales.vue'), meta: { title: '区域设置', permission: 'setting:manage' } },

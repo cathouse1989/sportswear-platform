@@ -150,6 +150,9 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.ThemeConfig{},
 		// 国际化词条
 		&models.I18nEntry{},
+		// 枚举字典（数据字典：值域 + 多语言翻译）
+		&models.SysEnumType{},
+		&models.SysEnumItem{},
 		// 媒体存储源配置
 		&models.StorageSource{},
 		// 多货币

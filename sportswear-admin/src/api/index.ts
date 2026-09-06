@@ -27,6 +27,8 @@ import type {
   StorageSource,
   Currency,
   I18nEntry,
+  SysEnumType,
+  SysEnumItem,
   Category,
   Series,
   Fabric,
@@ -290,6 +292,19 @@ export const i18nApi = {
   entries: (params?: any) => http.get<PageResult<I18nEntry>>('/admin/i18n/entries', params),
   upsert: (data: any) => http.post<I18nEntry>('/admin/i18n/entries', data),
   delete: (id: string) => http.delete(`/admin/i18n/entries/${id}`),
+}
+
+// ============ 枚举字典（数据字典） ============
+export const enumApi = {
+  types: () => http.get<SysEnumType[]>('/admin/enums/types'),
+  createType: (data: any) => http.post<SysEnumType>('/admin/enums/types', data),
+  updateType: (data: any) => http.post<SysEnumType>('/admin/enums/types', data),
+  deleteType: (id: string) => http.delete(`/admin/enums/types/${id}`),
+  items: (typeId: string) => http.get<SysEnumItem[]>('/admin/enums/items', { type_id: typeId }),
+  upsertItem: (data: any) => http.post<SysEnumItem>('/admin/enums/items', data),
+  deleteItem: (id: string) => http.delete(`/admin/enums/items/${id}`),
+  // 公开接口（门户/后台预览通用，按当前语言返回平铺字典）
+  publicEnums: (lang?: string) => http.get<{ language: string; enums: Record<string, string> }>('/public/enums', lang ? { lang } : {}),
 }
 
 // ============ 涓婚閰嶇疆 ============

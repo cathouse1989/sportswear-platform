@@ -9,8 +9,8 @@
       <el-table-column prop="sort_order" label="排序" width="80" align="center" />
       <el-table-column label="状态" width="90" align="center">
         <template #default="{ row }">
-          <el-tag :type="row.status === 'published' ? 'success' : row.status === 'offline' ? 'warning' : 'info'" size="small">
-            {{ statusLabel(row.status) }}
+          <el-tag :type="enumTag('product.status', row.status)" size="small">
+            {{ enumLabel('product.status', row.status) }}
           </el-tag>
         </template>
       </el-table-column>
@@ -47,7 +47,10 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { seriesApi } from '@/api'
+import { useEnumDict } from '@/composables/useEnumDict'
 import type { Series } from '@/types'
+
+const { ensureLoaded: loadEnumDict, label: enumLabel, tagType: enumTag } = useEnumDict()
 
 const seriesList = ref<Series[]>([])
 const loading = ref(false)
@@ -62,10 +65,6 @@ const rules: FormRules = {
     { required: true, message: '请输入 Slug', trigger: 'blur' },
     { pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/, message: '仅支持小写字母、数字和连字符', trigger: 'blur' },
   ],
-}
-
-function statusLabel(s: string) {
-  return s === 'published' ? '已发布' : s === 'offline' ? '已下线' : '草稿'
 }
 
 async function loadData() {
@@ -93,7 +92,7 @@ async function handlePublish(row: Series) {
 async function handleUnpublish(row: Series) {
   await seriesApi.unpublish(row.id); ElMessage.success('已下线'); loadData()
 }
-onMounted(loadData)
+onMounted(() => { loadEnumDict(); loadData() })
 </script>
 
 <style scoped>

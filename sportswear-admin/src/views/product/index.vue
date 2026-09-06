@@ -69,20 +69,13 @@
             @keyup.enter="handleSearch"
           />
           <el-select v-model="status" placeholder="状态" clearable style="width: 120px" @change="handleSearch">
-            <el-option label="草稿" value="draft" />
-            <el-option label="已发布" value="published" />
-            <el-option label="已下线" value="offline" />
+            <el-option v-for="o in enumOptions('product.status')" :key="o.value" :label="o.label" :value="o.value" />
           </el-select>
           <el-select v-model="gender" placeholder="性别" clearable style="width: 110px" @change="handleSearch">
-            <el-option label="中性" value="unisex" />
-            <el-option label="男装" value="male" />
-            <el-option label="女装" value="female" />
-            <el-option label="童装" value="kids" />
+            <el-option v-for="o in enumOptions('product.gender')" :key="o.value" :label="o.label" :value="o.value" />
           </el-select>
           <el-select v-model="typeFilter" placeholder="类型" clearable style="width: 110px" @change="handleSearch">
-            <el-option label="OEM" value="oem" />
-            <el-option label="ODM" value="odm" />
-            <el-option label="Both" value="both" />
+            <el-option v-for="o in enumOptions('product.type')" :key="o.value" :label="o.label" :value="o.value" />
           </el-select>
           <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
         </div>
@@ -108,12 +101,12 @@
         <el-table-column prop="slug" label="Slug" min-width="150" />
         <el-table-column label="类型" width="80" align="center">
           <template #default="{ row }">
-            <el-tag size="small" :type="row.type === 'oem' ? 'info' : row.type === 'odm' ? 'warning' : 'primary'">{{ row.type?.toUpperCase() }}</el-tag>
+            <el-tag size="small" :type="enumTag('product.type', row.type)">{{ enumLabel('product.type', row.type) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="性别" width="66" align="center">
           <template #default="{ row }">
-            <span class="gender-tag">{{ genderLabel(row.gender) }}</span>
+            <span class="gender-tag">{{ enumLabel('product.gender', row.gender) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="精选" width="56" align="center">
@@ -123,7 +116,7 @@
         </el-table-column>
         <el-table-column label="状态" width="80" align="center">
           <template #default="{ row }">
-            <el-tag :type="statusType(row.status)" size="small" effect="plain">{{ statusLabel(row.status) }}</el-tag>
+            <el-tag :type="enumTag('product.status', row.status)" size="small" effect="plain">{{ enumLabel('product.status', row.status) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="production_moq" label="MOQ" width="72" align="right" />
@@ -192,19 +185,14 @@
                 <el-col :span="8">
                   <el-form-item label="类型">
                     <el-select v-model="form.type" class="full-width">
-                      <el-option label="OEM" value="oem" />
-                      <el-option label="ODM" value="odm" />
-                      <el-option label="Both" value="both" />
+                      <el-option v-for="o in enumOptions('product.type')" :key="o.value" :label="o.label" :value="o.value" />
                     </el-select>
                   </el-form-item>
                 </el-col>
                 <el-col :span="8">
                   <el-form-item label="性别">
                     <el-select v-model="form.gender" class="full-width">
-                      <el-option label="中性" value="unisex" />
-                      <el-option label="男装" value="male" />
-                      <el-option label="女装" value="female" />
-                      <el-option label="童装" value="kids" />
+                      <el-option v-for="o in enumOptions('product.gender')" :key="o.value" :label="o.label" :value="o.value" />
                     </el-select>
                   </el-form-item>
                 </el-col>
@@ -628,7 +616,7 @@
           <div v-for="(v, idx) in videos" :key="idx" class="video-item">
             <div class="video-row">
               <el-select v-model="v.type" placeholder="类型" style="width: 120px">
-                <el-option v-for="opt in videoTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                <el-option v-for="opt in enumOptions('product.video.type')" :key="opt.value" :label="opt.label" :value="opt.value" />
               </el-select>
               <el-input v-model="v.title" placeholder="标题 (英文)" style="width: 140px" />
               <el-input v-model="v.url" placeholder="视频 URL（支持 YouTube 链接）" style="width: 220px" />
@@ -662,7 +650,7 @@
           <div v-for="(c, idx) in customizations" :key="idx" class="custom-item">
             <div class="custom-row">
               <el-select v-model="c.type" placeholder="定制类型" style="width: 160px">
-                <el-option v-for="opt in customTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                <el-option v-for="opt in enumOptions('product.customization.type')" :key="opt.value" :label="opt.label" :value="opt.value" />
               </el-select>
               <el-switch v-model="c.is_enabled" active-text="启用" style="width: 90px" />
               <el-button type="danger" size="small" @click="removeCustomization(idx)" circle>
@@ -726,8 +714,11 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Star, Delete, ArrowDown, ArrowUp, Search } from '@element-plus/icons-vue'
 import { productApi, mediaApi, categoryApi, seriesApi, fabricApi } from '@/api'
 import { useAdminPageSize } from '@/composables/useAdminPageSize'
+import { useEnumDict } from '@/composables/useEnumDict'
 import type { Product, Media, Category, Series, Fabric } from '@/types'
 import { checkProductGate, gateAlertMessage } from '@/utils/publish-gate'
+
+const { ensureLoaded: loadEnumDict, options: enumOptions, label: enumLabel, tagType: enumTag } = useEnumDict()
 
 const products = ref<Product[]>([])
 const loading = ref(false)
@@ -819,12 +810,6 @@ const videoProductId = ref('')
 const videos = ref<Array<{ type: string; title: string; url: string; cover: string; title_zh?: string; title_es?: string; title_fr?: string }>>([])
 const videoDetail = ref<any>(null)
 const savingVideos = ref(false)
-const videoTypeOptions = [
-  { label: '产品视频', value: 'product' },
-  { label: '生产视频', value: 'production' },
-  { label: '工艺视频', value: 'craft' },
-  { label: '用途视频', value: 'usage' },
-]
 
 // 定制管理
 const customDialogVisible = ref(false)
@@ -832,23 +817,6 @@ const customProductId = ref('')
 const customizations = ref<Array<{ type: string; is_enabled: boolean; note: string; note_zh?: string; note_es?: string; note_fr?: string }>>([])
 const customDetail = ref<any>(null)
 const savingCustom = ref(false)
-const customTypeOptions = [
-  { label: 'Logo 定制', value: 'logo' },
-  { label: '颜色定制', value: 'color' },
-  { label: '面料定制', value: 'fabric' },
-  { label: '图案定制', value: 'pattern' },
-  { label: '印花定制', value: 'print' },
-  { label: '刺绣定制', value: 'embroidery' },
-  { label: '标签定制', value: 'label' },
-  { label: '吊牌定制', value: 'hangtag' },
-  { label: '包装定制', value: 'packaging' },
-  { label: '尺码定制', value: 'size' },
-  { label: '合身度定制', value: 'fit' },
-  { label: '拉链定制', value: 'zipper' },
-  { label: '纽扣定制', value: 'button' },
-  { label: '腰带定制', value: 'belt' },
-  { label: '配件定制', value: 'accessory' },
-]
 
 // 媒体选择
 const mediaDialogVisible = ref(false)
@@ -859,10 +827,6 @@ const mediaPageSize = ref(20)
 const mediaTotal = ref(0)
 const selectedMediaId = ref('')
 let mediaResolve: ((url: string) => void) | null = null
-
-function genderLabel(g: string) {
-  return g === 'unisex' ? '中性' : g === 'male' ? '男装' : g === 'female' ? '女装' : '童装'
-}
 
 async function loadData() {
   loading.value = true
@@ -1573,14 +1537,8 @@ async function handleDelete(row: Product) {
   loadData()
 }
 
-function statusType(s: string) {
-  return s === 'published' ? 'success' : s === 'draft' ? 'info' : 'warning'
-}
-function statusLabel(s: string) {
-  return s === 'published' ? '已发布' : s === 'draft' ? '草稿' : '已下线'
-}
-
 onMounted(() => {
+  loadEnumDict()
   loadData()
   loadCategories()
   loadSeries()

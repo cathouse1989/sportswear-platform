@@ -9,8 +9,8 @@
       <el-table-column prop="composition" label="成分" min-width="200" />
       <el-table-column label="状态" width="90" align="center">
         <template #default="{ row }">
-          <el-tag :type="row.status === 'published' ? 'success' : row.status === 'offline' ? 'warning' : 'info'" size="small">
-            {{ statusLabel(row.status) }}
+          <el-tag :type="enumTag('product.status', row.status)" size="small">
+            {{ enumLabel('product.status', row.status) }}
           </el-tag>
         </template>
       </el-table-column>
@@ -60,7 +60,10 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { fabricApi } from '@/api'
+import { useEnumDict } from '@/composables/useEnumDict'
 import type { Fabric } from '@/types'
+
+const { ensureLoaded: loadEnumDict, label: enumLabel, tagType: enumTag } = useEnumDict()
 
 const fabricList = ref<Fabric[]>([])
 const loading = ref(false)
@@ -80,10 +83,6 @@ const rules: FormRules = {
     { required: true, message: '请输入面料编码', trigger: 'blur' },
     { pattern: /^[A-Za-z0-9][A-Za-z0-9_-]*$/, message: '仅支持字母、数字、下划线和连字符', trigger: 'blur' },
   ],
-}
-
-function statusLabel(s: string) {
-  return s === 'published' ? '已发布' : s === 'offline' ? '已下线' : '草稿'
 }
 
 async function loadData() {
@@ -117,7 +116,7 @@ async function handlePublish(row: Fabric) {
 async function handleUnpublish(row: Fabric) {
   await fabricApi.unpublish(row.id); ElMessage.success('已下线'); loadData()
 }
-onMounted(loadData)
+onMounted(() => { loadEnumDict(); loadData() })
 </script>
 
 <style scoped>

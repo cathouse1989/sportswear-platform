@@ -545,3 +545,28 @@ export interface I18nEntry {
   value: string
   module: string
 }
+
+export interface SysEnumType {
+  id: string
+  code: string
+  name: string
+  module: string
+  i18n_prefix: string
+  description: string
+  is_system: boolean
+  is_active: boolean
+  sort_order: number
+  item_count: number
+}
+
+export interface SysEnumItem {
+  id: string
+  type_id: string
+  value: string
+  label: string
+  translations: Record<string, string>
+  color: string
+  is_default: boolean
+  is_active: boolean
+  sort_order: number
+}

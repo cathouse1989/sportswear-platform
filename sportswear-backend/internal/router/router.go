@@ -57,6 +57,7 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 	analyticsService := services.NewAnalyticsService(db)
 	portalService := services.NewPortalService(db, cacheService)
 	i18nService := services.NewI18nService(db)
+	enumService := services.NewEnumService(db)
 	seoService := services.NewSEOService(db)
 	currencyService := services.NewCurrencyService(db)
 	geoService := services.NewGeoService(db)
@@ -79,6 +80,7 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 	analyticsHandler := handlers.NewAnalyticsHandler(analyticsService)
 	portalHandler := handlers.NewPortalHandler(portalService, cacheService, db)
 	i18nHandler := handlers.NewI18nHandler(i18nService)
+	enumHandler := handlers.NewEnumHandler(enumService)
 	localizationHandler := handlers.NewLocalizationHandler(seoService, currencyService, geoService, unitService)
 	storageSourceHandler := handlers.NewStorageSourceHandler(storageSourceService)
 	systemHandler := handlers.NewSystemHandler(notificationService, operationLogService, quoteService, cmsService, productService)
@@ -120,6 +122,7 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 
 		public.GET("/theme", portalHandler.GetThemeConfig)                     // 主题配置（前端渲染视觉风格）
 		public.GET("/i18n", i18nHandler.GetDictionary)                         // i18n 词条字典（前端一键切换语言）
+		public.GET("/enums", enumHandler.GetPublicEnums)                       // 枚举字典（数据字典，前端枚举标签翻译）
 		public.GET("/currencies", localizationHandler.ListCurrencies)          // 货币列表
 		public.GET("/currencies/convert", localizationHandler.ConvertCurrency) // 货币转换
 		public.GET("/locale", localizationHandler.GetLocaleInfo)               // 本地化信息（语言+货币+时区）
@@ -487,6 +490,19 @@ func Setup(cfg *config.Config, db *gorm.DB, cacheService *services.CacheService)
 				middleware.RequirePermission("language:manage"), i18nHandler.UpsertEntry)
 			auth.DELETE("/i18n/entries/:id",
 				middleware.RequirePermission("language:manage"), i18nHandler.DeleteEntry)
+
+			// ---------- 枚举字典管理（数据字典：值域 + 多语言翻译） ----------
+			// 只读接口：登录即可读（枚举标签为通用配置数据，产品/内容等页面均需展示）
+			auth.GET("/enums/types", enumHandler.ListTypes)
+			auth.GET("/enums/items", enumHandler.ListItems)
+			auth.POST("/enums/types",
+				middleware.RequirePermission("setting:manage"), enumHandler.UpsertType)
+			auth.DELETE("/enums/types/:id",
+				middleware.RequirePermission("setting:manage"), enumHandler.DeleteType)
+			auth.POST("/enums/items",
+				middleware.RequirePermission("setting:manage"), enumHandler.UpsertItem)
+			auth.DELETE("/enums/items/:id",
+				middleware.RequirePermission("setting:manage"), enumHandler.DeleteItem)
 
 			// ---------- SEO 管理（多语言） ----------
 			auth.POST("/seo",
