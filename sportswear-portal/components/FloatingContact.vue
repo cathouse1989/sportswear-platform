@@ -19,7 +19,7 @@
 
       <!-- Inquiry Button -->
       <button
-        @click="showPopup = true"
+        @click="openInquiry"
         class="flex items-center gap-2 bg-[#0D1B2A] text-white px-3 py-4 rounded-l-lg shadow-lg hover:bg-[#1B2D44] transition-all min-h-[44px]"
         @mouseenter="showInquiry = true"
         @mouseleave="showInquiry = false"
@@ -45,7 +45,7 @@
         <span>WhatsApp</span>
       </a>
       <button
-        @click="showPopup = true"
+        @click="openInquiry"
         class="flex-1 flex items-center justify-center gap-2 py-3 bg-[#0D1B2A] text-white text-sm font-semibold min-h-[52px] active:bg-[#1B2D44] transition-colors"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,6 +94,7 @@
 
 <script setup lang="ts">
 const api = useApi()
+const route = useRoute()
 const showWa = ref(false)
 const showInquiry = ref(false)
 const showPopup = ref(false)
@@ -104,7 +105,50 @@ const form = reactive({ name: '', email: '', message: '' })
 const waNum = ref('8612345678900')
 const waMsg = ref('Hello! I am interested in your sportswear products.')
 
-const waUrl = computed(() => 'https://wa.me/' + waNum.value + '?text=' + encodeURIComponent(waMsg.value))
+// 产品详情页识别：悬浮 WhatsApp / 询盘自动携带当前产品信息
+const productSlug = computed(() => {
+  const slug = route.params.slug
+  return typeof slug === 'string' ? slug : ''
+})
+const currentProduct = ref<any>(null)
+const productId = ref<string | null>(null)
+const productCategory = ref('')
+
+async function loadProductInfo() {
+  const slug = productSlug.value
+  if (!slug) {
+    currentProduct.value = null
+    productId.value = null
+    productCategory.value = ''
+    return
+  }
+  try {
+    const p = await api.getProduct(slug)
+    currentProduct.value = p
+    productId.value = p?.id || null
+    productCategory.value = p?.category?.slug || ''
+  } catch {
+    currentProduct.value = null
+    productId.value = null
+    productCategory.value = ''
+  }
+}
+
+// 路由切换或首屏进入产品页时（仅客户端）加载产品信息；命中后端 Redis 缓存，成本低
+watch(productSlug, () => {
+  if (import.meta.client) loadProductInfo()
+}, { immediate: true })
+
+const waUrl = computed(() => {
+  const msg = currentProduct.value ? buildWhatsAppMessage(currentProduct.value) : waMsg.value
+  return 'https://wa.me/' + waNum.value + '?text=' + encodeURIComponent(msg)
+})
+
+// 打开询盘弹窗：若当前在产品详情页，预填完整产品信息便于销售识别
+function openInquiry() {
+  if (currentProduct.value) form.message = buildProductInfoText(currentProduct.value)
+  showPopup.value = true
+}
 
 // 使用 localStorage 记录弹窗关闭状态，7天内不再自动弹出
 const POPUP_STORAGE_KEY = 'sportswear_inquiry_popup'
@@ -148,7 +192,15 @@ async function submitLead() {
   success.value = ''
   error.value = ''
   try {
-    await api.submitLead({ name: form.name, email: form.email, message: form.message, source: 'floating' })
+    await api.submitLead({
+      name: form.name,
+      email: form.email,
+      message: form.message,
+      source: 'floating',
+      project_type: currentProduct.value ? 'product' : 'floating',
+      product_id: productId.value || undefined,
+      product_category: productCategory.value || undefined,
+    })
     success.value = 'Thank you! We will contact you within 24 hours.'
     form.name = ''; form.email = ''; form.message = ''
     setTimeout(() => { dismissPopup(); success.value = '' }, 2000)

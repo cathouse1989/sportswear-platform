@@ -81,6 +81,10 @@ const submitting = ref(false)
 const successMsg = ref('')
 const form = reactive({ name: '', email: '', phone: '', company: '', message: '' })
 
+// 来自产品详情页的询盘参数：结构化产品字段（提交时回传，用于询盘评分与归类）
+const productId = ref<string | null>(null)
+const productCategory = ref('')
+
 // 品牌名 / 副标题（优先主题配置，回退默认）
 const brandName = ref('SPORTSWEAR')
 const brandSubtitle = ref('Premium Mfg.')
@@ -144,7 +148,17 @@ onMounted(async () => {
   // 来自案例详情的 CTA：预填留言，便于销售识别来源案例
   if (route.query.case_title) {
     form.message = t('contact.case_prefill', { case: String(route.query.case_title) })
+  } else if (route.query.product_info) {
+    // 来自产品详情页的询盘：预填完整产品信息，便于销售识别具体产品
+    form.message = String(route.query.product_info)
+  } else if (route.query.product) {
+    // 兼容旧链接（仅携带 SKU / 名称 / 规格）
+    form.message = `I am interested in product: ${String(route.query.product)}` +
+      (route.query.specs ? `\nSelected options: ${String(route.query.specs)}` : '')
   }
+  // 结构化产品字段：随询盘提交，触发后端「已选产品」评分加成
+  if (route.query.product_id) productId.value = String(route.query.product_id)
+  if (route.query.product_category) productCategory.value = String(route.query.product_category)
   try {
     const theme = await api.getTheme()
     if (theme?.brand_name) brandName.value = theme.brand_name
@@ -183,6 +197,8 @@ async function handleSubmit() {
     await api.submitLead({
       ...form,
       project_type: (route.query.project_type as string) || 'contact',
+      product_id: productId.value || undefined,
+      product_category: productCategory.value || undefined,
       attachments: attachments.length ? JSON.stringify(attachments) : '',
     })
     successMsg.value = t('contact.success')

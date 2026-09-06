@@ -13,7 +13,13 @@
           <div v-else class="cover-placeholder">—</div>
         </template>
       </el-table-column>
-      <el-table-column prop="name" label="名称" min-width="180" />
+      <el-table-column prop="name" label="名称（英文）" min-width="180" />
+      <el-table-column label="中文名称" min-width="170">
+        <template #default="{ row }">
+          <span v-if="zhName(row)">{{ zhName(row) }}</span>
+          <span v-else class="muted">{{ row.name }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="翻译" min-width="120">
         <template #default="{ row }">
           <el-tag v-for="t in row.translations || []" :key="t.id || t.language" size="small" type="info" class="lang-tag">{{ t.language }}</el-tag>
@@ -69,6 +75,11 @@ const TRANS_FIELDS = [
 const TRANS_KEYS = TRANS_FIELDS.map((f) => f.key)
 const emptyForm = () => ({ name: '', code: '', issue_date: '', expiry_date: '', image: '', pdf: '', description: '' })
 const translations = ref<Record<string, Record<string, string>>>({})
+
+// 取中文名称（无中文翻译时返回空，由模板回退英文名）
+function zhName(row: any): string {
+  return (row.translations || []).find((t: any) => t.language === 'zh')?.name || ''
+}
 
 const {
   items, total, loading, page, pageSize, keyword,

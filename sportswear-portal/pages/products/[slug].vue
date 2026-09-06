@@ -178,7 +178,7 @@
           <!-- Action Buttons -->
           <div class="flex flex-col sm:flex-row gap-3 mb-8">
             <NuxtLink
-              :to="localePath('/contact') + '?product=' + encodeURIComponent(product.sku) + (selectionSummary ? '&specs=' + encodeURIComponent(selectionSummary) : '')"
+              :to="inquiryLink"
               class="flex-1 inline-flex items-center justify-center gap-2 bg-[#D4A853] text-white px-8 py-3.5 rounded-xl font-semibold hover:bg-[#C49A3F] transition text-sm min-h-[48px]"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
@@ -717,11 +717,25 @@ function fabricTags(f: any): Array<{ label: string; value: string }> {
 }
 
 const waNumber = computed(() => theme.value?.whatsapp_number || '8612345678900')
-const waMessage = computed(() => {
+
+// WhatsApp 询盘消息：复用公共 composable 构建完整产品信息（SKU / 规格 / MOQ / 定制等），
+// 确保采购人员跳转到 WhatsApp 时消息已携带完整产品信息。
+const waMessage = computed(() => buildWhatsAppMessage(product.value, selectionSummary.value))
+
+// 询盘按钮跳转链接：携带产品 ID / SKU / 分类 / 规格与完整产品信息，
+// 联系页据此预填留言，并在提交时回传 product_id / product_category 等结构化字段。
+const inquiryLink = computed(() => {
+  if (!product.value) return localePath('/contact')
   const p = product.value
-  if (!p) return 'Hello! I am interested in your sportswear products.'
-  const selection = selectionSummary.value ? `\nSelected options: ${selectionSummary.value}` : ''
-  return `Hello! I am interested in your product: ${p.name || p.sku} (SKU: ${p.sku}).${selection}\nPlease send me more information.`
+  const params = new URLSearchParams()
+  params.set('project_type', 'product')
+  if (p.id) params.set('product_id', p.id)
+  params.set('product', p.sku || p.name || '')
+  if (p.category?.slug) params.set('product_category', p.category.slug)
+  if (selectionSummary.value) params.set('specs', selectionSummary.value)
+  const info = buildProductInfoText(product.value, selectionSummary.value)
+  if (info) params.set('product_info', info)
+  return localePath('/contact') + '?' + params.toString()
 })
 
 const videoEmbedUrl = computed(() => {
@@ -770,43 +784,19 @@ function openVideo(v: any) {
 }
 
 async function copyProductInfo() {
-  const p = product.value
-  if (!p) return
+  const info = buildProductInfoText(product.value, selectionSummary.value)
+  if (!info) return
 
-  const info = [
-    `SKU: ${p.sku}`,
-    p.name ? `Name: ${p.name}` : '',
-    p.type ? `Type: ${p.type}` : '',
-    p.gender ? `Gender: ${p.gender}` : '',
-    p.material ? `Material: ${p.material}` : '',
-    p.composition ? `Composition: ${p.composition}` : '',
-    p.weight ? `Weight: ${p.weight}` : '',
-    p.elasticity ? `Elasticity: ${p.elasticity}` : '',
-    p.fit ? `Fit: ${p.fit}` : '',
-    p.season ? `Season: ${p.season}` : '',
-    p.size_range ? `Size Range: ${p.size_range}` : '',
-    p.brief ? `Brief: ${p.brief}` : '',
-    p.description ? `Description: ${p.description}` : '',
-    p.features ? `Features: ${p.features}` : '',
-    p.usage ? `Usage: ${p.usage}` : '',
-    `Sample MOQ: ${p.sample_moq || 1}`,
-    `Production MOQ: ${p.production_moq || 300}`,
-    `Color MOQ: ${p.color_moq || 100}`,
-    `Size MOQ: ${p.size_moq || 100}`,
-    p.specs?.length ? `\nSpecifications:\n${p.specs.map((s: any) => `  ${s.name}: ${s.value}`).join('\n')}` : '',
-    selectionSummary.value ? `\nSelected Options: ${selectionSummary.value}` : '',
-    p.customizations?.length ? `\nCustomization Options:\n${p.customizations.map((c: any) => `  ${c.type}: ${c.note || 'Available'}`).join('\n')}` : '',
-    `\nURL: ${window.location.href}`,
-  ].filter(Boolean).join('\n')
+  const text = `${info}\nURL: ${window.location.href}`
 
   try {
-    await navigator.clipboard.writeText(info)
+    await navigator.clipboard.writeText(text)
     copied.value = true
     setTimeout(() => { copied.value = false }, 3000)
   } catch {
     // Fallback for older browsers
     const textarea = document.createElement('textarea')
-    textarea.value = info
+    textarea.value = text
     document.body.appendChild(textarea)
     textarea.select()
     document.execCommand('copy')
