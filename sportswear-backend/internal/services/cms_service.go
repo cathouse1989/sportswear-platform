@@ -1512,7 +1512,7 @@ func (s *CMSService) UnpublishCertification(id string) error {
 		Update("status", models.ProductStatusOffline).Error
 }
 
-// CreateCertification 创建认证
+// CreateCertification 创建认证（含多语言翻译）
 func (s *CMSService) CreateCertification(req *CertificationRequest) (*models.Certification, error) {
 	cert := models.Certification{
 		Name:        req.Name,
@@ -1525,7 +1525,13 @@ func (s *CMSService) CreateCertification(req *CertificationRequest) (*models.Cer
 		Description: req.Description,
 		IsActive:    req.IsActive,
 	}
-	if err := s.db.Create(&cert).Error; err != nil {
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&cert).Error; err != nil {
+			return err
+		}
+		return s.saveCertificationTranslations(tx, cert.ID, req.Translations)
+	})
+	if err != nil {
 		return nil, err
 	}
 	return &cert, nil

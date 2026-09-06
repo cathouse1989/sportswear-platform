@@ -109,6 +109,7 @@ export const MENU_CONFIG: MenuItem[] = [
     icon: Document,
     children: [
       { key: 'pages', label: '页面管理', index: '/pages', sort_order: 5, permission: 'page:view' },
+      { key: 'about', label: '关于我们', index: '/about', sort_order: 6, permission: 'page:view' },
       { key: 'hero', label: '轮播图管理', index: '/hero', sort_order: 10, permission: 'page:view' },
       { key: 'navigations', label: '导航管理', index: '/navigations', sort_order: 20, permission: ['navigation:manage', 'page:view'] },
       { key: 'blogs', label: '博客管理', index: '/blogs', sort_order: 30, permission: ['blog:manage', 'page:view'] },

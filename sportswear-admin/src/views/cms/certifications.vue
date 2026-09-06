@@ -37,6 +37,8 @@
     <ProFormDialog v-model="dialogVisible" :title="editingId ? '编辑认证' : '新建认证'" :form="form" :rules="rules" @submit="handleSave" width="720px">
       <el-form-item label="名称" prop="name"><el-input v-model="form.name" /></el-form-item>
       <el-form-item label="编号"><el-input v-model="form.code" /></el-form-item>
+      <el-form-item label="颁发日期"><el-date-picker v-model="form.issue_date" type="date" value-format="YYYY-MM-DD" placeholder="选择颁发日期" style="width: 100%" /></el-form-item>
+      <el-form-item label="到期日期"><el-date-picker v-model="form.expiry_date" type="date" value-format="YYYY-MM-DD" placeholder="选择到期日期" style="width: 100%" /></el-form-item>
       <el-form-item label="证书图"><MediaPicker v-model="form.image" /></el-form-item>
       <el-form-item label="PDF"><MediaPicker v-model="form.pdf" media-type="file" /></el-form-item>
       <el-form-item label="描述"><el-input v-model="form.description" type="textarea" /></el-form-item>
@@ -65,7 +67,7 @@ const TRANS_FIELDS = [
   { key: 'description', label: '描述', type: 'textarea' as const, rows: 2 },
 ]
 const TRANS_KEYS = TRANS_FIELDS.map((f) => f.key)
-const emptyForm = () => ({ name: '', code: '', image: '', pdf: '', description: '' })
+const emptyForm = () => ({ name: '', code: '', issue_date: '', expiry_date: '', image: '', pdf: '', description: '' })
 const translations = ref<Record<string, Record<string, string>>>({})
 
 const {
