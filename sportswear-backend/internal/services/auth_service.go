@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -37,6 +38,10 @@ type LoginResponse struct {
 
 // Login 用户登录
 func (s *AuthService) Login(req *LoginRequest, ip string) (*LoginResponse, error) {
+	// 去除首尾空白：防止直接调用接口/前端遗漏时，复制粘贴带入空格导致「邮箱或密码错误」
+	req.Email = strings.TrimSpace(req.Email)
+	req.Password = strings.TrimSpace(req.Password)
+
 	var user models.User
 	if err := s.db.Where("email = ?", req.Email).First(&user).Error; err != nil {
 		return nil, errors.New("邮箱或密码错误")

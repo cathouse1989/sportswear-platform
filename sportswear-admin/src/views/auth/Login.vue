@@ -6,7 +6,7 @@
 
       <el-form ref="formRef" :model="form" :rules="rules" @keyup.enter="handleLogin">
         <el-form-item prop="email">
-          <el-input v-model="form.email" placeholder="邮箱" size="large">
+          <el-input v-model="form.email" placeholder="邮箱" size="large" @input="onEmailInput">
             <template #prefix><el-icon><Message /></el-icon></template>
           </el-input>
         </el-form-item>
@@ -43,12 +43,27 @@ const form = reactive({
 })
 
 const rules = {
-  email: [{ required: true, message: '请输入邮箱', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { whitespace: true, message: '邮箱不能为空格', trigger: 'blur' },
+    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' },
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { whitespace: true, message: '密码不能为空格', trigger: 'blur' },
+  ],
+}
+
+// 邮箱实时去除所有空白字符（邮箱本身不含空格，从源头避免复制粘贴带入）
+function onEmailInput(val: string) {
+  form.email = val.replace(/\s+/g, '')
 }
 
 async function handleLogin() {
   await formRef.value?.validate()
+  // 兜底：提交前去除首尾空格（密码保留内部字符，仅清理首尾误输入的空格）
+  form.email = form.email.trim().replace(/\s+/g, '')
+  form.password = form.password.trim()
   loading.value = true
   try {
     await authStore.login(form.email, form.password)
