@@ -150,7 +150,7 @@ type InquiryTemplate struct {
 	ProjectType  string                       `gorm:"type:varchar(50)" json:"project_type"` // 询盘 project_type 映射：oem/odm/private_label，空则 contact
 	SortOrder    int                          `gorm:"default:0" json:"sort_order"`
 	IsActive     bool                         `gorm:"default:true" json:"is_active"`
-	Translations []InquiryTemplateTranslation `json:"translations,omitempty"`
+	Translations []InquiryTemplateTranslation `gorm:"foreignKey:TemplateID" json:"translations,omitempty"`
 }
 
 // InquiryTemplateTranslation 询盘问题模板翻译

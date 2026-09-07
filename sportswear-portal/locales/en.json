@@ -201,6 +201,13 @@
   "contact": {
     "title": "Contact Us",
     "subtitle": "Send us a message and we'll get back to you within 24 hours.",
+    "eyebrow": "Get in Touch",
+    "trust_response": "24-Hour Response",
+    "trust_oem": "OEM/ODM Service",
+    "trust_cert": "Certified Quality",
+    "form_title": "Send Us a Message",
+    "form_subtitle": "Tell us about your project and we'll get back within 24 hours.",
+    "info_desc": "Prefer to reach out directly? Our team is available Monday to Friday.",
     "name": "Name *",
     "email": "Email *",
     "phone": "Phone",

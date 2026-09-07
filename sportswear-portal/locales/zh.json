@@ -201,6 +201,13 @@
   "contact": {
     "title": "联系我们",
     "subtitle": "给我们留言，我们将在24小时内回复。",
+    "eyebrow": "联系洽谈",
+    "trust_response": "24小时内回复",
+    "trust_oem": "OEM/ODM 服务",
+    "trust_cert": "认证品质",
+    "form_title": "给我们留言",
+    "form_subtitle": "告诉我们您的项目需求，我们将在 24 小时内回复。",
+    "info_desc": "想直接联系我们？我们的团队周一至周五在线。",
     "name": "姓名 *",
     "email": "邮箱 *",
     "phone": "电话",
